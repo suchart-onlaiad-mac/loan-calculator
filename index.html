@@ -102,6 +102,7 @@
   @media (min-width:620px){.grid{grid-template-columns:repeat(4,1fr)}}
   .field{min-width:0}
   .field.wide{grid-column:1/-1}
+  .date-hint{font-size:11.5px;color:var(--brand-d);font-weight:700;margin-top:5px;min-height:14px}
   label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px;font-weight:700}
   .inp{position:relative}
   input,select{width:100%;padding:12px 12px;border:1.5px solid var(--line);border-radius:12px;
@@ -267,6 +268,7 @@
       <div class="field">
         <label>วันรับเงินกู้</label>
         <input id="startDate" type="date">
+        <div class="date-hint" id="startDate-th"></div>
       </div>
       <div class="field type-field">
         <label>ประเภทสัญญา</label>
@@ -335,7 +337,7 @@
       <div class="card">
         <h2><span class="n">2</span> ยอดปิดบัญชี ณ วันที่ <span style="font-size:12px;font-weight:600;color:var(--muted)">— ปิดก่อนกำหนด / สอบถามยอด</span></h2>
         <div class="grid no-print" style="margin-bottom:6px">
-          <div class="field"><label>คำนวณ ณ วันที่</label><input id="asofDate" type="date"></div>
+          <div class="field"><label>คำนวณ ณ วันที่</label><input id="asofDate" type="date"><div class="date-hint" id="asofDate-th"></div></div>
         </div>
         <div class="summary" id="payoffSummary"></div>
         <div class="note" id="payoffNote"></div>
@@ -348,8 +350,8 @@
         <h2><span class="n">2</span> เบี้ยปรับผิดนัดชำระ <span style="font-size:12px;font-weight:600;color:var(--muted)">— ค่าปรับล้วน 3%/ปี บนต้นค้าง (ข้อ 16 ว.3)</span></h2>
         <div class="grid no-print" style="margin-bottom:6px">
           <div class="field"><label>เงินต้นที่ค้างชำระ</label><div class="inp"><input id="penPrincipal" type="number" inputmode="decimal" min="0" placeholder="50000"><span class="suffix">บาท</span></div></div>
-          <div class="field"><label>วันครบกำหนด (เริ่มนับปรับ)</label><input id="penDue" type="date"></div>
-          <div class="field"><label>วันที่ชำระจริง (สิ้นสุด)</label><input id="penPaid" type="date"></div>
+          <div class="field"><label>วันครบกำหนด (เริ่มนับปรับ)</label><input id="penDue" type="date"><div class="date-hint" id="penDue-th"></div></div>
+          <div class="field"><label>วันที่ชำระจริง (สิ้นสุด)</label><input id="penPaid" type="date"><div class="date-hint" id="penPaid-th"></div></div>
           <div class="field"><label>อัตราเบี้ยปรับ (ระเบียบ = 3%)</label><div class="inp"><input id="penFine" type="number" step="0.01" inputmode="decimal" value="3"><span class="suffix">%</span></div></div>
         </div>
         <div class="summary" id="penSummary"></div>
@@ -367,7 +369,7 @@
       <div class="grid">
         <div class="field"><label>ยอด A — ต้นเงินรวม (คิดดอกเบี้ย)</label><div class="inp"><input id="rA" type="number" inputmode="decimal" min="0" placeholder="500000"><span class="suffix">บาท</span></div></div>
         <div class="field"><label>ยอด B — ดอก+เบี้ยปรับค้าง (0%)</label><div class="inp"><input id="rB" type="number" inputmode="decimal" min="0" placeholder="80000"><span class="suffix">บาท</span></div></div>
-        <div class="field"><label>วันอนุมัติ / รับเงิน</label><input id="rStart" type="date"></div>
+        <div class="field"><label>วันอนุมัติ / รับเงิน</label><input id="rStart" type="date"><div class="date-hint" id="rStart-th"></div></div>
         <div class="field"><label>จำนวนปี (≤15)</label><div class="inp"><input id="rYears" type="number" min="1" max="15" step="1" value="10"><span class="suffix">ปี</span></div></div>
         <div class="field"><label>ปลอดชำระ (ปีแรก ≤3)</label><div class="inp"><input id="rGrace" type="number" min="0" max="3" step="1" value="0"><span class="suffix">ปี</span></div></div>
         <div class="field"><label>อัตราดอกเบี้ยยอด A (สูงสุด)</label><div class="inp"><input id="rRate" type="number" step="0.01" inputmode="decimal" value="8"><span class="suffix">%</span></div></div>
@@ -883,6 +885,17 @@ document.getElementById('loanType').addEventListener('change',function(){
 document.getElementById('asofDate').addEventListener('input',calcPayoff);
 ['penPrincipal','penDue','penPaid','penFine'].forEach(id=>document.getElementById(id).addEventListener('input',calcPenalty));
 ['rA','rB','rStart','rYears','rGrace','rRate'].forEach(id=>document.getElementById(id).addEventListener('input',calcRestructure));
+// วันที่แบบ พ.ศ. ใต้ทุกช่องวันที่ (input[type=date] ของเบราว์เซอร์บังคับโชว์ ค.ศ. แก้ตรงๆ ไม่ได้ — ใช้ readout เสริมแทน)
+const DATE_FIELDS=['startDate','asofDate','penDue','penPaid','rStart'];
+function updateDateHint(id){
+  const hint=document.getElementById(id+'-th'); if(!hint) return;
+  const v=document.getElementById(id).value;
+  const d=v?parseDate(v):null;
+  hint.textContent = d ? ('→ '+thDate(d)+' (พ.ศ.)') : '';
+}
+DATE_FIELDS.forEach(id=>{
+  document.getElementById(id).addEventListener('input',()=>updateDateHint(id));
+});
 // init
 (function(){
   const t=new Date();
@@ -891,6 +904,7 @@ document.getElementById('asofDate').addEventListener('input',calcPayoff);
   document.getElementById('asofDate').value=iso;
   document.getElementById('penPaid').value=iso;
   document.getElementById('rStart').value=iso;
+  DATE_FIELDS.forEach(updateDateHint);
   syncChips();
 })();
 </script>
