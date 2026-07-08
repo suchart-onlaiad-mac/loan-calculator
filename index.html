@@ -439,7 +439,7 @@ function getRate(){ return parseFloat(document.getElementById('rate').value)||0;
 function getPrincipal(){ return parseFloat(document.getElementById('principal').value)||0; }
 function getYears(){ return Math.max(1,Math.round(parseFloat(document.getElementById('years').value)||1)); }
 // หน่วยปัดอัตโนมัติ: งวด ≥ 10,000 → หลัก 1,000 · ต่ำกว่า → หลัก 100 · เล็กมาก → เต็มบาท
-function autoUnit(per){ if(per>=10000) return 1000; if(per>=1000) return 100; return 1; }
+function autoUnit(per){ if(per>=10000) return 1000; if(per>=1000) return 100; if(per>=100) return 10; return 1; }
 // SSOT งวดต้นรายปี: งวด 1..N-1 = ปัดจำนวนเต็ม (auto หลัก) · งวดสุดท้าย = ทดเศษที่เหลือ
 function instAmounts(P,N){
   const per=P/N;
@@ -569,13 +569,14 @@ function calcMonthly(){
     const dates=[]; for(let i=1;i<m;i++) dates.push(addMonthsClamp(periodStart,i)); dates.push(due);
     const target=(yr===N-1)? outstanding : instArr[yr];
     let A=0; if(mode==='annuity') A=solveAnnuity(outstanding, base, dates, rate, target);
-    if(yr===0) aFirst=(mode==='annuity')? A : (target/dates.length);
+    const fixedInst=(mode!=='annuity')? instAmounts(target, dates.length) : null; // (ก) ปัดเลขสวยเหมือนรายปี
+    if(yr===0) aFirst=(mode==='annuity')? A : fixedInst[0];
     let paidThis=0;
     dates.forEach((pd,idx)=>{
       gno++;
       const dd=daysBetween(base,pd);
       const it=outstanding*rate/100*dd/365;
-      let pp=(mode==='annuity')? (A-it) : Math.round(target/dates.length); // (ก) ต้นเต็มบาท
+      let pp=(mode==='annuity')? (A-it) : fixedInst[idx];
       if(idx===dates.length-1) pp=target-paidThis;                         // เดือนสุดท้ายของปีทดเศษ
       paidThis+=pp; const pay=it+pp;
       rows.push({no:gno,yr:yr+1,date:pd,days:dd,balBefore:outstanding,interest:it,principalPaid:pp,pay,balAfter:outstanding-pp,yearEnd:idx===dates.length-1});
@@ -612,7 +613,7 @@ function calcMonthly(){
   tbl.innerHTML=h;
   note.innerHTML=(mode==='annuity'
     ? '• (ข) ยอดรวมเท่ากันทุกเดือน (annuity) ต่อปี — ปีถัดไปคำนวณใหม่ตามต้นคงเหลือ'
-    : '• (ก) ต้นเงินเท่ากันทุกเดือน (ปัดจำนวนเต็มบาท ทดเศษเดือนสุดท้ายของปี) + ดอกเบี้ยลดลง → ยอดรวมค่อย ๆ ลด')
+    : '• (ก) ต้นเงินเท่ากันทุกเดือน (ปัดเลขสวยอัตโนมัติเหมือนรายปี ทดเศษเดือนสุดท้ายของปี) + ดอกเบี้ยลดลง → ยอดรวมค่อย ๆ ลด')
     + '<br>• กระจาย<b>ต่อปี</b> · ปีแรก '+(monthsBetween(d0,dueDates[0])||1)+' เดือน (วันกู้→ครบกำหนด) · ปีถัดไปปีละ 12 เดือน · ดอกจากต้นคงเหลือจริง รายวัน ÷365';
 }
 
@@ -776,6 +777,8 @@ function calcRestructMonthly(){
     const dates=[]; for(let i=1;i<m;i++) dates.push(addMonthsClamp(pStart,i)); dates.push(due);
     const tA=instA[yr-G], tB=instB[yr-G];
     const Aann = mode==='annuity' ? solveAnnuity(outA, base, dates, rate, tA) : 0;
+    const fixedA=(mode!=='annuity')? instAmounts(tA, dates.length) : null; // ปัดเลขสวยเหมือนรายปี
+    const fixedB=(mode!=='annuity')? instAmounts(tB, dates.length) : null;
     let paidA=0, paidB=0;
     dates.forEach((pd,idx)=>{
       gno++;
@@ -784,7 +787,7 @@ function calcRestructMonthly(){
       let extra=0; if(firstRow){ extra=deferred; firstRow=false; }
       let ppA, ppB;
       if(mode==='annuity'){ ppA=Aann-itA; ppB=tB/dates.length; }
-      else { ppA=Math.round(tA/dates.length); ppB=Math.round(tB/dates.length); }
+      else { ppA=fixedA[idx]; ppB=fixedB[idx]; }
       if(idx===dates.length-1){ ppA=tA-paidA; ppB=tB-paidB; }
       paidA+=ppA; paidB+=ppB;
       const itShown=itA+extra, pay=itShown+ppA+ppB;
