@@ -237,7 +237,9 @@
 
   @media print{
     body{background:#fff}.no-print{display:none!important}
-    .pane{display:block!important}.card{box-shadow:none;border-color:#ccc}
+    .pane{display:none!important}.pane.active{display:block!important}
+    .rpane{display:none!important}.rpane.active{display:block!important}
+    .card{box-shadow:none;border-color:#ccc}
     header{background:linear-gradient(135deg,var(--brand-d),var(--brand))!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   }
