@@ -236,12 +236,28 @@
   footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:8px}
 
   @media print{
+    @page{size:A4 portrait;margin:8mm}
     body{background:#fff}.no-print{display:none!important}
     .pane{display:none!important}.pane.active{display:block!important}
     .rpane{display:none!important}.rpane.active{display:block!important}
     .card{box-shadow:none;border-color:#ccc}
     header{background:linear-gradient(135deg,var(--brand-d),var(--brand))!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+    /* ===== ตารางงวดชำระ: บังคับให้พอดีหน้ากระดาษ ไม่ตัดคอลัมน์ (บั๊ก print เดิม) ===== */
+    .tbl-scroll{overflow:visible!important;border:1px solid #ccc;border-radius:0}
+    table{min-width:0!important;width:100%!important;table-layout:fixed;font-size:9px!important}
+    thead{display:table-header-group!important}        /* หัวตารางซ้ำทุกหน้า */
+    tbody{display:table-row-group!important}
+    tr{display:table-row!important;break-inside:avoid;page-break-inside:avoid}
+    th,td{display:table-cell!important;white-space:normal!important;word-break:break-word;
+      overflow-wrap:anywhere;padding:3px 2px!important;font-size:9px!important;position:static!important}
+    th{font-size:8.5px!important}
+    td.pcol,td.tcol{font-size:9px!important}
+    td.head-cell{display:none!important}               /* กันโหมดการ์ดตอนพิมพ์แคบ */
+    td.col-idx{display:table-cell!important}
+    td::before{content:none!important}
+    .badge-due,.badge-close{font-size:7.5px!important;padding:0 3px!important;margin-left:2px}
+    .summary,.stat{break-inside:avoid;page-break-inside:avoid}
   }
 </style>
 
@@ -304,6 +320,7 @@
     <div class="actions">
       <button class="btn" onclick="calcAll()">คำนวณ</button>
       <button class="btn ghost" onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button>
+      <button class="btn ghost" onclick="toggleContract()">📄 พิมพ์สัญญากู้ ส.-งก.14</button>
     </div>
   </div>
 
@@ -425,6 +442,7 @@ function round2(n){ return Math.round((n+Number.EPSILON)*100)/100; }
 function fmt(n){ if(Math.abs(n)<0.005) n=0; return round2(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmt0(n){ return Math.round(n).toLocaleString('en-US'); }
 function thDate(d){ return d.getDate()+' '+TH_MONTH[d.getMonth()]+' '+(d.getFullYear()+543); }
+function thDate2(d){ return d.getDate()+' '+TH_MONTH[d.getMonth()]+' '+String((d.getFullYear()+543)%100); } // "30 มิ.ย. 79"
 function daysBetween(a,b){ return Math.round((b-a)/86400000); }
 function lastDay(y,m){ return new Date(y,m+1,0).getDate(); }
 function addMonthsClamp(base,g){
@@ -917,4 +935,124 @@ DATE_FIELDS.forEach(id=>{
   DATE_FIELDS.forEach(updateDateHint);
   syncChips();
 })();
+</script>
+
+<!-- ===== Phase 4: พิมพ์สัญญากู้ ส.-งก.14 (PDF client-side) ===== -->
+<div id="contractPanel" class="card no-print" style="display:none">
+  <h2><span class="n">✎</span> ข้อมูลผู้กู้ — พิมพ์สัญญา ส.-งก.14</h2>
+  <div class="note" style="margin-bottom:10px">ตัวเลขการเงิน (วงเงิน + ตาราง 10 งวด) ดึงจากผลคำนวณอัตโนมัติ — กรอกเฉพาะข้อมูลตัวตนผู้กู้</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div class="field" style="grid-column:1/-1"><label>วันที่ประชุมอนุมัติ <span style="color:#c00">*</span> <span class="note" style="font-weight:400">(= วันที่ในสัญญา · ปกติวันที่ 9 หรือ 25)</span></label><div class="date-wrap"><input type="date" id="ct_meetdate"><div class="date-hint" id="ct_meetdate_th"></div></div></div>
+    <div class="field"><label>ชื่อ-สกุล ผู้กู้</label><div class="inp"><input id="ct_name" placeholder="นาย / นาง / นางสาว ..."></div></div>
+    <div class="field"><label>เลขทะเบียนสมาชิก</label><div class="inp"><input id="ct_reg"></div></div>
+    <div class="field"><label>สมาชิกกลุ่มที่</label><div class="inp"><input id="ct_group"></div></div>
+    <div class="field"><label>บ้านเลขที่</label><div class="inp"><input id="ct_house"></div></div>
+    <div class="field"><label>หมู่ที่</label><div class="inp"><input id="ct_moo"></div></div>
+    <div class="field"><label>ตำบล</label><div class="inp"><select id="ct_tambon"></select></div></div>
+    <div class="field"><label>วัตถุประสงค์</label><div class="inp"><select id="ct_purpose"></select></div></div>
+    <div class="field" id="ct_other_field" style="display:none"><label>ระบุวัตถุประสงค์เอง</label><div class="inp"><input id="ct_purpose_other"></div></div>
+  </div>
+  <div style="margin-top:12px"><button class="btn" onclick="genContractPDF()">📄 สร้าง PDF สัญญา</button></div>
+  <div id="ct_status" class="note" style="margin-top:10px"></div>
+</div>
+
+<script>window.CONTRACT_ASSET_BASE = "contract_print/";</script>
+<script src="contract_print/vendor/pdf-lib.min.js"></script>
+<script src="contract_print/vendor/fontkit.umd.min.js"></script>
+<script>
+/* cache-bust: Python http.server ไม่ส่ง Cache-Control → เบราว์เซอร์จด JS เก่า (heuristic cache)
+ * → โหลด engine files ที่แก้บ่อยด้วย ?v=timestamp ทุกครั้ง เห็นผลแก้ทันที ไม่ต้อง hard-reload
+ * (vendor คงที่ ปล่อย cache ได้) · order สำคัญ: config→fieldmap→fill_engine (document.write = ต่อเนื่อง) */
+(function(){var v="?v="+Date.now();["config.js","fieldmap.js","fill_engine.js"].forEach(function(f){document.write('<scr'+'ipt src="contract_print/'+f+v+'"></scr'+'ipt>');});})();
+</script>
+<script>
+// dropdown: ตำบล + วัตถุประสงค์ (ผูกกับ loanType)
+(function(){
+  const CFG = window.CONTRACT_CONFIG;
+  const tb = document.getElementById('ct_tambon');
+  CFG.tambon.forEach(t=>{ const o=document.createElement('option'); o.value=o.textContent=t; tb.appendChild(o); });
+  function fillPurpose(){
+    const lt = document.getElementById('loanType').value;
+    const sel = document.getElementById('ct_purpose'); sel.innerHTML='';
+    (CFG.purposes[lt]||[]).forEach(p=>{
+      const o=document.createElement('option');
+      if(p==='__OTHER__'){ o.value='__OTHER__'; o.textContent=CFG.otherLabel; }
+      else { o.value=o.textContent=p; }
+      sel.appendChild(o);
+    });
+    toggleOther();
+  }
+  function toggleOther(){
+    document.getElementById('ct_other_field').style.display =
+      document.getElementById('ct_purpose').value==='__OTHER__' ? 'block':'none';
+  }
+  document.getElementById('loanType').addEventListener('change', fillPurpose);
+  document.getElementById('ct_purpose').addEventListener('change', toggleOther);
+  fillPurpose();
+  // วันที่ประชุมอนุมัติ: แสดงวันไทย + เคลียร์กรอบแดงเมื่อเลือก
+  const md=document.getElementById('ct_meetdate');
+  md.addEventListener('input',()=>{ const d=parseDate(md.value); document.getElementById('ct_meetdate_th').textContent = d?thDate(d):''; if(md.value) md.style.outline=''; });
+})();
+
+function toggleContract(){
+  const p=document.getElementById('contractPanel');
+  // ย้าย panel มาไว้ใต้ปุ่ม (ก่อน warnbar) ให้เห็นทันทีตอนกด
+  const anchor=document.getElementById('warnbar');
+  if(anchor && p.nextElementSibling!==anchor){ anchor.parentNode.insertBefore(p, anchor); }
+  p.style.display = (p.style.display==='none') ? 'block':'none';
+  if(p.style.display==='block') p.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+async function genContractPDF(){
+  const st=document.getElementById('ct_status');
+  try{
+    const r = calcCoop();
+    if(!r){ st.textContent='⚠️ กรอกเงินต้น + วันรับเงินกู้ แล้วกด "คำนวณ" ก่อน'; return; }
+    // ต้องมีวันที่ประชุมอนุมัติก่อน (= วันที่ในสัญญา) — บังคับกรอก
+    const meetInp = document.getElementById('ct_meetdate');
+    if(!meetInp.value){
+      meetInp.style.outline='2px solid #c00';
+      meetInp.focus();
+      st.innerHTML='<span style="color:#c00;font-weight:700">⚠️ กรุณาเลือก “วันที่ประชุมอนุมัติ” ก่อนสร้างสัญญา</span>';
+      return;
+    }
+    meetInp.style.outline='';
+    const meetDate = parseDate(meetInp.value);
+    st.textContent='⏳ กำลังสร้าง PDF...';
+    const coop = await fetch(window.CONTRACT_ASSET_BASE+'coop_data.json').then(x=>x.json());
+    const CFG = window.CONTRACT_CONFIG;
+    const lt = document.getElementById('loanType').value;
+    const prin = r.rows.filter(x=>x.isPrincipal);
+    const rows = prin.map(x=>({
+      due: thDate(x.date), principal: fmt0(x.principalPaid), interestTo: thDate(x.date)
+    }));
+    const lastDate = prin.length ? prin[prin.length-1].date : null;   // งวดสุดท้าย
+    const committee = r.P <= 500000 ? 'เงินกู้' : 'ดำเนินการ';         // ≤5แสน=เงินกู้ / >5แสน=ดำเนินการ
+    let purpose = document.getElementById('ct_purpose').value;
+    if(purpose==='__OTHER__') purpose = document.getElementById('ct_purpose_other').value.trim();
+    const data = {
+      loanRange: CFG.loanTypeLabel[lt]||'',
+      writtenAt: coop.writtenAt,
+      contractDate: ContractFill.thaiDate(meetDate),   // วันที่ในสัญญา = วันประชุมอนุมัติ
+      name: document.getElementById('ct_name').value.trim(),
+      group: document.getElementById('ct_group').value.trim(),
+      regNo: document.getElementById('ct_reg').value.trim(),
+      houseNo: document.getElementById('ct_house').value.trim(),
+      moo: document.getElementById('ct_moo').value.trim(),
+      tambon: document.getElementById('ct_tambon').value,
+      amphoe: coop.amphoe, changwat: coop.changwat,
+      amount: fmt0(r.P), amountText: ContractFill.bahtText(r.P),
+      purpose: purpose, rows: rows,
+      // ---- กล่องบันทึกการอนุมัติเงินกู้ ----
+      approveCommittee: committee,
+      approveMeetDate: thDate(meetDate),               // "13 ก.ค. 2569"
+      approveAmount: fmt0(r.P),
+      approveRepayBy: lastDate ? thDate2(lastDate) : '', // "30 มิ.ย. 79"
+    };
+    const bytes = await ContractFill.generateContract(data, {});
+    const url = URL.createObjectURL(new Blob([bytes], {type:'application/pdf'}));
+    window.open(url, '_blank');
+    st.innerHTML='✅ สร้างสำเร็จ ('+rows.length+' งวด) — เปิดแท็บใหม่แล้ว &nbsp;<a href="'+url+'" download="สัญญากู้_'+((data.name||'ผู้กู้').replace(/\s+/g,'_'))+'.pdf">⬇ ดาวน์โหลด</a>';
+  }catch(e){ st.textContent='❌ '+(e && e.message || e); console.error(e); }
+}
 </script>
