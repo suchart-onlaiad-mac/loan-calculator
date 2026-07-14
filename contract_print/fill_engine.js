@@ -61,9 +61,10 @@
   }
 
   // สร้าง list ของ field ที่จะวาด แยกตามหน้า
-  function _collectFields(data) {
-    const FM = global.FIELD_MAP;
-    const perPage = {}; // page → [{x, baselineTop, size, text, max}]
+  // FM = fieldmap (default = FIELD_MAP ของสัญญา ส.-งก.14 · ส่ง GUARANTEE_MAP มาได้)
+  function _collectFields(data, FM) {
+    FM = FM || global.FIELD_MAP;
+    const perPage = {}; // page → [{x, baselineTop, size, text, max, align, boxes}]
     const push = (page, o) => { (perPage[page] = perPage[page] || []).push(o); };
 
     // baselineTop = spec.y + baseDY (global) + spec.dy (per-field) — canvas top-origin, baseline='alphabetic'
@@ -72,7 +73,21 @@
       if (key === "table" || key === "yAdjust" || key === "baseDY") continue;
       const spec = FM[key], text = data[key];
       if (text == null || text === "") continue;
-      push(spec.page, { x: spec.x, baselineTop: spec.y + baseDY + (spec.dy || 0), size: spec.size || 12, text: String(text), max: spec.max });
+      const baselineTop = spec.y + baseDY + (spec.dy || 0);
+      // (ก) กล่องรายหลัก เช่น เลขบัตร 13 ช่อง — วางทีละตัวอักษรกลางกล่อง
+      if (spec.boxes) {
+        const chars = String(text).replace(/\D/g, "").split("");
+        for (let i = 0; i < chars.length && i < spec.boxes.length; i++) {
+          push(spec.page, { cx: spec.boxes[i], baselineTop, size: spec.size || 11, text: chars[i], align: "center" });
+        }
+        continue;
+      }
+      // (ข) จัดกึ่งกลาง (cx) เช่น ชื่อในวงเล็บ
+      if (spec.align === "center") {
+        push(spec.page, { cx: spec.cx, baselineTop, size: spec.size || 12, text: String(text), max: spec.max, align: "center" });
+        continue;
+      }
+      push(spec.page, { x: spec.x, baselineTop, size: spec.size || 12, text: String(text), max: spec.max });
     }
     // ตาราง
     if (data.rows && FM.table) {
@@ -106,7 +121,11 @@
           size -= 0.5; ctx.font = `${size * SCALE}px "${OVERLAY_FONT}"`;
         }
       }
-      ctx.fillText(f.text, f.x * SCALE, f.baselineTop * SCALE);
+      // align:center → ยึด cx เป็นกึ่งกลาง (เลขบัตรรายกล่อง / ชื่อในวงเล็บ)
+      const x = (f.align === "center")
+        ? (f.cx * SCALE - ctx.measureText(f.text).width / 2)
+        : (f.x * SCALE);
+      ctx.fillText(f.text, x, f.baselineTop * SCALE);
     }
     return cv;
   }
@@ -140,6 +159,47 @@
     return await pdf.save();
   }
 
+  /* ===== หนังสือค้ำประกันเงินกู้ (บุคคลค้ำ) =====
+   * sheets = [ผู้ค้ำคนที่1, ผู้ค้ำคนที่2, ...] แต่ละคน = หนังสือ 2 หน้า → ต่อกันเป็นเล่มเดียว
+   * ผู้ค้ำ 2 คน = 4 หน้า (ระเบียบเงินกู้ ข้อ 8(2) บังคับอย่างน้อย 2 คน)
+   * base = guarantee_base.pdf (Word export ของผู้จัดการ — ห้าม re-render)
+   */
+  let _guarPdf = null;
+  async function _loadGuarantee() {
+    if (!_guarPdf) _guarPdf = await fetch(_ab() + "guarantee_base.pdf").then(r => r.arrayBuffer());
+    if (!_fontLoaded) {
+      const ff = new FontFace(OVERLAY_FONT, `url(${_ab()}assets/THSarabunNew.ttf)`);
+      await ff.load(); document.fonts.add(ff); _fontLoaded = true;
+    }
+  }
+
+  async function generateGuarantee(sheets, opts = {}) {
+    if (!Array.isArray(sheets) || !sheets.length) throw new Error("generateGuarantee: ต้องส่ง array ของผู้ค้ำอย่างน้อย 1 คน");
+    if (!global.GUARANTEE_MAP) throw new Error("ไม่พบ guarantee_fieldmap.js");
+    await _loadGuarantee();
+    const { PDFDocument } = global.PDFLib;
+    const FM = global.GUARANTEE_MAP;
+    const colorCss = opts.calibrate ? "#0d19b3" : "#000000";
+    const outPdf = await PDFDocument.create();
+
+    for (const sheet of sheets) {
+      const src = await PDFDocument.load(_guarPdf);          // โหลดใหม่ทุกคน = base สะอาดเสมอ
+      const srcPages = src.getPages();
+      const perPage = _collectFields(sheet, FM);
+      for (const pageNoStr of Object.keys(perPage)) {
+        const pg = srcPages[+pageNoStr - 1];
+        if (!pg) continue;
+        const Wpt = pg.getWidth(), Hpt = pg.getHeight();
+        const cv = _renderOverlayCanvas(Wpt, Hpt, perPage[pageNoStr], colorCss);
+        const png = await src.embedPng(_canvasToPngBytes(cv));
+        pg.drawImage(png, { x: 0, y: 0, width: Wpt, height: Hpt });
+      }
+      const copied = await outPdf.copyPages(src, src.getPageIndices());
+      copied.forEach(p => outPdf.addPage(p));
+    }
+    return await outPdf.save();
+  }
+
   // debug: คืน canvas overlay ของหน้า (สำหรับ verify บนจอ)
   async function debugOverlayCanvas(data, pageNo) {
     await _load();
@@ -150,5 +210,15 @@
     return _renderOverlayCanvas(pg.getWidth(), pg.getHeight(), perPage[pageNo] || [], "#cc0000");
   }
 
-  global.ContractFill = { generateContract, bahtText, thaiDate, fmtNum, debugOverlayCanvas, _SCALE: SCALE };
+  // debug: overlay ตาม fieldmap ที่ระบุ (ใช้ verify guarantee — พิกัดชุดเดียวกับตอน gen จริง)
+  async function debugOverlayCanvasFM(data, pageNo, FM) {
+    if (!_fontLoaded) {
+      const ff = new FontFace(OVERLAY_FONT, `url(${_ab()}assets/THSarabunNew.ttf)`);
+      await ff.load(); document.fonts.add(ff); _fontLoaded = true;
+    }
+    const perPage = _collectFields(data, FM);
+    return _renderOverlayCanvas(595.2, 841.92, perPage[pageNo] || [], "#0d19b3");
+  }
+
+  global.ContractFill = { generateContract, generateGuarantee, bahtText, thaiDate, fmtNum, debugOverlayCanvas, debugOverlayCanvasFM, _SCALE: SCALE };
 })(window);

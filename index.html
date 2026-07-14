@@ -130,11 +130,33 @@
   .chip.active{background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:0 4px 12px -4px var(--brand)}
   .chips input{width:110px}
 
+  /* หลักค้ำประกัน (ระเบียบเงินกู้ ข้อ 8) — เลือกผิด = เอกสารผิดระเบียบ
+   * ใช้ทรงเดียวกับ .chip (ปุ่มเลือกอัตราดอกเบี้ย): เม็ดยา ปุ่มทั้งใบเปลี่ยนสี = ตัวบอกสถานะ
+   * ไม่มีจุด radio — ปุ่มเขียวทึบเด่นกว่าจุดเล็กที่คนทำงานเพ่งหา (ผู้จัดการแจ้ง 14-07-2569) */
+  .secopt{display:inline-flex;align-items:center;gap:7px;margin:0;padding:10px 16px;
+    border:1.5px solid var(--line);border-radius:24px;background:var(--card2);
+    cursor:pointer;user-select:none;font-size:15px;font-weight:700;color:var(--ink);
+    line-height:1.35;transition:.12s}
+  .secopt:hover{border-color:var(--brand)}
+  .secopt:has(:checked){background:var(--brand);border-color:var(--brand);color:#fff;
+    box-shadow:0 4px 12px -4px var(--brand)}
+  .secopt .note{margin:0;line-height:1.35;font-size:12.5px}  /* .note เดิมมี margin-top:12px → ดันข้อความในวงเล็บลงต่ำ */
+  .secopt:has(:checked) .note{color:rgba(255,255,255,.85)}
+  .secopt:has(:focus-visible){outline:3px solid var(--hl2);outline-offset:2px}
+  /* ซ่อน radio ไว้ใต้ปุ่ม — ยังกด Tab/ลูกศรเลือกด้วยคีย์บอร์ดได้ปกติ */
+  .secopt input{position:absolute;width:1px;height:1px;margin:0;padding:0;
+    opacity:0;pointer-events:none}
+
   .btn{background:var(--brand);color:#fff;border:none;border-radius:12px;padding:14px 22px;
     font:inherit;font-size:16px;font-weight:800;cursor:pointer;transition:.15s;box-shadow:0 6px 16px -6px var(--brand)}
   .btn:hover{background:var(--brand-d)}
   .btn:active{transform:translateY(1px)}
   .btn.ghost{background:transparent;color:var(--brand-d);border:1.5px solid var(--brand);box-shadow:none}
+  /* ปุ่มที่กดไม่ได้ต้องดูออกว่ากดไม่ได้ — พื้นเรากำหนดเอง เบราว์เซอร์เลยไม่ทำให้ซีดให้
+   * (เช่น ปุ่มพิมพ์หนังสือค้ำ ตอนยังไม่เลือก "บุคคลค้ำ") */
+  .btn:disabled{opacity:.4;filter:grayscale(.7);box-shadow:none;cursor:not-allowed}
+  .btn:disabled:hover{background:var(--brand)}
+  .btn.ghost:disabled:hover{background:transparent}
   .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
   .actions .btn{flex:1 1 auto}
 
@@ -437,12 +459,17 @@
 
 <script>
 // ---------- helpers ----------
+/* ═══ กฎรูปแบบวันที่ในเอกสาร (มติผู้จัดการ 14-07-2569) ═══
+ * ใช้ทั้ง ส.-งก.14 และ หนังสือค้ำประกัน — แบ่งตาม "ความหมาย" ไม่ใช่ตามพื้นที่ว่าง
+ *   • วันที่ของเอกสารฉบับนั้นเอง (วันที่นิติกรรมเกิด) → เต็ม   ContractFill.thaiDate() = "9 กรกฎาคม 2569"
+ *   • วันที่อ้างอิงถึงสิ่งอื่น (เอกสารอื่น/กำหนดชำระ/ตาราง) → ย่อ  thDate() = "9 ก.ค. 2569"
+ * ปีใช้ 4 หลักเสมอ (เคยใช้ 2 หลักที่ approveRepayBy — วัดแล้วปี 4 หลักก็พอดี ไม่ต้องบีบ)
+ */
 const TH_MONTH=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 function round2(n){ return Math.round((n+Number.EPSILON)*100)/100; }
 function fmt(n){ if(Math.abs(n)<0.005) n=0; return round2(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmt0(n){ return Math.round(n).toLocaleString('en-US'); }
-function thDate(d){ return d.getDate()+' '+TH_MONTH[d.getMonth()]+' '+(d.getFullYear()+543); }
-function thDate2(d){ return d.getDate()+' '+TH_MONTH[d.getMonth()]+' '+String((d.getFullYear()+543)%100); } // "30 มิ.ย. 79"
+function thDate(d){ return d.getDate()+' '+TH_MONTH[d.getMonth()]+' '+(d.getFullYear()+543); }  // ย่อ "9 ก.ค. 2569" — ใช้กับวันที่อ้างอิง
 function daysBetween(a,b){ return Math.round((b-a)/86400000); }
 function lastDay(y,m){ return new Date(y,m+1,0).getDate(); }
 function addMonthsClamp(base,g){
@@ -890,6 +917,8 @@ function calcAll(){
   validate();
   document.getElementById('results').style.display='block';
   renderCoop(); calcMonthly(); calcPayoff();
+  // วงเงินเปลี่ยน → รีเช็คเพดานบุคคลค้ำ (ระเบียบ ข้อ 8(2))
+  if(typeof updateSecurityUI==='function') updateSecurityUI();
 }
 function liveUpdate(){ if(document.getElementById('results').style.display!=='none') calcAll(); }
 
@@ -952,8 +981,35 @@ DATE_FIELDS.forEach(id=>{
     <div class="field"><label>วัตถุประสงค์</label><div class="inp"><select id="ct_purpose"></select></div></div>
     <div class="field" id="ct_other_field" style="display:none"><label>ระบุวัตถุประสงค์เอง</label><div class="inp"><input id="ct_purpose_other"></div></div>
   </div>
-  <div style="margin-top:12px"><button class="btn" onclick="genContractPDF()">📄 สร้าง PDF สัญญา</button></div>
+
+  <!-- ===== หลักค้ำประกัน (ระเบียบว่าด้วยการให้เงินกู้ฯ ข้อ 8) ===== -->
+  <div style="margin-top:14px;border-top:1px solid #e5e7eb;padding-top:12px">
+    <label style="font-weight:700;display:block;margin-bottom:6px">หลักค้ำประกัน
+      <span class="note" style="font-weight:400">— ระเบียบเงินกู้ ข้อ 8 (เลือก 1 อย่าง)</span></label>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <label class="secopt"><input type="radio" name="ct_security" value="share"> หุ้นตนเอง <span class="note">(กู้ ≤60% ของหุ้น)</span></label>
+      <label class="secopt"><input type="radio" name="ct_security" value="mortgage"> จำนองอสังหาฯ <span class="note">[ข้อ 8(1)]</span></label>
+      <label class="secopt"><input type="radio" name="ct_security" value="person" checked> <b>บุคคลค้ำ 2 คน</b> <span class="note">[ข้อ 8(2)]</span></label>
+      <label class="secopt"><input type="radio" name="ct_security" value="deposit"> เงินฝากค้ำ <span class="note">[ข้อ 8(3)]</span></label>
+    </div>
+    <div id="ct_sec_warn" style="display:none;margin-top:8px;font-weight:700"></div>
+  </div>
+
+  <!-- ===== ผู้ค้ำประกัน 2 คน (โผล่เฉพาะเมื่อเลือก "บุคคลค้ำ") ===== -->
+  <div id="ct_guar_panel" style="display:none;margin-top:12px">
+    <div class="note" style="margin-bottom:8px">
+      ผู้ค้ำต้องเป็น<b>สมาชิกสหกรณ์</b> · ระเบียบ ข้อ 8(2) บังคับ <b>อย่างน้อย 2 คน</b> · 1 คนค้ำได้ไม่เกิน 2 สัญญาพร้อมกัน<br>
+      อำเภอนครชัยศรี · จังหวัดนครปฐม · รหัสไปรษณีย์ <b id="ct_pc_show">—</b> (เติมอัตโนมัติ ทุกตำบลในอำเภอใช้รหัสเดียวกัน)
+    </div>
+    <div id="ct_guar_fields"></div>
+  </div>
+
+  <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" onclick="genContractPDF()">📄 สร้าง PDF สัญญา</button>
+    <button class="btn ghost" id="ct_guar_btn" onclick="genGuaranteePDF()" disabled>📄 สร้าง PDF หนังสือค้ำประกัน (2 แผ่น)</button>
+  </div>
   <div id="ct_status" class="note" style="margin-top:10px"></div>
+  <div id="ct_guar_status" class="note" style="margin-top:6px"></div>
 </div>
 
 <script>window.CONTRACT_ASSET_BASE = "contract_print/";</script>
@@ -963,9 +1019,15 @@ DATE_FIELDS.forEach(id=>{
 /* cache-bust: Python http.server ไม่ส่ง Cache-Control → เบราว์เซอร์จด JS เก่า (heuristic cache)
  * → โหลด engine files ที่แก้บ่อยด้วย ?v=timestamp ทุกครั้ง เห็นผลแก้ทันที ไม่ต้อง hard-reload
  * (vendor คงที่ ปล่อย cache ได้) · order สำคัญ: config→fieldmap→fill_engine (document.write = ต่อเนื่อง) */
-(function(){var v="?v="+Date.now();["config.js","fieldmap.js","fill_engine.js"].forEach(function(f){document.write('<scr'+'ipt src="contract_print/'+f+v+'"></scr'+'ipt>');});})();
+(function(){var v="?v="+Date.now();["config.js","fieldmap.js","guarantee_fieldmap.js","fill_engine.js"].forEach(function(f){document.write('<scr'+'ipt src="contract_print/'+f+v+'"></scr'+'ipt>');});})();
 </script>
 <script>
+/* ===== หลักค้ำประกัน (ระเบียบเงินกู้ ข้อ 8) =====
+ * เพดานบุคคลค้ำ = 80,000 (ข้อ 8(2): "ไม่สูงกว่า 80,000" · ผู้จัดการยืนยัน 14-07-2569)
+ * 🔒 ต้องประกาศ "ก่อน" IIFE ด้านล่าง — IIFE เรียก updateSecurityUI() ซึ่งอ่านค่านี้
+ *    (const ที่ประกาศทีหลัง = TDZ → ทั้ง block ตายเงียบ · เจอจริง 14-07 ตอนตั้ง default=person) */
+const GUAR_CEILING = 80000;
+
 // dropdown: ตำบล + วัตถุประสงค์ (ผูกกับ loanType)
 (function(){
   const CFG = window.CONTRACT_CONFIG;
@@ -992,7 +1054,62 @@ DATE_FIELDS.forEach(id=>{
   // วันที่ประชุมอนุมัติ: แสดงวันไทย + เคลียร์กรอบแดงเมื่อเลือก
   const md=document.getElementById('ct_meetdate');
   md.addEventListener('input',()=>{ const d=parseDate(md.value); document.getElementById('ct_meetdate_th').textContent = d?thDate(d):''; if(md.value) md.style.outline=''; });
+
+  // ---- ผู้ค้ำประกัน 2 คน: สร้างช่องกรอกอัตโนมัติ (ไม่ซ้ำ HTML) ----
+  const wrap = document.getElementById('ct_guar_fields');
+  for(let i=1;i<=2;i++){
+    const box=document.createElement('div');
+    box.style.cssText='border:1px solid #e5e7eb;border-radius:8px;padding:10px;margin-bottom:10px';
+    box.innerHTML =
+      '<div style="font-weight:700;margin-bottom:8px">ผู้ค้ำประกันคนที่ '+i+'</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
+        '<div class="field"><label>ชื่อ-สกุล</label><div class="inp"><input id="g'+i+'_name" placeholder="นาย / นาง / นางสาว ..."></div></div>'+
+        '<div class="field"><label>เลขทะเบียนสมาชิก</label><div class="inp"><input id="g'+i+'_reg"></div></div>'+
+        '<div class="field"><label>สมาชิกกลุ่มที่</label><div class="inp"><input id="g'+i+'_group"></div></div>'+
+        '<div class="field"><label>เลขบัตรประชาชน (13 หลัก)</label><div class="inp"><input id="g'+i+'_id" inputmode="numeric" maxlength="13" placeholder="1234567890123"></div></div>'+
+        '<div class="field"><label>บ้านเลขที่</label><div class="inp"><input id="g'+i+'_house"></div></div>'+
+        '<div class="field"><label>หมู่ที่</label><div class="inp"><input id="g'+i+'_moo"></div></div>'+
+        '<div class="field"><label>ตำบล</label><div class="inp"><select id="g'+i+'_tambon"></select></div></div>'+
+        '<div class="field"><label>โทรศัพท์</label><div class="inp"><input id="g'+i+'_tel" inputmode="tel"></div></div>'+
+      '</div>';
+    wrap.appendChild(box);
+    const sel=box.querySelector('#g'+i+'_tambon');
+    CFG.tambon.forEach(t=>{ const o=document.createElement('option'); o.value=o.textContent=t; sel.appendChild(o); });
+  }
+  // เลือกหลักค้ำประกัน → กาง/ปิดแผงผู้ค้ำ + ปุ่มพิมพ์
+  document.querySelectorAll('input[name="ct_security"]').forEach(r=>r.addEventListener('change', updateSecurityUI));
+  updateSecurityUI();
 })();
+
+function getSecurity(){ const el=document.querySelector('input[name="ct_security"]:checked'); return el?el.value:'person'; }
+
+function updateSecurityUI(){
+  const isPerson = getSecurity()==='person';
+  document.getElementById('ct_guar_panel').style.display = isPerson ? 'block':'none';
+  document.getElementById('ct_guar_btn').disabled = !isPerson;
+  const warn=document.getElementById('ct_sec_warn');
+  warn.style.display='none';
+  if(!isPerson){ document.getElementById('ct_guar_status').textContent=''; return; }
+  // รหัสไปรษณีย์อัตโนมัติ (จาก coop_data.json → SSOT coop_constants)
+  fetch(window.CONTRACT_ASSET_BASE+'coop_data.json').then(x=>x.json())
+    .then(c=>{ document.getElementById('ct_pc_show').textContent=c.postcode||'—'; }).catch(()=>{});
+  // เตือนเพดานวงเงินตามระเบียบ
+  let P=0; try{ const r=calcCoop(); P = r? r.P : 0; }catch(e){}
+  if(P > GUAR_CEILING){
+    warn.style.display='block'; warn.style.color='#c00';
+    warn.innerHTML='🔴 วงเงิน '+fmt0(P)+' บาท <u>เกินเพดานบุคคลค้ำ '+fmt0(GUAR_CEILING)+' บาท</u> (ระเบียบเงินกู้ ข้อ 8(2)) — ต้องใช้จำนองอสังหาฯ [8(1)] หรือเงินฝาก [8(3)] แทน/ร่วม';
+  } else if(P>0){
+    warn.style.display='block'; warn.style.color='#0a7';
+    warn.innerHTML='✅ วงเงิน '+fmt0(P)+' บาท อยู่ในเพดานบุคคลค้ำ (≤ '+fmt0(GUAR_CEILING)+' บาท)';
+  }
+}
+
+/* ตรวจเลขบัตรประชาชนไทย 13 หลัก (checksum มาตรฐาน) */
+function thaiIdOK(id){
+  if(!/^\d{13}$/.test(id)) return false;
+  let s=0; for(let i=0;i<12;i++) s += parseInt(id[i],10)*(13-i);
+  return ((11-(s%11))%10) === parseInt(id[12],10);
+}
 
 function toggleContract(){
   const p=document.getElementById('contractPanel');
@@ -1045,14 +1162,97 @@ async function genContractPDF(){
       purpose: purpose, rows: rows,
       // ---- กล่องบันทึกการอนุมัติเงินกู้ ----
       approveCommittee: committee,
-      approveMeetDate: thDate(meetDate),               // "13 ก.ค. 2569"
+      approveMeetDate: thDate(meetDate),                 // อ้างอิงวันประชุม → ย่อ "9 ก.ค. 2569"
       approveAmount: fmt0(r.P),
-      approveRepayBy: lastDate ? thDate2(lastDate) : '', // "30 มิ.ย. 79"
+      approveRepayBy: lastDate ? thDate(lastDate) : '',  // อ้างอิงงวดสุดท้าย → ย่อ ปี 4 หลัก "30 มิ.ย. 2570"
     };
     const bytes = await ContractFill.generateContract(data, {});
     const url = URL.createObjectURL(new Blob([bytes], {type:'application/pdf'}));
     window.open(url, '_blank');
     st.innerHTML='✅ สร้างสำเร็จ ('+rows.length+' งวด) — เปิดแท็บใหม่แล้ว &nbsp;<a href="'+url+'" download="สัญญากู้_'+((data.name||'ผู้กู้').replace(/\s+/g,'_'))+'.pdf">⬇ ดาวน์โหลด</a>';
+  }catch(e){ st.textContent='❌ '+(e && e.message || e); console.error(e); }
+}
+
+/* ===== หนังสือค้ำประกันเงินกู้ (บุคคลค้ำ) — ออก 2 แผ่น/2 ผู้ค้ำ =====
+ * ข้อ 1+ข้อ 3 ดึงจากผลคำนวณ (เหมือนสัญญากู้) · เขียนที่/วันที่ = วันประชุมอนุมัติ (ct_meetdate) */
+async function genGuaranteePDF(){
+  const st=document.getElementById('ct_guar_status');
+  const bad=(m)=>{ st.innerHTML='<span style="color:#c00;font-weight:700">⚠️ '+m+'</span>'; };
+  try{
+    if(getSecurity()!=='person') return bad('เลือก "บุคคลค้ำ 2 คน" ก่อน');
+    const r = calcCoop();
+    if(!r) return bad('กรอกเงินต้น + วันรับเงินกู้ แล้วกด "คำนวณ" ก่อน');
+    if(r.P > GUAR_CEILING) return bad('วงเงิน '+fmt0(r.P)+' เกินเพดานบุคคลค้ำ '+fmt0(GUAR_CEILING)+' บาท (ระเบียบ ข้อ 8(2)) — ใช้บุคคลค้ำอย่างเดียวไม่ได้');
+    const meetInp=document.getElementById('ct_meetdate');
+    if(!meetInp.value){ meetInp.style.outline='2px solid #c00'; meetInp.focus(); return bad('เลือก "วันที่ประชุมอนุมัติ" ก่อน'); }
+    meetInp.style.outline='';
+    const meetDate=parseDate(meetInp.value);
+
+    // ---- เก็บ + ตรวจข้อมูลผู้ค้ำ 2 คน ----
+    const V=id=>(document.getElementById(id).value||'').trim();
+    const guars=[]; const warns=[];
+    for(let i=1;i<=2;i++){
+      /* 🔑 ชื่อ key ต้องตรงกับ guarantee_fieldmap.js เป๊ะ — ไม่ตรง = ช่องนั้นว่างเงียบ (บั๊ก 14-07: ใช้ name/reg/… แทน gName/gReg/…) */
+      const g={
+        gName: V('g'+i+'_name'), gNameParen: V('g'+i+'_name'),      // หน้า 2 ชื่อในวงเล็บ = ชื่อเดียวกัน
+        gReg: V('g'+i+'_reg'), gGroup: V('g'+i+'_group'),           // ผจก เปลี่ยนฟอร์ม "อายุ" → "กลุ่มที่" (14-07)
+        idcard: V('g'+i+'_id').replace(/\D/g,''),
+        gHouse: V('g'+i+'_house'), gMoo: V('g'+i+'_moo'), gTambon: V('g'+i+'_tambon'), gTel: V('g'+i+'_tel'),
+        house4: V('g'+i+'_house'), moo4: V('g'+i+'_moo'), tambon4: V('g'+i+'_tambon'), // ข้อ 4 = ที่อยู่บอกกล่าว (ที่อยู่เดียวกัน)
+      };
+      const miss=[];
+      if(!g.gName) miss.push('ชื่อ-สกุล'); if(!g.gReg) miss.push('เลขทะเบียน');
+      if(!g.gGroup) miss.push('กลุ่มที่'); if(!g.gHouse) miss.push('บ้านเลขที่'); if(!g.gMoo) miss.push('หมู่ที่');
+      if(g.idcard.length!==13) miss.push('เลขบัตร 13 หลัก');
+      if(miss.length) return bad('ผู้ค้ำคนที่ '+i+' ยังขาด: '+miss.join(' · '));
+      if(!thaiIdOK(g.idcard)) warns.push('เลขบัตรผู้ค้ำคนที่ '+i+' ไม่ผ่าน checksum — ตรวจอีกครั้ง');
+      guars.push(g);
+    }
+    if(guars[0].idcard===guars[1].idcard) return bad('ผู้ค้ำ 2 คนใช้เลขบัตรเดียวกัน — ต้องเป็นคนละคน');
+
+    const coop = await fetch(window.CONTRACT_ASSET_BASE+'coop_data.json').then(x=>x.json());
+    const prin = r.rows.filter(x=>x.isPrincipal);
+    const lastDate = prin.length ? prin[prin.length-1].date : null;
+    const lt = document.getElementById('loanType').value;
+    let purpose = document.getElementById('ct_purpose').value;
+    if(purpose==='__OTHER__') purpose = document.getElementById('ct_purpose_other').value.trim();
+
+    // ข้อมูลร่วมทุกแผ่น (ข้อ 1 + ข้อ 3 จากผลคำนวณ)
+    const shared = {
+      writtenAt: coop.writtenAt,
+      docDate: ContractFill.thaiDate(meetDate),          // ⭐ วันที่ของหนังสือค้ำฉบับนี้ (นิติกรรมเกิด) → เต็ม
+      borrower: document.getElementById('ct_name').value.trim(),
+      purpose: purpose,
+      loanRange: (window.CONTRACT_CONFIG.loanTypeLabel[lt]||''),
+      loanDate: thDate(meetDate),                        // อ้างอิง "หนังสือกู้ฉบับลงวันที่" → ย่อ (ช่องแคบ 62pt ด้วย)
+      amount: fmt0(r.P), amountText: ContractFill.bahtText(r.P),
+      amount3: fmt0(r.P), amountText3: ContractFill.bahtText(r.P),   // ข้อ 3 รับผิดเท่าวงเงินกู้ (ข้อ 1)
+      repayBy: lastDate ? thDate(lastDate) : '',
+      postcode: coop.postcode,                            // อำเภอ/จังหวัด พิมพ์ไว้ในฟอร์มแล้ว ไม่ต้องเติม
+    };
+    const sheets = guars.map(g=>Object.assign({}, shared, g));
+
+    /* 🚦 กันบั๊ก "ช่องว่างเงียบ" (บั๊ก 14-07: key ฝั่งผลิต ≠ key ใน fieldmap → 16 ช่องว่างเงียบ)
+     * ⚠️ ตรวจเฉพาะ key ที่ "ไม่ถูกสร้างเลย" (undefined = บั๊กโปรแกรม)
+     *    ค่าว่าง '' = คนไม่ได้กรอกช่องที่ไม่บังคับ (เช่น โทรศัพท์) → ปล่อยผ่านปกติ */
+    const needed = Object.keys(window.GUARANTEE_MAP).filter(k=>k!=='baseDY');
+    const missKeys = needed.filter(k => sheets[0][k] === undefined);
+    if(missKeys.length) return bad('ระบบผิดพลาด: โปรแกรมไม่ได้สร้างข้อมูลช่อง → '+missKeys.join(', ')+' (แจ้งผู้พัฒนา)');
+
+    if(warns.length) st.innerHTML='<span style="color:#b26a00">⚠️ '+warns.join('<br>⚠️ ')+'</span><br>';
+    else st.innerHTML='';
+
+    // ---- เฟส 2: ต่อ engine (รอ guarantee_base.pdf + guarantee_fieldmap.js) ----
+    if(!window.ContractFill || typeof ContractFill.generateGuarantee!=='function'){
+      st.innerHTML += '<span style="color:#0a7;font-weight:700">✅ ข้อมูลครบถ้วน ผ่านการตรวจทุกข้อ ('+sheets.length+' แผ่น)</span>'+
+        '<br><span class="note">⏳ เฟส 2 — รอ <code>guarantee_base.pdf</code> + <code>guarantee_fieldmap.js</code> (ต้องแก้ฟอร์ม .doc 2 จุดให้เสร็จก่อน) แล้วปุ่มนี้จะออก PDF ได้ทันที</span>';
+      console.log('[หนังสือค้ำประกัน] ข้อมูลพร้อมส่ง engine:', sheets);
+      return;
+    }
+    const bytes = await ContractFill.generateGuarantee(sheets, {});
+    const url = URL.createObjectURL(new Blob([bytes], {type:'application/pdf'}));
+    window.open(url,'_blank');
+    st.innerHTML += '✅ สร้างสำเร็จ ('+sheets.length+' แผ่น) &nbsp;<a href="'+url+'" download="หนังสือค้ำประกัน_'+((shared.borrower||'ผู้กู้').replace(/\s+/g,'_'))+'.pdf">⬇ ดาวน์โหลด</a>';
   }catch(e){ st.textContent='❌ '+(e && e.message || e); console.error(e); }
 }
 </script>
