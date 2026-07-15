@@ -5,63 +5,81 @@ window.SHARE_MAP = {
     "x": 385.6,
     "y": 167.3,
     "size": 16,
-    "max": 139
+    "max": 139,
+    "cx": 455.1,
+    "align": "center"
   },
   "name": {
     "page": 1,
     "x": 177.2,
     "y": 215.2,
     "size": 16,
-    "max": 173
+    "max": 173,
+    "cx": 263.7,
+    "align": "center"
   },
   "reg": {
     "page": 1,
     "x": 410.2,
     "y": 215.2,
     "size": 16,
-    "max": 53
+    "max": 53,
+    "cx": 436.7,
+    "align": "center"
   },
   "group": {
     "page": 1,
     "x": 496.6,
     "y": 215.2,
     "size": 16,
-    "max": 28
+    "max": 28,
+    "cx": 510.6,
+    "align": "center"
   },
   "house": {
     "page": 1,
     "x": 155.3,
     "y": 236.1,
     "size": 16,
-    "max": 25
+    "max": 25,
+    "cx": 167.8,
+    "align": "center"
   },
   "moo": {
     "page": 1,
     "x": 203.6,
     "y": 236.1,
     "size": 16,
-    "max": 15
+    "max": 15,
+    "cx": 211.1,
+    "align": "center"
   },
   "tambon": {
     "page": 1,
     "x": 245.8,
     "y": 236.1,
     "size": 16,
-    "max": 133
+    "max": 133,
+    "cx": 312.3,
+    "align": "center"
   },
   "postcode": {
     "page": 1,
     "x": 139.8,
     "y": 257.1,
     "size": 16,
-    "max": 97
+    "max": 97,
+    "cx": 188.3,
+    "align": "center"
   },
   "tel": {
     "page": 1,
     "x": 301.3,
     "y": 257.1,
     "size": 16,
-    "max": 135
+    "max": 135,
+    "cx": 368.8,
+    "align": "center"
   },
   "loanRange": {
     "page": 1,
@@ -82,35 +100,45 @@ window.SHARE_MAP = {
     "x": 230,
     "y": 322.9,
     "size": 16,
-    "max": 74
+    "max": 74,
+    "cx": 267,
+    "align": "center"
   },
   "amountText": {
     "page": 1,
     "x": 329.9,
     "y": 322.9,
     "size": 15,
-    "max": 185
+    "max": 185,
+    "cx": 422.4,
+    "align": "center"
   },
   "shares": {
     "page": 1,
     "x": 364.4,
     "y": 346.9,
     "size": 16,
-    "max": 53
+    "max": 53,
+    "cx": 390.9,
+    "align": "center"
   },
   "shareBaht": {
     "page": 1,
     "x": 101.2,
     "y": 367.9,
     "size": 16,
-    "max": 97
+    "max": 97,
+    "cx": 149.7,
+    "align": "center"
   },
   "shareBahtText": {
     "page": 1,
     "x": 225.3,
     "y": 367.9,
     "size": 15,
-    "max": 207
+    "max": 207,
+    "cx": 328.8,
+    "align": "center"
   },
   "nameParen": {
     "page": 1,
