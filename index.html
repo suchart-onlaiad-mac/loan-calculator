@@ -992,6 +992,16 @@ DATE_FIELDS.forEach(id=>{
       <label class="secopt"><input type="radio" name="ct_security" value="person" checked> <b>บุคคลค้ำ 2 คน</b> <span class="note">[ข้อ 8(2)]</span></label>
       <label class="secopt"><input type="radio" name="ct_security" value="deposit"> เงินฝากค้ำ <span class="note">[ข้อ 8(3)]</span></label>
     </div>
+    <!-- หุ้นที่ถืออยู่ — ต้องใช้ 2 ทาง: คำนวณเพดาน (ข้อ 8) + กรอกข้อ 2 ของหนังสือหุ้นค้ำ -->
+    <div id="ct_share_field" style="display:none;margin-top:10px">
+      <label style="font-weight:700">จำนวนหุ้นที่ถืออยู่ <span style="color:#c00">*</span>
+        <span class="note" style="font-weight:400">(ดูจากทะเบียนหุ้น/สมุดคู่บัญชี · หุ้นละ 10 บาท ตามข้อบังคับ ข้อ 5)</span></label>
+      <div class="inp" style="max-width:260px">
+        <input id="ct_shares" type="number" min="0" step="1" placeholder="เช่น 1500" oninput="updateSecurityUI()">
+        <span class="suffix">หุ้น</span>
+      </div>
+      <div class="note" id="ct_shares_baht" style="margin-top:4px">—</div>
+    </div>
     <div id="ct_sec_warn" style="display:none;margin-top:8px;font-weight:700"></div>
   </div>
 
@@ -1025,8 +1035,28 @@ DATE_FIELDS.forEach(id=>{
 /* ===== หลักค้ำประกัน (ระเบียบเงินกู้ ข้อ 8) =====
  * เพดานบุคคลค้ำ = 80,000 (ข้อ 8(2): "ไม่สูงกว่า 80,000" · ผู้จัดการยืนยัน 14-07-2569)
  * 🔒 ต้องประกาศ "ก่อน" IIFE ด้านล่าง — IIFE เรียก updateSecurityUI() ซึ่งอ่านค่านี้
- *    (const ที่ประกาศทีหลัง = TDZ → ทั้ง block ตายเงียบ · เจอจริง 14-07 ตอนตั้ง default=person) */
+ *    const ไม่ hoist → ประกาศทีหลัง = TDZ → block นี้ตายกลางคัน = ทั้งหน้าพังเงียบ
+ *    (เจอจริง 14-07-2569 ตอนตั้ง default = บุคคลค้ำ)
+ * ℹ️ ขอบเขตของกับดัก = "ใน block นี้" เท่านั้น — พิสูจน์ด้วยการทดลอง 15-07:
+ *    calcAll() (script block แรก) เรียก updateSecurityUI ผ่านการ์ด typeof ซึ่งกันได้จริง
+ *    เพราะ function ไม่ hoist ข้าม <script> block → ถ้า block นี้ยังไม่รัน ฟังก์ชันก็ยังไม่มี
+ *    การ์ดจึงตัดจบก่อนแตะค่านี้เสมอ · ไม่ต้องย้าย const ออกไป block แรก */
 const GUAR_CEILING = 80000;
+const SHARE_PAR = 10;      // มูลค่าหุ้นละ 10 บาท — ข้อบังคับ ข้อ 5
+
+/* เพดานวงเงินตามเส้นทางหลักค้ำประกัน — SSOT จุดเดียว ทั้งข้อความเตือนและปุ่มบล็อกเรียกใช้ตัวนี้
+ * ห้ามคำนวณเพดานซ้ำที่อื่น: สองสูตรที่ตั้งใจให้เหมือนกันจะเพี้ยนจากกันเงียบ ๆ วันที่แก้ทีละที่
+ * คืน null = ระเบียบไม่ได้ผูกเพดานไว้กับตัวเลขที่เว็บรู้ → ห้ามบล็อก (คณะกรรมการเป็นคนพิจารณา)
+ *   person   ข้อ 8(2) ก./ข. — ได้ 50,000 เป็นพื้น · มีหุ้นมากพอขยายเป็น 2 เท่าของหุ้น · เพดานแข็งที่ 80,000
+ *   share    ข้อ 8 วรรคแรก — 60% ของมูลค่าหุ้น
+ *   mortgage ข้อ 8(1) — ผูกกับราคาประเมิน ซึ่งเว็บไม่รู้
+ *   deposit  ข้อ 8(3) — ผูกกับยอดเงินฝาก ซึ่งเว็บยังไม่ถาม (ผู้จัดการสั่ง 15-07: ทำบุคคลค้ำ+หุ้นก่อน) */
+function ceilingFor(security, shares){
+  const shareBaht = (Number(shares)||0) * SHARE_PAR;
+  if(security==='person') return Math.min(GUAR_CEILING, Math.max(50000, 2*shareBaht));
+  if(security==='share')  return 0.6 * shareBaht;
+  return null;
+}
 
 // dropdown: ตำบล + วัตถุประสงค์ (ผูกกับ loanType)
 (function(){
@@ -1083,24 +1113,53 @@ const GUAR_CEILING = 80000;
 
 function getSecurity(){ const el=document.querySelector('input[name="ct_security"]:checked'); return el?el.value:'person'; }
 
+function getShares(){ const el=document.getElementById('ct_shares'); return el? (Number(el.value)||0) : 0; }
+
 function updateSecurityUI(){
-  const isPerson = getSecurity()==='person';
+  const sec = getSecurity();
+  const isPerson = sec==='person';
+  const usesShares = (sec==='person' || sec==='share');
   document.getElementById('ct_guar_panel').style.display = isPerson ? 'block':'none';
   document.getElementById('ct_guar_btn').disabled = !isPerson;
+  document.getElementById('ct_share_field').style.display = usesShares ? 'block':'none';
   const warn=document.getElementById('ct_sec_warn');
   warn.style.display='none';
-  if(!isPerson){ document.getElementById('ct_guar_status').textContent=''; return; }
-  // รหัสไปรษณีย์อัตโนมัติ (จาก coop_data.json → SSOT coop_constants)
-  fetch(window.CONTRACT_ASSET_BASE+'coop_data.json').then(x=>x.json())
-    .then(c=>{ document.getElementById('ct_pc_show').textContent=c.postcode||'—'; }).catch(()=>{});
-  // เตือนเพดานวงเงินตามระเบียบ
+  if(!isPerson) document.getElementById('ct_guar_status').textContent='';
+  if(isPerson){
+    // รหัสไปรษณีย์อัตโนมัติ (จาก coop_data.json → SSOT coop_constants)
+    fetch(window.CONTRACT_ASSET_BASE+'coop_data.json').then(x=>x.json())
+      .then(c=>{ document.getElementById('ct_pc_show').textContent=c.postcode||'—'; }).catch(()=>{});
+  }
+  if(!usesShares) return;   // จำนอง/เงินฝาก — เพดานอยู่ที่คณะกรรมการ ไม่ใช่ที่เว็บ
+
+  const shares = getShares(), shareBaht = shares*SHARE_PAR;
+  document.getElementById('ct_shares_baht').textContent =
+    shares>0 ? ('= '+fmt0(shareBaht)+' บาท (ข้อ 2 ของหนังสือหุ้นค้ำ)') : '—';
+
   let P=0; try{ const r=calcCoop(); P = r? r.P : 0; }catch(e){}
-  if(P > GUAR_CEILING){
+  if(!P) return;
+  if(!shares){
+    warn.style.display='block'; warn.style.color='#b26a00';
+    warn.innerHTML='⚠️ ยังไม่ได้กรอกจำนวนหุ้น — คำนวณเพดานตามระเบียบ ข้อ 8 ไม่ได้';
+    return;
+  }
+  const cap = ceilingFor(sec, shares);
+  // อธิบายที่มาของเพดาน เพื่อให้เจ้าหน้าที่เถียงกับตัวเลขได้ ไม่ใช่แค่เชื่อ
+  const why = isPerson
+    ? (2*shareBaht >= GUAR_CEILING ? 'หุ้น '+fmt0(shareBaht)+' บาท → 2 เท่า = '+fmt0(2*shareBaht)+' บาท แต่ระเบียบตัดที่เพดาน 80,000'
+      : (2*shareBaht > 50000 ? 'หุ้น '+fmt0(shareBaht)+' บาท → เกณฑ์ ข. 2 เท่า = '+fmt0(2*shareBaht)+' บาท'
+        : 'หุ้น '+fmt0(shareBaht)+' บาท → เกณฑ์ ข. 2 เท่า = '+fmt0(2*shareBaht)+' บาท ซึ่งต่ำกว่าเกณฑ์ ก. จึงได้ '+fmt0(50000)+' บาท'))
+    : 'หุ้น '+fmt0(shareBaht)+' บาท → 60% = '+fmt0(cap)+' บาท';
+  const rule = isPerson ? 'ข้อ 8(2) ก./ข.' : 'ข้อ 8 วรรคแรก';
+  if(P > cap){
     warn.style.display='block'; warn.style.color='#c00';
-    warn.innerHTML='🔴 วงเงิน '+fmt0(P)+' บาท <u>เกินเพดานบุคคลค้ำ '+fmt0(GUAR_CEILING)+' บาท</u> (ระเบียบเงินกู้ ข้อ 8(2)) — ต้องใช้จำนองอสังหาฯ [8(1)] หรือเงินฝาก [8(3)] แทน/ร่วม';
-  } else if(P>0){
+    warn.innerHTML='🔴 วงเงิน '+fmt0(P)+' บาท <u>เกินเพดาน '+fmt0(cap)+' บาท</u> (ระเบียบเงินกู้ '+rule+')<br>'
+      +'<span style="font-weight:400">'+why+'</span><br>'
+      +'<span style="font-weight:400">→ ลดวงเงิน หรือใช้จำนองอสังหาฯ [8(1)] / เงินฝาก [8(3)] แทนหรือร่วม</span>';
+  } else {
     warn.style.display='block'; warn.style.color='#0a7';
-    warn.innerHTML='✅ วงเงิน '+fmt0(P)+' บาท อยู่ในเพดานบุคคลค้ำ (≤ '+fmt0(GUAR_CEILING)+' บาท)';
+    warn.innerHTML='✅ วงเงิน '+fmt0(P)+' บาท อยู่ในเพดาน '+fmt0(cap)+' บาท ('+rule+')<br>'
+      +'<span style="font-weight:400">'+why+'</span>';
   }
 }
 
@@ -1182,7 +1241,10 @@ async function genGuaranteePDF(){
     if(getSecurity()!=='person') return bad('เลือก "บุคคลค้ำ 2 คน" ก่อน');
     const r = calcCoop();
     if(!r) return bad('กรอกเงินต้น + วันรับเงินกู้ แล้วกด "คำนวณ" ก่อน');
-    if(r.P > GUAR_CEILING) return bad('วงเงิน '+fmt0(r.P)+' เกินเพดานบุคคลค้ำ '+fmt0(GUAR_CEILING)+' บาท (ระเบียบ ข้อ 8(2)) — ใช้บุคคลค้ำอย่างเดียวไม่ได้');
+    const shares = getShares();
+    if(!shares) return bad('กรอก "จำนวนหุ้นที่ถืออยู่" ก่อน — เพดานบุคคลค้ำขึ้นกับมูลค่าหุ้น (ระเบียบ ข้อ 8(2) ข.)');
+    const cap = ceilingFor('person', shares);
+    if(r.P > cap) return bad('วงเงิน '+fmt0(r.P)+' เกินเพดาน '+fmt0(cap)+' บาท (ระเบียบ ข้อ 8(2)) — ใช้บุคคลค้ำอย่างเดียวไม่ได้');
     const meetInp=document.getElementById('ct_meetdate');
     if(!meetInp.value){ meetInp.style.outline='2px solid #c00'; meetInp.focus(); return bad('เลือก "วันที่ประชุมอนุมัติ" ก่อน'); }
     meetInp.style.outline='';
