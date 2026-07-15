@@ -200,6 +200,37 @@
     return await outPdf.save();
   }
 
+  /* ===== หนังสือค้ำประกันเงินกู้ (เงินหุ้นค้ำประกัน) =====
+   * ผู้กู้ใช้หุ้นตัวเองค้ำ → ไม่มีผู้ค้ำแยก → 1 หน้า 1 ฉบับ (ต่างจากบุคคลค้ำที่ 2 คน = 4 หน้า)
+   * base = share_base.pdf (Word export ของผู้จัดการ — ห้าม re-render ด้วย LibreOffice)
+   */
+  let _sharePdf = null;
+  async function _loadShare() {
+    if (!_sharePdf) _sharePdf = await fetch(_ab() + "share_base.pdf").then(r => r.arrayBuffer());
+    if (!_fontLoaded) {
+      const ff = new FontFace(OVERLAY_FONT, `url(${_ab()}assets/THSarabunNew.ttf)`);
+      await ff.load(); document.fonts.add(ff); _fontLoaded = true;
+    }
+  }
+
+  async function generateShare(data, opts = {}) {
+    if (!global.SHARE_MAP) throw new Error("ไม่พบ share_fieldmap.js");
+    await _loadShare();
+    const { PDFDocument } = global.PDFLib;
+    const src = await PDFDocument.load(_sharePdf);
+    const perPage = _collectFields(data, global.SHARE_MAP);
+    const srcPages = src.getPages();
+    for (const pageNoStr of Object.keys(perPage)) {
+      const pg = srcPages[+pageNoStr - 1];
+      if (!pg) continue;
+      const Wpt = pg.getWidth(), Hpt = pg.getHeight();
+      const cv = _renderOverlayCanvas(Wpt, Hpt, perPage[pageNoStr], opts.calibrate ? "#0d19b3" : "#000000");
+      const png = await src.embedPng(_canvasToPngBytes(cv));
+      pg.drawImage(png, { x: 0, y: 0, width: Wpt, height: Hpt });
+    }
+    return await src.save();
+  }
+
   // debug: คืน canvas overlay ของหน้า (สำหรับ verify บนจอ)
   async function debugOverlayCanvas(data, pageNo) {
     await _load();
@@ -220,5 +251,5 @@
     return _renderOverlayCanvas(595.2, 841.92, perPage[pageNo] || [], "#0d19b3");
   }
 
-  global.ContractFill = { generateContract, generateGuarantee, bahtText, thaiDate, fmtNum, debugOverlayCanvas, debugOverlayCanvasFM, _SCALE: SCALE };
+  global.ContractFill = { generateContract, generateGuarantee, generateShare, bahtText, thaiDate, fmtNum, debugOverlayCanvas, debugOverlayCanvasFM, _SCALE: SCALE };
 })(window);

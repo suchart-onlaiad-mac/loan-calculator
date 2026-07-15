@@ -1017,6 +1017,7 @@ DATE_FIELDS.forEach(id=>{
   <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn" onclick="genContractPDF()">📄 สร้าง PDF สัญญา</button>
     <button class="btn ghost" id="ct_guar_btn" onclick="genGuaranteePDF()" disabled>📄 สร้าง PDF หนังสือค้ำประกัน (2 แผ่น)</button>
+    <button class="btn ghost" id="ct_share_btn" onclick="genSharePDF()" disabled>📄 สร้าง PDF หนังสือหุ้นค้ำประกัน</button>
   </div>
   <div id="ct_status" class="note" style="margin-top:10px"></div>
   <div id="ct_guar_status" class="note" style="margin-top:6px"></div>
@@ -1029,7 +1030,7 @@ DATE_FIELDS.forEach(id=>{
 /* cache-bust: Python http.server ไม่ส่ง Cache-Control → เบราว์เซอร์จด JS เก่า (heuristic cache)
  * → โหลด engine files ที่แก้บ่อยด้วย ?v=timestamp ทุกครั้ง เห็นผลแก้ทันที ไม่ต้อง hard-reload
  * (vendor คงที่ ปล่อย cache ได้) · order สำคัญ: config→fieldmap→fill_engine (document.write = ต่อเนื่อง) */
-(function(){var v="?v="+Date.now();["config.js","fieldmap.js","guarantee_fieldmap.js","fill_engine.js"].forEach(function(f){document.write('<scr'+'ipt src="contract_print/'+f+v+'"></scr'+'ipt>');});})();
+(function(){var v="?v="+Date.now();["config.js","fieldmap.js","guarantee_fieldmap.js","share_fieldmap.js","fill_engine.js"].forEach(function(f){document.write('<scr'+'ipt src="contract_print/'+f+v+'"></scr'+'ipt>');});})();
 </script>
 <script>
 /* ===== หลักค้ำประกัน (ระเบียบเงินกู้ ข้อ 8) =====
@@ -1121,6 +1122,7 @@ function updateSecurityUI(){
   const usesShares = (sec==='person' || sec==='share');
   document.getElementById('ct_guar_panel').style.display = isPerson ? 'block':'none';
   document.getElementById('ct_guar_btn').disabled = !isPerson;
+  document.getElementById('ct_share_btn').disabled = (sec!=='share');
   document.getElementById('ct_share_field').style.display = usesShares ? 'block':'none';
   const warn=document.getElementById('ct_sec_warn');
   warn.style.display='none';
@@ -1230,6 +1232,66 @@ async function genContractPDF(){
     window.open(url, '_blank');
     st.innerHTML='✅ สร้างสำเร็จ ('+rows.length+' งวด) — เปิดแท็บใหม่แล้ว &nbsp;<a href="'+url+'" download="สัญญากู้_'+((data.name||'ผู้กู้').replace(/\s+/g,'_'))+'.pdf">⬇ ดาวน์โหลด</a>';
   }catch(e){ st.textContent='❌ '+(e && e.message || e); console.error(e); }
+}
+
+/* ===== หนังสือค้ำประกันเงินกู้ (เงินหุ้นค้ำประกัน) — 1 แผ่น =====
+ * ผู้กู้เอาหุ้นตัวเองค้ำ → ไม่มีผู้ค้ำ → ข้อมูลทั้งหมดมาจากแผงผู้กู้ + ช่องจำนวนหุ้น
+ * ⚠️ กลไกจริงตามที่ผู้จัดการอธิบาย 15-07: หนังสือนี้ = ความยินยอมล่วงหน้า
+ *    เวลาผิดนัดจริง ต้องให้ "คณะกรรมการมีมติให้พ้นสมาชิกภาพ" ก่อน หุ้นถึงจะหักกลบได้ (พ.ร.บ.สหกรณ์ ม.42)
+ *    ไม่ใช่หักได้ทันทีอย่างที่ข้อ 4 ในฟอร์มเขียนไว้ */
+async function genSharePDF(){
+  const st=document.getElementById('ct_guar_status');
+  const bad=(m)=>{ st.innerHTML='<span style="color:#c00;font-weight:700">⚠️ '+m+'</span>'; };
+  try{
+    if(getSecurity()!=='share') return bad('เลือก "หุ้นตนเอง" ก่อน');
+    const r = calcCoop();
+    if(!r) return bad('กรอกเงินต้น + วันรับเงินกู้ แล้วกด "คำนวณ" ก่อน');
+    const shares = getShares();
+    if(!shares) return bad('กรอก "จำนวนหุ้นที่ถืออยู่" ก่อน');
+    const cap = ceilingFor('share', shares);
+    if(r.P > cap) return bad('วงเงิน '+fmt0(r.P)+' เกินเพดาน '+fmt0(cap)+' บาท (60% ของมูลค่าหุ้น — ระเบียบ ข้อ 8 วรรคแรก)');
+    const meetInp=document.getElementById('ct_meetdate');
+    if(!meetInp.value){ meetInp.style.outline='2px solid #c00'; meetInp.focus(); return bad('เลือก "วันที่ประชุมอนุมัติ" ก่อน'); }
+    meetInp.style.outline='';
+    const meetDate=parseDate(meetInp.value);
+
+    const V=id=>(document.getElementById(id).value||'').trim();
+    const miss=[];
+    if(!V('ct_name')) miss.push('ชื่อ-สกุล'); if(!V('ct_reg')) miss.push('เลขทะเบียน');
+    if(!V('ct_group')) miss.push('กลุ่มที่'); if(!V('ct_house')) miss.push('บ้านเลขที่'); if(!V('ct_moo')) miss.push('หมู่ที่');
+    if(miss.length) return bad('ยังขาดข้อมูลผู้กู้: '+miss.join(' · '));
+
+    const coop = await fetch(window.CONTRACT_ASSET_BASE+'coop_data.json').then(x=>x.json());
+    const lt = document.getElementById('loanType').value;
+    const shareBaht = shares*SHARE_PAR;
+
+    /* 🔑 ชื่อ key ต้องตรงกับ share_fieldmap.js เป๊ะ — ไม่ตรง = ช่องนั้นว่างเงียบ (บั๊ก 14-07 ทำ 16 ช่องหาย) */
+    const data = {
+      docDate: ContractFill.thaiDate(meetDate),     // ⭐ วันที่ของหนังสือฉบับนี้เอง (นิติกรรมเกิด) → เต็ม
+      name: V('ct_name'), nameParen: V('ct_name'),  // ชื่อในวงเล็บใต้เส้นลงชื่อ = คนเดียวกัน
+      reg: V('ct_reg'), group: V('ct_group'),
+      house: V('ct_house'), moo: V('ct_moo'), tambon: V('ct_tambon'),
+      postcode: coop.postcode,                      // อำเภอ/จังหวัด พิมพ์ไว้ในฟอร์มแล้ว
+      tel: '',                                      // เว็บยังไม่มีช่องเบอร์ผู้กู้ → เว้นให้เขียนด้วยปากกา
+      loanRange: (window.CONTRACT_CONFIG.loanTypeLabel[lt]||''),
+      loanDate: thDate(meetDate),                   // อ้างอิงสัญญากู้ฉบับอื่น → ย่อ
+      amount: fmt0(r.P), amountText: ContractFill.bahtText(r.P),
+      shares: fmt0(shares),
+      shareBaht: fmt0(shareBaht), shareBahtText: ContractFill.bahtText(shareBaht),
+    };
+
+    /* 🚦 กันบั๊ก "ช่องว่างเงียบ" — ตรวจเฉพาะ key ที่ไม่ถูกสร้างเลย (undefined = บั๊กโปรแกรม)
+     *    ค่าว่าง '' = ตั้งใจเว้น (เช่น tel) → ผ่านได้ */
+    const needed = Object.keys(window.SHARE_MAP).filter(k=>k!=='baseDY');
+    const missKeys = needed.filter(k => data[k] === undefined);
+    if(missKeys.length) return bad('บั๊ก: fieldmap มี key ที่ฝั่งผลิตไม่ได้สร้าง → '+missKeys.join(', '));
+
+    st.textContent='⏳ กำลังสร้าง...';
+    const bytes = await ContractFill.generateShare(data, {});
+    const url = URL.createObjectURL(new Blob([bytes], {type:'application/pdf'}));
+    window.open(url, '_blank');
+    st.innerHTML='✅ สร้างหนังสือหุ้นค้ำประกันสำเร็จ — เปิดแท็บใหม่แล้ว &nbsp;<a href="'+url+'" download="หนังสือหุ้นค้ำ_'+((data.name||'ผู้กู้').replace(/\s+/g,'_'))+'.pdf">⬇ ดาวน์โหลด</a>';
+  }catch(e){ st.innerHTML='<span style="color:#c00">❌ '+(e && e.message || e)+'</span>'; console.error(e); }
 }
 
 /* ===== หนังสือค้ำประกันเงินกู้ (บุคคลค้ำ) — ออก 2 แผ่น/2 ผู้ค้ำ =====
