@@ -128,6 +128,22 @@ window.SNGK13_MAP = {
     "max": 238,
     "align": "left"
   },
+  "planDetail2": {
+    "page": 1,
+    "x": 74,
+    "y": 362.1,
+    "size": 16,
+    "max": 481,
+    "align": "left"
+  },
+  "planDetail3": {
+    "page": 1,
+    "x": 74,
+    "y": 383,
+    "size": 16,
+    "max": 481,
+    "align": "left"
+  },
   "use1_item": {
     "page": 1,
     "x": 92,

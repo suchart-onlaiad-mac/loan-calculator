@@ -41,9 +41,14 @@
     '<label style="font-size:13px">ตั้งแต่</label>' + ro('s13_seasonFrom', '150px') +
     '<label style="font-size:13px">ถึง</label>' + ro('s13_seasonTo', '150px') + '</div>' +
     '<div class="note" style="margin-top:4px">= วันรับเงินกู้ → วันส่งชำระงวดสุดท้าย (คำนวณอัตโนมัติ)</div></div>';
+  H += '<datalist id="dl_species"><option>ปลา</option><option>กุ้ง</option><option>ข้าว</option><option>ฝรั่ง</option><option>ชมพู่</option><option>มะม่วง</option><option>มะนาว</option></datalist>';
   H += '<div id="s13_medium_box" style="border:1px solid #e5e7eb;border-radius:8px;padding:10px">' +
-    '<div style="font-weight:600;margin-bottom:6px">รายละเอียดเกี่ยวกับแผนงาน <span class="note" style="font-weight:400">(เฉพาะเงินกู้ระยะปานกลาง)</span></div>' +
-    '<textarea id="s13_planDetail" rows="2" placeholder="บรรยายการใช้เงินกู้ เช่น ปรับปรุงบ่อ ซื้อลูกกุ้ง อาหาร ฯลฯ" style="width:100%;' + box + ';font-family:inherit"></textarea></div>';
+    '<div style="font-weight:600;margin-bottom:6px">รายละเอียดเกี่ยวกับแผนงาน <span class="note" style="font-weight:400">(เฉพาะเงินกู้ระยะปานกลาง · ตัวเลขคำนวณอัตโนมัติจากวงเงิน)</span></div>' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px">' +
+    '<label style="font-size:13px">ลักษณะการปรับพื้นที่</label>' + sel('s13_medMode', ['เลี้ยงสัตว์น้ำ (กุ้ง/ปลา)', 'ทำนา/ทำสวน'], '220px') +
+    '<label style="font-size:13px">ชนิด</label>' + dl('s13_medSpecies', 'dl_species', 'เช่น ปลา/กุ้ง/ข้าว', '150px') + '</div>' +
+    '<textarea id="s13_planDetail" rows="4" placeholder="กด/แก้วงเงินแล้วข้อความจะถูกสร้างอัตโนมัติ — แก้ไขเพิ่มเองได้" style="width:100%;' + box + ';font-family:inherit"></textarea>' +
+    '<div class="note" style="margin-top:4px">ข้อความสร้างอัตโนมัติจากลักษณะ+ชนิด+วงเงิน (รวมทุกรายการ = วงเงินกู้เต็ม) · แก้เองได้ · <a href="javascript:void(0)" onclick="composeMediumPlan(true)">🔄 สร้างใหม่</a></div></div>';
 
   // ── ข้อ 2 · รายละเอียดการใช้เงินกู้ (เงินสด/ค่าหุ้น = auto · งวดชำระ = auto) ──
   H += secH('ข้อ 2 · รายละเอียดการใช้เงินกู้');
@@ -93,14 +98,61 @@
 
   mount.innerHTML = H;
 
-  // auto ค่าหุ้น/เงินสด + ป้ายเงื่อนไข — อัปเดตเมื่อวงเงิน/ประเภทเปลี่ยน
+  // auto ค่าหุ้น/เงินสด + ป้ายเงื่อนไข + แผนงานปานกลาง — อัปเดตเมื่อวงเงิน/ประเภทเปลี่ยน
   ['principal', 'years', 'rate', 'loanType', 'asofDate', 'startDate'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.addEventListener('input', function () { updateSngk13Auto(); updateSngk13Hints(); });
-    if (el) el.addEventListener('change', function () { updateSngk13Auto(); updateSngk13Hints(); });
+    const el = document.getElementById(id); if (!el) return;
+    const h = function () { updateSngk13Auto(); updateSngk13Hints(); composeMediumPlan(false); };
+    el.addEventListener('input', h); el.addEventListener('change', h);
   });
+  ['s13_medMode', 's13_medSpecies'].forEach(id => {
+    const el = document.getElementById(id); if (!el) return;
+    const h = function () { composeMediumPlan(false); };
+    el.addEventListener('input', h); el.addEventListener('change', h);
+  });
+  // ผู้ใช้พิมพ์แก้เอง → ตั้ง dirty กันระบบเขียนทับ (ยกเว้นกด "สร้างใหม่")
+  const pd = document.getElementById('s13_planDetail');
+  if (pd) pd.addEventListener('input', function () { pd.dataset.dirty = '1'; });
   updateSngk13Auto();
   updateSngk13Hints();
 })();
+
+/* auto-compose narrative แผนงานปานกลาง — รวมทุกรายการ = วงเงินกู้เต็ม (P)
+ *   หุ้น 5% (คงที่) · รถตักดิน ≈15% ของวงเงิน → ชั่วโมง (×1,000) · ที่เหลือแบ่งตามลักษณะ
+ *   สัตว์น้ำ: พันธุ์ 30% + อาหาร 70% ของที่เหลือ · พืช: พันธุ์ 30% + ปุ๋ย 45% + ยา 25%
+ * force=true → เขียนทับแม้ผู้ใช้แก้แล้ว (ปุ่ม 🔄) · force=false → ไม่ทับถ้า dirty */
+const SNGK13_ALLOC = { sharePct: 0.05, excavPct: 0.15, excavRate: 1000,
+  water: { seed: 0.30, feed: 0.70 }, crop: { seed: 0.30, fert: 0.45, chem: 0.25 } };
+function composeMediumPlan(force) {
+  const ta = document.getElementById('s13_planDetail'); if (!ta) return;
+  const lt = document.getElementById('loanType');
+  const isShort = (window.CONTRACT_CONFIG && window.CONTRACT_CONFIG.loanTypeLabel[lt ? lt.value : ''] || '').indexOf('สั้น') >= 0;
+  if (isShort) return;                                  // ปานกลางเท่านั้น
+  if (!force && ta.dataset.dirty === '1') return;       // ผู้ใช้แก้เอง — ไม่ทับ
+  let r = null; try { r = calcCoop(); } catch (e) { }
+  const P = r ? r.P : 0; if (!P) { if (force) ta.value = ''; return; }
+  const A = SNGK13_ALLOC;
+  const share = Math.round(P * A.sharePct);
+  const hrs = Math.max(1, Math.round(P * A.excavPct / A.excavRate));
+  const excav = hrs * A.excavRate;
+  const rest = P - share - excav;
+  const modeEl = document.getElementById('s13_medMode');
+  const isWater = (modeEl && modeEl.value || 'เลี้ยงสัตว์น้ำ (กุ้ง/ปลา)').indexOf('สัตว์น้ำ') >= 0;
+  let sp = (document.getElementById('s13_medSpecies') || {}).value || '';
+  if (!sp) sp = isWater ? 'ปลา' : 'ข้าว';
+  const B = n => fmt0(n);
+  const head = 'ค่าจ้างรถตักดินชั่วโมงละ ' + B(A.excavRate) + ' บาท เป็นเวลา ' + hrs + ' ชั่วโมง เป็นเงิน ' + B(excav) + ' บาท ';
+  const tail = ' ลงทุนซื้อหุ้นเพิ่ม ' + B(share) + ' บาท (5% ของเงินกู้)';
+  let mid;
+  if (isWater) {
+    const seed = Math.round(rest * A.water.seed), feed = rest - seed;
+    mid = 'ค่าพันธุ์' + sp + ' ' + B(seed) + ' บาท ค่าอาหาร' + sp + ' ' + B(feed) + ' บาท';
+  } else {
+    const seed = Math.round(rest * A.crop.seed), fert = Math.round(rest * A.crop.fert), chem = rest - seed - fert;
+    mid = 'ค่าพันธุ์' + sp + ' ' + B(seed) + ' บาท ค่าปุ๋ย ' + B(fert) + ' บาท ค่ายาสำหรับฉีดบำรุงและป้องกันแมลง ' + B(chem) + ' บาท';
+  }
+  ta.value = head + mid + tail;
+  ta.dataset.dirty = '';
+}
 
 /* auto: ค่าหุ้น = 5% ของวงเงิน · เงินสด = 95% · ฤดูกาลผลิต (ระยะสั้น) = วันรับเงินกู้ → งวดชำระสุดท้าย (read-only) */
 function updateSngk13Auto() {
@@ -146,9 +198,34 @@ function toggleSngk13() {
       const sg = document.getElementById('g' + i + '_group'), sr = document.getElementById('g' + i + '_reg'), dg = document.getElementById('s13_g' + i + '_group');
       if (dg && !dg.value) { const parts = [sg && sg.value.trim(), sr && sr.value.trim()].filter(Boolean); if (parts.length) dg.value = parts.join(' / '); }
     }
-    updateSngk13Auto(); updateSngk13Hints();
+    // default ลักษณะการปรับพื้นที่จากวัตถุประสงค์ (ถ้ายังไม่เลือก)
+    const modeEl = document.getElementById('s13_medMode');
+    if (modeEl && !modeEl.value) {
+      const pv = (document.getElementById('ct_purpose') || {}).value || '';
+      modeEl.value = /เลี้ยง|ปลา|กุ้ง/.test(pv) ? 'เลี้ยงสัตว์น้ำ (กุ้ง/ปลา)' : 'ทำนา/ทำสวน';
+    }
+    updateSngk13Auto(); updateSngk13Hints(); composeMediumPlan(false);
     p.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+}
+
+/* greedy word-wrap narrative → บรรทัด (max ต่อบรรทัดต่างกัน: บรรทัด 1 สั้น · 2-3 เต็ม)
+ * วัดด้วย canvas + ฟอนต์ overlay ชุดเดียวกับ engine → บรรทัดพอดี ไม่ต้องย่อฟอนต์ · เกิน 3 บรรทัด = อัดลงบรรทัด 3 */
+function wrapSngk13Plan(text, maxes, size) {
+  const cv = wrapSngk13Plan._cv || (wrapSngk13Plan._cv = document.createElement('canvas'));
+  const ctx = cv.getContext('2d');
+  ctx.font = size + 'px "THSarabunOverlay"';
+  const w = s => ctx.measureText(s).width;
+  const toks = text.split(/\s+/).filter(Boolean);
+  const lines = ['', '', ''];
+  let li = 0;
+  for (const t of toks) {
+    if (li > 2) { lines[2] += ' ' + t; continue; }              // ล้น 3 บรรทัด → ต่อท้ายบรรทัดสุดท้าย
+    const trial = lines[li] ? lines[li] + ' ' + t : t;
+    if (w(trial) <= maxes[li] || !lines[li]) lines[li] = trial;  // token เดียวเกิน max ก็ต้องวางไว้บรรทัดนั้น
+    else { li++; if (li > 2) { lines[2] += ' ' + t; } else lines[li] = t; }
+  }
+  return lines;
 }
 
 async function genLoanRequestPDF() {
@@ -218,6 +295,23 @@ async function genLoanRequestPDF() {
       if (sd) data.seasonFrom = thDate(sd);   // ย่อ "10 ก.ค. 2569" (อ้างอิงในเอกสาร)
       if (prin.length) data.seasonTo = thDate(prin[prin.length - 1].date);
     } else { delete data.seasonFrom; delete data.seasonTo; }
+
+    // 🔑 แผนงานปานกลาง = narrative → word-wrap ลง 3 บรรทัด (y=341 สั้น + 362/383 เต็ม) ที่ 16pt
+    delete data.planDetail2; delete data.planDetail3;
+    if (isShort) { delete data.planDetail; }
+    else if (data.planDetail) {
+      // โหลดฟอนต์ overlay ให้พร้อมวัด (ชุดเดียวกับ engine)
+      if (!window.__s13FontReady) {
+        try { const ff = new FontFace('THSarabunOverlay', 'url(' + window.CONTRACT_ASSET_BASE + 'assets/THSarabunNew.ttf)');
+          await ff.load(); document.fonts.add(ff); window.__s13FontReady = true; } catch (e) { }
+      }
+      const M = window.SNGK13_MAP;
+      const maxes = [M.planDetail.max, M.planDetail2 ? M.planDetail2.max : 481, M.planDetail3 ? M.planDetail3.max : 481];
+      const lines = wrapSngk13Plan(String(data.planDetail), maxes, M.planDetail.size || 16);
+      data.planDetail = lines[0] || '';
+      if (lines[1]) data.planDetail2 = lines[1];
+      if (lines[2]) data.planDetail3 = lines[2];
+    }
 
     // auto: ยอดรวม ข้อ 3/4
     const sumKeys = (pre, suf) => { let s = 0, any = false; for (let i = 1; i <= 7; i++) { const el = document.getElementById('s13_' + pre + i + suf); if (el) { const n = num(el.value); if (n != null) { s += n; any = true; } } } return any ? fmt0(s) : ''; };
