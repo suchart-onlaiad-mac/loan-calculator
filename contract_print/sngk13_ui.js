@@ -38,8 +38,9 @@
   H += '<div id="s13_short_box" style="border:1px solid #e5e7eb;border-radius:8px;padding:10px;margin-bottom:8px">' +
     '<div style="font-weight:600;margin-bottom:6px">สำหรับฤดูกาลผลิต <span class="note" style="font-weight:400">(เฉพาะเงินกู้ระยะสั้น)</span></div>' +
     '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">' +
-    '<label style="font-size:13px">ตั้งแต่</label>' + cell('s13_seasonFrom', 'วันทำสัญญา', '150px') +
-    '<label style="font-size:13px">ถึง</label>' + cell('s13_seasonTo', 'วันส่งชำระ', '150px') + '</div></div>';
+    '<label style="font-size:13px">ตั้งแต่</label>' + ro('s13_seasonFrom', '150px') +
+    '<label style="font-size:13px">ถึง</label>' + ro('s13_seasonTo', '150px') + '</div>' +
+    '<div class="note" style="margin-top:4px">= วันรับเงินกู้ → วันส่งชำระงวดสุดท้าย (คำนวณอัตโนมัติ)</div></div>';
   H += '<div id="s13_medium_box" style="border:1px solid #e5e7eb;border-radius:8px;padding:10px">' +
     '<div style="font-weight:600;margin-bottom:6px">รายละเอียดเกี่ยวกับแผนงาน <span class="note" style="font-weight:400">(เฉพาะเงินกู้ระยะปานกลาง)</span></div>' +
     '<textarea id="s13_planDetail" rows="2" placeholder="บรรยายการใช้เงินกู้ เช่น ปรับปรุงบ่อ ซื้อลูกกุ้ง อาหาร ฯลฯ" style="width:100%;' + box + ';font-family:inherit"></textarea></div>';
@@ -101,14 +102,22 @@
   updateSngk13Hints();
 })();
 
-/* auto: ค่าหุ้น = 5% ของวงเงิน · เงินสด = 95% (read-only) */
+/* auto: ค่าหุ้น = 5% ของวงเงิน · เงินสด = 95% · ฤดูกาลผลิต (ระยะสั้น) = วันรับเงินกู้ → งวดชำระสุดท้าย (read-only) */
 function updateSngk13Auto() {
-  let P = 0; try { const r = calcCoop(); P = r ? r.P : 0; } catch (e) { }
-  const sh = Math.round(P * 0.05), cash = P - sh;
+  let r = null; try { r = calcCoop(); } catch (e) { }
+  const P = r ? r.P : 0, sh = Math.round(P * 0.05), cash = P - sh;
   const a5 = document.getElementById('s13_use5_amt'), a1 = document.getElementById('s13_use1_amt'), i1 = document.getElementById('s13_use1_item');
   if (a5) a5.value = P ? fmt0(sh) : '';
   if (a1) a1.value = P ? fmt0(cash) : '';
   if (i1 && !i1.value) i1.value = 'เงินสด';
+  // ฤดูกาลผลิต — เฉพาะระยะสั้น
+  const lt = document.getElementById('loanType');
+  const isShort = (window.CONTRACT_CONFIG && window.CONTRACT_CONFIG.loanTypeLabel[lt ? lt.value : ''] || '').indexOf('สั้น') >= 0;
+  let startD = null; try { startD = parseDate(document.getElementById('startDate').value); } catch (e) { }
+  const prin = r ? r.rows.filter(x => x.isPrincipal) : [];
+  const sf = document.getElementById('s13_seasonFrom'), stt = document.getElementById('s13_seasonTo');
+  if (sf) sf.value = (isShort && startD) ? thDate(startD) : '';
+  if (stt) stt.value = (isShort && prin.length) ? thDate(prin[prin.length - 1].date) : '';
 }
 
 /* ระยะสั้น → โชว์ฤดูกาล ซ่อนแผนงาน + ซ่อนแถวใช้เงินสำรอง · ปานกลาง → กลับกัน */
@@ -201,6 +210,14 @@ async function genLoanRequestPDF() {
     data.use1_amt = fmt0(r.P - sh);
     if (!data.use1_item) data.use1_item = 'เงินสด';
     data.useTotal = fmt0(r.P);
+
+    // 🔑 auto: ฤดูกาลผลิต (ระยะสั้นเท่านั้น) = วันรับเงินกู้ → งวดชำระสุดท้าย · ปานกลางเว้นว่าง
+    const isShort = (data.loanRange || '').indexOf('สั้น') >= 0;
+    if (isShort) {
+      const sd = parseDate(document.getElementById('startDate').value);
+      if (sd) data.seasonFrom = thDate(sd);   // ย่อ "10 ก.ค. 2569" (อ้างอิงในเอกสาร)
+      if (prin.length) data.seasonTo = thDate(prin[prin.length - 1].date);
+    } else { delete data.seasonFrom; delete data.seasonTo; }
 
     // auto: ยอดรวม ข้อ 3/4
     const sumKeys = (pre, suf) => { let s = 0, any = false; for (let i = 1; i <= 7; i++) { const el = document.getElementById('s13_' + pre + i + suf); if (el) { const n = num(el.value); if (n != null) { s += n; any = true; } } } return any ? fmt0(s) : ''; };
