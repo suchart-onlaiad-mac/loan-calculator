@@ -231,6 +231,36 @@
     return await src.save();
   }
 
+  /* ===== คำขอกู้เงิน ส.-งก.13 =====
+   * เติมหน้า 1-3 (หน้า 4 = บันทึกผู้สอบสวน เจ้าหน้าที่ติ๊กเอง) · base = sngk13_base.pdf (Word export)
+   */
+  let _sngk13Pdf = null;
+  async function _loadSngk13() {
+    if (!_sngk13Pdf) _sngk13Pdf = await fetch(_ab() + "sngk13_base.pdf").then(r => r.arrayBuffer());
+    if (!_fontLoaded) {
+      const ff = new FontFace(OVERLAY_FONT, `url(${_ab()}assets/THSarabunNew.ttf)`);
+      await ff.load(); document.fonts.add(ff); _fontLoaded = true;
+    }
+  }
+
+  async function generateLoanRequest(data, opts = {}) {
+    if (!global.SNGK13_MAP) throw new Error("ไม่พบ sngk13_fieldmap.js");
+    await _loadSngk13();
+    const { PDFDocument } = global.PDFLib;
+    const src = await PDFDocument.load(_sngk13Pdf);
+    const perPage = _collectFields(data, global.SNGK13_MAP);
+    const srcPages = src.getPages();
+    for (const pageNoStr of Object.keys(perPage)) {
+      const pg = srcPages[+pageNoStr - 1];
+      if (!pg) continue;
+      const Wpt = pg.getWidth(), Hpt = pg.getHeight();
+      const cv = _renderOverlayCanvas(Wpt, Hpt, perPage[pageNoStr], opts.calibrate ? "#0d19b3" : "#000000");
+      const png = await src.embedPng(_canvasToPngBytes(cv));
+      pg.drawImage(png, { x: 0, y: 0, width: Wpt, height: Hpt });
+    }
+    return await src.save();
+  }
+
   // debug: คืน canvas overlay ของหน้า (สำหรับ verify บนจอ)
   async function debugOverlayCanvas(data, pageNo) {
     await _load();
@@ -251,5 +281,5 @@
     return _renderOverlayCanvas(595.2, 841.92, perPage[pageNo] || [], "#0d19b3");
   }
 
-  global.ContractFill = { generateContract, generateGuarantee, generateShare, bahtText, thaiDate, fmtNum, debugOverlayCanvas, debugOverlayCanvasFM, _SCALE: SCALE };
+  global.ContractFill = { generateContract, generateGuarantee, generateShare, generateLoanRequest, bahtText, thaiDate, fmtNum, debugOverlayCanvas, debugOverlayCanvasFM, _SCALE: SCALE };
 })(window);
