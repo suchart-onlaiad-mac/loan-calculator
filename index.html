@@ -971,7 +971,10 @@ DATE_FIELDS.forEach(id=>{
 
 function getSecurity(){ const el=document.querySelector('input[name="ct_security"]:checked'); return el?el.value:'person'; }
 
-function getShares(){ const el=document.getElementById('ct_shares'); return el? (Number(el.value)||0) : 0; }
+/* 🔒 ปัดที่จุดอ่าน เหมือน getPrincipal — หุ้นเป็นจำนวนหน่วย ไม่มีเศษหุ้น
+ * เดิมไม่ปัด → กรอก 100.5 จะพิมพ์ "101 หุ้น" คู่กับ "1,005 บาท" (ที่ถูกคือ 1,010)
+ * = สองช่องบนเอกสารเดียวกันคำนวณจากค่าคนละตัว (ตรวจเชิงลึก 20-07) */
+function getShares(){ const el=document.getElementById('ct_shares'); return el? Math.round(Number(el.value)||0) : 0; }
 
 function updateSecurityUI(){
   const sec = getSecurity();

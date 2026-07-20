@@ -172,7 +172,12 @@ function composeMediumPlan(force) {
  *    ก็จะได้ "เห็น 95,000 บนจอ แต่พิมพ์ 75,000 บนกระดาษ" โดยไม่มีอะไรเตือน */
 function sngk13Alloc(P) {
   if (!P) return null;
-  const num2 = v => { const n = Number(String(v == null ? '' : v).replace(/,/g, '')); return (String(v).trim() !== '' && !isNaN(n)) ? n : 0; };
+  /* 🔒 ปัดที่จุดอ่าน — ต้องปัด "ทีละแถว" ให้ตรงกับที่แต่ละแถวจะถูกพิมพ์ (fmt0 ก็ปัดทีละแถว)
+   * ถ้าบวกค่าดิบแล้วค่อยปัดตอนท้าย จะได้คนละค่ากับผลบวกของสิ่งที่พิมพ์จริง
+   *   เช่น แถว 2 = 333.33 · แถว 3 = 333.33 → พิมพ์ 333 + 333 = 666 แต่บวกดิบได้ 666.66
+   *   ทำให้ตารางบนกระดาษบวกได้ 99,999 ไม่เท่าวงเงิน 100,000 แล้วโดนด่านบล็อก
+   *   ทั้งที่เจ้าหน้าที่ไม่ได้ทำอะไรผิด (บั๊กที่ผมทำหลุดขึ้นเว็บ 20-07 — ตรวจเชิงลึกจับได้) */
+  const num2 = v => { const n = Number(String(v == null ? '' : v).replace(/,/g, '')); return (String(v).trim() !== '' && !isNaN(n)) ? Math.round(n) : 0; };
   let extra = 0;
   for (let i = 2; i <= 4; i++) {
     const el = document.getElementById('s13_use' + i + '_amt');
@@ -363,13 +368,29 @@ async function genLoanRequestPDF() {
       amount: fmt0(r.P), amountText: ContractFill.bahtText(r.P), purpose: purpose,
     };
 
-    // auto: งวดชำระคืน (10 งวด) + รวม
+    /* auto: งวดชำระคืน + ช่องรวม
+     * 🔑 ความจุตารางอ่านจาก fieldmap (DocGate.slots) ไม่ฝังเลข 10 ไว้ในโค้ด
+     *    เดิมฝัง 10 ไว้ 2 ที่ ขณะที่ด่าน capacity นับจาก fieldmap แบบ dynamic
+     *    ถ้าวันหนึ่งฟอร์มขยายเป็น 12 ช่อง ด่านจะปล่อย 12 งวดผ่าน แล้วงวด 11-12 หายเงียบ */
     const prin = r.rows.filter(x => x.isPrincipal);
-    for (let i = 0; i < prin.length && i < 10; i++) {
+    const repSlots = (window.DocGate && DocGate.slots) ? DocGate.slots('sngk13') : 10;
+    for (let i = 0; i < prin.length && i < repSlots; i++) {
       data['rep' + (i + 1) + '_date'] = thDate(prin[i].date);
       data['rep' + (i + 1) + '_amt'] = fmt0(prin[i].principalPaid);
     }
-    data.repTotal = fmt0(r.P);
+    /* ช่อง "รวม" = บวกจากค่าที่จะพิมพ์จริง ไม่ใช่ยัดวงเงินลงไป
+     * เทียบ "กระดาษกับกระดาษ" (data.amount ที่ผ่าน fmt0 แล้ว) ไม่ใช่เทียบกับค่าดิบ r.P
+     *   — เทียบกับค่าดิบคือรากของบั๊กที่ทำให้ useTotal บล็อกผิดมาแล้ว
+     * วันนี้ยังไม่มีเส้นทางที่ทำให้ไม่ตรง (P จำนวนเต็ม + ด่าน capacity คุมอยู่)
+     * แต่ที่เขียนไว้เพื่อกันวันที่เงื่อนไขข้างต้นเปลี่ยน แล้วงวดหายเงียบโดยไม่มีใครรู้ */
+    let repSum = 0;
+    for (let i = 1; i <= repSlots; i++) { const n = num(data['rep' + i + '_amt']); if (n != null) repSum += n; }
+    const amtPaper = num(data.amount);
+    if (repSum !== amtPaper) {
+      return bad('ระบบผิดพลาด: ตารางงวดชำระคืนรวมได้ ' + fmt0(repSum)
+        + ' บาท ไม่เท่าวงเงินที่พิมพ์ ' + data.amount + ' บาท — แจ้งผู้พัฒนา');
+    }
+    data.repTotal = fmt0(repSum);
 
     /* input จากแผง (วน fieldmap key ที่มีช่อง)
      * 🔒 ข้ามช่องที่ "ถูกซ่อนอยู่ตอนนี้" — ซ่อน = ไม่เกี่ยวกับประเภทเงินกู้ที่เลือก
@@ -432,9 +453,14 @@ async function genLoanRequestPDF() {
      * อ่านกลับแบบนี้จับการปัดเศษที่เพี้ยนระหว่างค่าหุ้นกับเงินสดได้ด้วย */
     let useSum = 0;
     for (let i = 1; i <= 5; i++) { const n = num(data['use' + i + '_amt']); if (n != null) useSum += n; }
-    if (useSum !== r.P) {
+    /* 🔑 เทียบ "กระดาษกับกระดาษ" — ใช้ data.amount ที่ผ่าน fmt0 แล้ว ไม่ใช่ค่าดิบ r.P
+     * การเทียบค่าที่ปัดแล้วกับค่าดิบ คือรากของบั๊กที่ทำให้ด่านนี้บล็อกผิดจนหลุดขึ้นเว็บ
+     * วันนี้ปลอดภัยเพราะ getPrincipal() ปัดจำนวนเต็มอยู่ — แต่นั่นคือพึ่งเสาค้ำในไฟล์อื่น
+     * ถ้าวันไหนเสานั้นถูกถอด บั๊กเดิมกลับมาทันที (ผู้ตรวจรับจับได้ว่าแก้ไม่ครบ 20-07) */
+    const amtPaper2 = num(data.amount);
+    if (useSum !== amtPaper2) {
       return bad('ระบบผิดพลาด: ตารางใช้เงินกู้รวมได้ ' + fmt0(useSum)
-        + ' บาท ไม่เท่าวงเงิน ' + fmt0(r.P) + ' บาท — แจ้งผู้พัฒนา');
+        + ' บาท ไม่เท่าวงเงินที่พิมพ์ ' + data.amount + ' บาท — แจ้งผู้พัฒนา');
     }
     data.useTotal = fmt0(useSum);
 
@@ -464,7 +490,10 @@ async function genLoanRequestPDF() {
     }
 
     // auto: ยอดรวม ข้อ 3/4
-    const sumKeys = (pre, suf) => { let s = 0, any = false; for (let i = 1; i <= 7; i++) { const el = document.getElementById('s13_' + pre + i + suf); if (el) { const n = num(el.value); if (n != null) { s += n; any = true; } } } return any ? fmt0(s) : ''; };
+    /* 🔒 ปัดทีละแถวก่อนบวก — ต้องตรงกับที่แต่ละแถวถูกพิมพ์ (fmtA ปัดทีละแถวเช่นกัน)
+     * เดิมบวกค่าดิบแล้วปัดตอนท้าย → กรอก 100.40 สามแถว กระดาษพิมพ์ 100+100+100
+     * แต่ช่องรวมพิมพ์ 301 = ตารางบวกไม่ลงในหน้าเดียวกัน โดยไม่มีอะไรเตือน (ตรวจเชิงลึก 20-07) */
+    const sumKeys = (pre, suf) => { let s = 0, any = false; for (let i = 1; i <= 7; i++) { const el = document.getElementById('s13_' + pre + i + suf); if (el) { const n = num(el.value); if (n != null) { s += Math.round(n); any = true; } } } return any ? fmt0(s) : ''; };
     const pt = sumKeys('prod', '_amt'); if (pt) data.prodTotal = pt;
     const it = sumKeys('inc', '_value'); if (it) data.incTotal = it;
     const et = sumKeys('exp', '_amt'); if (et) data.expTotal = et;
