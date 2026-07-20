@@ -18,16 +18,19 @@
   const td = h => '<td style="border:1px solid #e5e7eb;padding:3px">' + h + '</td>';
   const secH = t => '<div style="font-weight:700;margin:16px 0 8px;color:#1f2937">' + t + '</div>';
 
-  /* 7 ข้อความเห็นประธานกลุ่ม: [ชื่อกลุ่ม, คำถาม, [[key, ป้าย], ...], ค่าเริ่มต้น]
-   * ค่าเริ่มต้น = กรณีที่พบบ่อยสุด (สมาชิกสถานะปกติ) — ประธานกลุ่มแก้ได้ทุกข้อ */
+  /* 7 ข้อความเห็นประธานกลุ่ม: [ชื่อกลุ่ม, คำถาม, [[key, ป้าย], ...]]
+   * 🔒 ไม่มีค่าเริ่มต้น — เว้นว่างทุกข้อโดยตั้งใจ (มติ ผจก 20-07-2569)
+   *    เหตุ: เป็นดุลพินิจที่ประธานกลุ่มต้องตรวจสอบเอง และต่างกันไปในแต่ละสมาชิก
+   *    ระบบติ๊กให้ล่วงหน้า = ชี้นำคำตอบ + เสี่ยงพิมพ์ออกไปโดยไม่มีใครตรวจจริง
+   *    ⚠️ ห้ามใส่ default กลับ (ต่างจาก COLL ด้านล่างที่ auto-fill ได้ เพราะมาจากข้อมูลจริงที่กรอกแล้ว) */
   const OPINION = [
-    ['use', '1. สมาชิกกู้เงินเพื่อ', [['useSelf', 'ใช้เอง'], ['useOther', 'ให้บุคคลอื่นใช้']], 'useSelf'],
-    ['amt', '2. จำนวนเงินที่ขอกู้เหมาะสมกับงานหรือไม่', [['amtFit', 'เหมาะสม'], ['amtUnfit', 'ไม่เหมาะสม']], 'amtFit'],
-    ['coop', '3. ให้ความร่วมมือในการประชุม', [['coopAlways', 'สม่ำเสมอ'], ['coopYes', 'ให้ความร่วมมือ'], ['coopNo', 'ไม่ให้ความร่วมมือ']], 'coopAlways'],
-    ['pay', '4. ประวัติการชำระหนี้', [['payOnTime', 'ตามกำหนด'], ['paySomeLate', 'ผิดสัญญาบางครั้ง'], ['payAlwaysLate', 'ผิดสัญญามาตลอด']], 'payOnTime'],
-    ['status', '5. การประกอบอาชีพและฐานะ', [['statusGood', 'ดี'], ['statusFair', 'พอใช้'], ['statusPoor', 'ไม่ดี']], 'statusGood'],
-    ['secure', '6. หลักค้ำประกัน/บุคคลค้ำประกัน', [['secureFirm', 'มั่นคง'], ['secureWeak', 'ไม่มั่นคง']], 'secureFirm'],
-    ['approve', '7. ควรให้กู้หรือไม่', [['approveYes', 'สมควรให้กู้'], ['approveLess', 'ให้กู้น้อยกว่าที่เสนอ'], ['approveReject', 'ควรระงับเงินกู้']], 'approveYes'],
+    ['use', '1. สมาชิกกู้เงินเพื่อ', [['useSelf', 'ใช้เอง'], ['useOther', 'ให้บุคคลอื่นใช้']]],
+    ['amt', '2. จำนวนเงินที่ขอกู้เหมาะสมกับงานหรือไม่', [['amtFit', 'เหมาะสม'], ['amtUnfit', 'ไม่เหมาะสม']]],
+    ['coop', '3. ให้ความร่วมมือในการประชุม', [['coopAlways', 'สม่ำเสมอ'], ['coopYes', 'ให้ความร่วมมือ'], ['coopNo', 'ไม่ให้ความร่วมมือ']]],
+    ['pay', '4. ประวัติการชำระหนี้', [['payOnTime', 'ตามกำหนด'], ['paySomeLate', 'ผิดสัญญาบางครั้ง'], ['payAlwaysLate', 'ผิดสัญญามาตลอด']]],
+    ['status', '5. การประกอบอาชีพและฐานะ', [['statusGood', 'ดี'], ['statusFair', 'พอใช้'], ['statusPoor', 'ไม่ดี']]],
+    ['secure', '6. หลักค้ำประกัน/บุคคลค้ำประกัน', [['secureFirm', 'มั่นคง'], ['secureWeak', 'ไม่มั่นคง']]],
+    ['approve', '7. ควรให้กู้หรือไม่', [['approveYes', 'สมควรให้กู้'], ['approveLess', 'ให้กู้น้อยกว่าที่เสนอ'], ['approveReject', 'ควรระงับเงินกู้']]],
   ];
   /* หลักค้ำประกัน (ข้อ 2 ส่วนเจ้าหน้าที่สินเชื่อ) ↔ ค่าใน radio "ct_security" ด้านบน */
   const COLL = [['collPerson', 'บุคคล', 'person'], ['collProperty', 'อสังหาริมทรัพย์', 'mortgage'],
@@ -41,11 +44,11 @@
     '<label style="font-size:13px">วัตถุประสงค์ที่ 2 (ถ้ามี)</label>' + cell('jn_purpose2', 'เว้นว่างได้', '260px') +
     '<label style="font-size:13px">จำนวนเงิน</label>' + cell('jn_purpose2Amount', '', '120px') + '</div>';
 
-  H += secH('ส่วนที่ 2 · ความเห็นของประธานกลุ่ม <span class="note" style="font-weight:400">(ระบบติ๊กให้ — แก้ได้)</span>');
+  H += secH('ส่วนที่ 2 · ความเห็นของประธานกลุ่ม <span class="note" style="font-weight:400">(เว้นว่างไว้ — ประธานกลุ่มติ๊กเองบนกระดาษ · เลือกที่นี่ได้ถ้าต้องการพิมพ์ไปเลย)</span>');
   OPINION.forEach(g => {
     H += '<div style="margin-bottom:6px"><span style="font-size:13px;display:inline-block;min-width:250px">' + g[1] + '</span>' +
       g[2].map(o => '<label style="font-size:13px;margin-right:14px"><input type="radio" name="jn_g_' + g[0] + '" value="' + o[0] + '"' +
-        (o[0] === g[3] ? ' checked' : '') + '> ' + o[1] + '</label>').join('') + '</div>';
+        '> ' + o[1] + '</label>').join('') + '</div>';
   });
   H += '<div style="margin-top:6px;display:flex;gap:8px;align-items:center">' +
     '<label style="font-size:13px">ชื่อผู้ใช้เงินแทน (ถ้าเลือก “ให้บุคคลอื่นใช้”)</label>' + cell('jn_useOtherName', '', '240px') + '</div>';
