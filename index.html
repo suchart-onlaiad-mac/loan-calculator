@@ -312,7 +312,7 @@
     <div class="grid">
       <div class="field">
         <label>เงินต้น</label>
-        <div class="inp"><input id="principal" type="number" inputmode="decimal" min="0" placeholder="100000" value="100000"><span class="suffix">บาท</span></div>
+        <div class="inp"><input id="principal" type="number" inputmode="numeric" min="0" step="1" placeholder="100000" value="100000"><span class="suffix">บาท</span></div>
       </div>
       <div class="field">
         <label>วันรับเงินกู้</label>
@@ -493,7 +493,14 @@ function firstDueDate(d0,q){
   return cand;
 }
 function getRate(){ return parseFloat(document.getElementById('rate').value)||0; }
-function getPrincipal(){ return parseFloat(document.getElementById('principal').value)||0; }
+/* 🔒 เงินต้นโหมดปกติ = จำนวนเต็มเสมอ (ผู้จัดการ 20-07: "ปกติทำสัญญาเป็นจำนวนเต็ม")
+ * เดิมช่องรับทศนิยมได้ แล้วตัวเลขกับตัวอักษรบนเอกสารมาคนละสูตร:
+ *   fmt0 ปัดด้วย Math.round → 100,000.50 พิมพ์เป็น "100,001"
+ *   bahtText คงสตางค์ไว้    → พิมพ์เป็น "หนึ่งแสนบาทห้าสิบสตางค์"
+ * = สัญญาผูกพันที่ตัวเลขขัดกับตัวอักษรในบรรทัดเดียวกัน (บั๊ก 20-07)
+ * ปัดที่จุดอ่านจุดเดียวนี้ → ทุกที่ที่ใช้ P ได้ค่าที่ปัดแล้วเหมือนกันหมด
+ * ℹ️ ไม่กระทบ ปปน (ปรับโครงสร้างหนี้) — โหมดนั้นใช้ช่อง rA/rB คนละชุด ยังมีเศษสตางค์ได้ */
+function getPrincipal(){ return Math.round(parseFloat(document.getElementById('principal').value)||0); }
 function getYears(){ return Math.max(1,Math.round(parseFloat(document.getElementById('years').value)||1)); }
 // หน่วยปัดอัตโนมัติ: งวด ≥ 10,000 → หลัก 1,000 · ต่ำกว่า → หลัก 100 · เล็กมาก → เต็มบาท
 function autoUnit(per){ if(per>=10000) return 1000; if(per>=1000) return 100; if(per>=100) return 10; return 1; }
