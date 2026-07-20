@@ -18,21 +18,11 @@
   const td = h => '<td style="border:1px solid #e5e7eb;padding:3px">' + h + '</td>';
   const secH = t => '<div style="font-weight:700;margin:16px 0 8px;color:#1f2937">' + t + '</div>';
 
-  /* 7 ข้อความเห็นประธานกลุ่ม: [ชื่อกลุ่ม, คำถาม, [[key, ป้าย], ...]]
-   * 🔒 ไม่มีค่าเริ่มต้น — เว้นว่างทุกข้อโดยตั้งใจ (มติ ผจก 20-07-2569)
-   *    เหตุ: เป็นดุลพินิจที่ประธานกลุ่มต้องตรวจสอบเอง และต่างกันไปในแต่ละสมาชิก
-   *    ระบบติ๊กให้ล่วงหน้า = ชี้นำคำตอบ + เสี่ยงพิมพ์ออกไปโดยไม่มีใครตรวจจริง
-   *    ⚠️ ห้ามใส่ default กลับ (ต่างจาก COLL ด้านล่างที่ auto-fill ได้ เพราะมาจากข้อมูลจริงที่กรอกแล้ว) */
-  const OPINION = [
-    ['use', '1. สมาชิกกู้เงินเพื่อ', [['useSelf', 'ใช้เอง'], ['useOther', 'ให้บุคคลอื่นใช้']]],
-    ['amt', '2. จำนวนเงินที่ขอกู้เหมาะสมกับงานหรือไม่', [['amtFit', 'เหมาะสม'], ['amtUnfit', 'ไม่เหมาะสม']]],
-    ['coop', '3. ให้ความร่วมมือในการประชุม', [['coopAlways', 'สม่ำเสมอ'], ['coopYes', 'ให้ความร่วมมือ'], ['coopNo', 'ไม่ให้ความร่วมมือ']]],
-    ['pay', '4. ประวัติการชำระหนี้', [['payOnTime', 'ตามกำหนด'], ['paySomeLate', 'ผิดสัญญาบางครั้ง'], ['payAlwaysLate', 'ผิดสัญญามาตลอด']]],
-    ['status', '5. การประกอบอาชีพและฐานะ', [['statusGood', 'ดี'], ['statusFair', 'พอใช้'], ['statusPoor', 'ไม่ดี']]],
-    ['secure', '6. หลักค้ำประกัน/บุคคลค้ำประกัน', [['secureFirm', 'มั่นคง'], ['secureWeak', 'ไม่มั่นคง']]],
-    ['approve', '7. ควรให้กู้หรือไม่', [['approveYes', 'สมควรให้กู้'], ['approveLess', 'ให้กู้น้อยกว่าที่เสนอ'], ['approveReject', 'ควรระงับเงินกู้']]],
-  ];
-  /* หลักค้ำประกัน (ข้อ 2 ส่วนเจ้าหน้าที่สินเชื่อ) ↔ ค่าใน radio "ct_security" ด้านบน */
+  /* 🔒 ส่วน "ความเห็นของประธานกลุ่ม" (7 ข้อ + ชื่อผู้ใช้เงินแทน) ถูกตัดออกจากเว็บ (มติ ผจก 20-07-2569)
+   *    เหตุ: ประธานกลุ่มติ๊กเองด้วยมือบนกระดาษ — ไม่มีใครกรอกผ่านเว็บ ใส่ไว้ก็รกและชี้นำ
+   *    พิกัดช่องติ๊ก 18 ช่องยังอยู่ใน janong_fieldmap.js (GENERATED) — ถ้าจะเอากลับ
+   *    แค่สร้าง radio ชื่อ jn_g_* ค่า = key ใน map แล้ว genJanongPDF จะเก็บให้เอง ไม่ต้องแก้ engine
+   * หลักค้ำประกัน (ข้อ 2 ส่วนเจ้าหน้าที่สินเชื่อ) ↔ ค่าใน radio "ct_security" ด้านบน */
   const COLL = [['collPerson', 'บุคคล', 'person'], ['collProperty', 'อสังหาริมทรัพย์', 'mortgage'],
                 ['collDeposit', 'สมุดเงินฝาก', 'deposit'], ['collShare', 'หุ้น', 'share']];
   /* หนี้เดิม 4 แถว ↔ ประเภทในตาราง ส.-งก.13 (ค่าที่ผู้ใช้เลือกใน s13_debt{i}_type) */
@@ -44,16 +34,8 @@
     '<label style="font-size:13px">วัตถุประสงค์ที่ 2 (ถ้ามี)</label>' + cell('jn_purpose2', 'เว้นว่างได้', '260px') +
     '<label style="font-size:13px">จำนวนเงิน</label>' + cell('jn_purpose2Amount', '', '120px') + '</div>';
 
-  H += secH('ส่วนที่ 2 · ความเห็นของประธานกลุ่ม <span class="note" style="font-weight:400">(เว้นว่างไว้ — ประธานกลุ่มติ๊กเองบนกระดาษ · เลือกที่นี่ได้ถ้าต้องการพิมพ์ไปเลย)</span>');
-  OPINION.forEach(g => {
-    H += '<div style="margin-bottom:6px"><span style="font-size:13px;display:inline-block;min-width:250px">' + g[1] + '</span>' +
-      g[2].map(o => '<label style="font-size:13px;margin-right:14px"><input type="radio" name="jn_g_' + g[0] + '" value="' + o[0] + '"' +
-        '> ' + o[1] + '</label>').join('') + '</div>';
-  });
-  H += '<div style="margin-top:6px;display:flex;gap:8px;align-items:center">' +
-    '<label style="font-size:13px">ชื่อผู้ใช้เงินแทน (ถ้าเลือก “ให้บุคคลอื่นใช้”)</label>' + cell('jn_useOtherName', '', '240px') + '</div>';
-
-  H += secH('ส่วนที่ 3 · ข้อเสนอแนะเจ้าหน้าที่สินเชื่อ');
+  H += secH('ส่วนที่ 2 · ข้อเสนอแนะเจ้าหน้าที่สินเชื่อ ' +
+    '<span class="note" style="font-weight:400">(ส่วน “ความเห็นประธานกลุ่ม” เว้นไว้ให้ติ๊กมือบนกระดาษ)</span>');
   H += '<div class="note" style="margin-bottom:6px">หนี้เดิม + หลักค้ำ เติมอัตโนมัติจาก ส.-งก.13 และหลักประกันด้านบน — แก้ทับได้</div>';
   H += '<table style="border-collapse:collapse;width:100%;max-width:620px"><tr>' + th('หนี้คงเหลือ') + th('จำนวนสัญญา') + th('จำนวนเงิน (บาท)') + '</tr>';
   DEBT.forEach(d => {
@@ -71,7 +53,7 @@
   H += '<div style="margin-top:6px">' + cell('jn_remark2', 'ความคิดเห็นอย่างอื่น (บรรทัด 2)') + '</div>';
 
   mount.innerHTML = H;
-  window.__JANONG_UI = { OPINION: OPINION, COLL: COLL, DEBT: DEBT };
+  window.__JANONG_UI = { COLL: COLL, DEBT: DEBT };
 })();
 
 /* เปิดแผง + เติมค่าที่ระบบรู้แล้ว (หนี้เดิมจาก ส.-งก.13 · หลักค้ำจากหลักประกันด้านบน) */
