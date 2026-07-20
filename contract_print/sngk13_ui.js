@@ -109,6 +109,17 @@
     const h = function () { composeMediumPlan(false); };
     el.addEventListener('input', h); el.addEventListener('change', h);
   });
+  /* กรอกแถว 2-4 → แถว 1 (เงินสด) ต้องลดตามทันทีบนจอ
+   * ไม่มีบรรทัดนี้ = จอค้างที่ 95% แต่กระดาษพิมพ์ค่าที่ลดแล้ว = สองจอไม่ตรงกัน */
+  for (let i = 2; i <= 4; i++) {
+    const el = document.getElementById('s13_use' + i + '_amt'); if (!el) continue;
+    const h = function () { updateSngk13Auto(); };
+    el.addEventListener('input', h); el.addEventListener('change', h);
+  }
+  // เจ้าหน้าที่พิมพ์ชื่อรายการแถว 1 เอง → ระบบเลิกยุ่งกับช่องนั้น (ไม่ล้างของเขา)
+  const i1u = document.getElementById('s13_use1_item');
+  if (i1u) i1u.addEventListener('input', function () { delete i1u.dataset.auto; });
+
   // ผู้ใช้พิมพ์แก้เอง → ตั้ง dirty กันระบบเขียนทับ (ยกเว้นกด "สร้างใหม่")
   const pd = document.getElementById('s13_planDetail');
   if (pd) pd.addEventListener('input', function () { pd.dataset.dirty = '1'; });
@@ -154,14 +165,45 @@ function composeMediumPlan(force) {
   ta.dataset.dirty = '';
 }
 
-/* auto: ค่าหุ้น = 5% ของวงเงิน · เงินสด = 95% · ฤดูกาลผลิต (ระยะสั้น) = วันรับเงินกู้ → งวดชำระสุดท้าย (read-only) */
+/* 🔒 SSOT ของการจัดสรรตาราง "ข้อ 2" — ทั้งจอและกระดาษต้องเรียกตัวนี้ตัวเดียว
+ * กติกา (ผู้จัดการ 20-07-2569): ค่าหุ้น 5% ตายตัว · แถว 1-4 รวมกันได้ 95%
+ * คืน null เมื่อยังไม่มีวงเงิน · cashLeft < 0 = กรอกแถว 2-4 เกินส่วนที่จัดสรรได้
+ * ⚠️ ห้ามคำนวณสูตรนี้ซ้ำที่อื่น — เดิมจอคิดแบบหนึ่ง (แถว 1 = 95% เสมอ) กระดาษคิดอีกแบบ
+ *    ก็จะได้ "เห็น 95,000 บนจอ แต่พิมพ์ 75,000 บนกระดาษ" โดยไม่มีอะไรเตือน */
+function sngk13Alloc(P) {
+  if (!P) return null;
+  const num2 = v => { const n = Number(String(v == null ? '' : v).replace(/,/g, '')); return (String(v).trim() !== '' && !isNaN(n)) ? n : 0; };
+  let extra = 0;
+  for (let i = 2; i <= 4; i++) {
+    const el = document.getElementById('s13_use' + i + '_amt');
+    if (!el) continue;
+    // แถวที่ถูกซ่อน (ระยะสั้น) ไม่นับ — ต้องตรงกับตัวเก็บค่าตอนสร้าง PDF
+    let hidden = false;
+    for (let n = el; n && n.id !== 'sngk13Panel'; n = n.parentElement) {
+      if (n.style && n.style.display === 'none') { hidden = true; break; }
+    }
+    if (!hidden) extra += num2(el.value);
+  }
+  const sh = Math.round(P * 0.05), cash95 = P - sh;
+  return { share: sh, cash95: cash95, extra: extra, cashLeft: cash95 - extra };
+}
+
+/* auto: ค่าหุ้น = 5% ของวงเงิน · เงินสด = ส่วนที่เหลือหลังหักแถว 2-4 · ฤดูกาลผลิต (ระยะสั้น) — read-only */
 function updateSngk13Auto() {
   let r = null; try { r = calcCoop(); } catch (e) { }
-  const P = r ? r.P : 0, sh = Math.round(P * 0.05), cash = P - sh;
+  const P = r ? r.P : 0;
+  const al = sngk13Alloc(P);
   const a5 = document.getElementById('s13_use5_amt'), a1 = document.getElementById('s13_use1_amt'), i1 = document.getElementById('s13_use1_item');
-  if (a5) a5.value = P ? fmt0(sh) : '';
-  if (a1) a1.value = P ? fmt0(cash) : '';
-  if (i1 && !i1.value) i1.value = 'เงินสด';
+  if (a5) a5.value = al ? fmt0(al.share) : '';
+  if (a1) a1.value = (al && al.cashLeft > 0) ? fmt0(al.cashLeft) : '';
+  /* ชื่อแถว 1 เติมอัตโนมัติเฉพาะตอนมีเงินสดจริง · ทำเครื่องหมาย auto ไว้
+   * เพื่อให้ตอนไม่มีเงินสด (แถว 2-4 กิน 95% พอดี) ล้างได้โดยไม่ไปลบชื่อที่คนพิมพ์เอง
+   * — แพตเทิร์นเดียวกับผู้ค้ำและหนี้เดิม (dataset.auto) */
+  if (i1) {
+    const wantCash = !!(al && al.cashLeft > 0);
+    if (wantCash) { if (!i1.value) { i1.value = 'เงินสด'; i1.dataset.auto = '1'; } }
+    else if (i1.dataset.auto === '1') { i1.value = ''; delete i1.dataset.auto; }
+  }
   // ฤดูกาลผลิต — เฉพาะระยะสั้น
   const lt = document.getElementById('loanType');
   const isShort = (window.CONTRACT_CONFIG && window.CONTRACT_CONFIG.loanTypeLabel[lt ? lt.value : ''] || '').indexOf('สั้น') >= 0;
@@ -186,6 +228,13 @@ function updateSngk13Hints() {
   hint.innerHTML = isShort
     ? '📌 <b>ระยะสั้น</b> — กรอก “ฤดูกาลผลิต ตั้งแต่–ถึง” · เงินสด/ค่าหุ้นคำนวณให้อัตโนมัติ'
     : '📌 <b>ระยะปานกลาง</b> — เขียน “รายละเอียดแผนงาน” การใช้เงินกู้';
+
+  /* 🔑 การซ่อน/โชว์แถว 2-4 เปลี่ยน "ผลบวกที่นับได้" → ต้องคำนวณแถว 1 ใหม่ทุกครั้ง
+   * ต้องเรียก "หลัง" ตั้ง display เสร็จ เพราะ sngk13Alloc อ่านสถานะการซ่อนจาก DOM
+   * เดิม handler เรียก Auto ก่อน Hints → จอถือค่าที่คิดตอนสถานะการซ่อนยังเป็นแบบเก่า
+   *   สลับ ระยะสั้น→ปานกลาง แล้วจอโชว์ 95,000 แต่กระดาษพิมพ์ 65,000 (ผู้ตรวจรับจับได้ 20-07)
+   * ⚠️ updateSngk13Auto ต้องไม่เรียกกลับมาที่นี่ ไม่งั้นวนไม่จบ */
+  updateSngk13Auto();
 }
 
 /* ผู้ค้ำใน ส.-งก.13 ← แผงผู้ค้ำด้านบน (ของบนเป็นความจริง)
@@ -355,19 +404,27 @@ async function genLoanRequestPDF() {
      * คอลัมน์บนกระดาษบวกได้เกินช่อง "รวมเงินกู้" เงียบ ๆ (วัดจริงได้ 73,000 vs รวมพิมพ์ 50,000)
      * ตอนนี้: แถว 1 = 95% ลบด้วยผลบวกแถว 2-4 (ลดให้อัตโนมัติ) · ช่องรวมบวกจากแถวจริง
      *         ไม่ลงตัว = บล็อก ไม่พิมพ์เอกสารที่บวกไม่ได้ออกมา */
-    const sh = Math.round(r.P * 0.05);
-    const cash95 = r.P - sh;
-    const rowNum = k => { const n = num(data[k]); return n != null ? n : 0; };
-    const extra = rowNum('use2_amt') + rowNum('use3_amt') + rowNum('use4_amt');
-    if (extra > cash95) {
-      return bad('รายการใช้เงินกู้แถว 2-4 รวมกัน ' + fmt0(extra) + ' บาท '
-        + 'เกินส่วนที่จัดสรรได้ ' + fmt0(cash95) + ' บาท (วงเงิน ' + fmt0(r.P)
+    const al = sngk13Alloc(r.P);          // 🔒 สูตรเดียวกับที่จอใช้ ไม่คำนวณซ้ำ
+    if (!al) return bad('ยังไม่มีวงเงิน — กดคำนวณก่อน');
+    const sh = al.share;
+    if (al.cashLeft < 0) {
+      return bad('รายการใช้เงินกู้แถว 2-4 รวมกัน ' + fmt0(al.extra) + ' บาท '
+        + 'เกินส่วนที่จัดสรรได้ ' + fmt0(al.cash95) + ' บาท (วงเงิน ' + fmt0(r.P)
         + ' หัก ค่าหุ้น 5% = ' + fmt0(sh) + ')<br><span style="font-weight:400">'
         + 'ลดจำนวนในแถว 2-4 หรือเพิ่มวงเงิน — ตารางต้องรวมได้เท่าวงเงินพอดี</span>');
     }
     data.use5_amt = fmt0(sh);
-    data.use1_amt = fmt0(cash95 - extra);
-    if (!data.use1_item) data.use1_item = 'เงินสด';
+    /* แถว 1 เหลือ 0 (แถว 2-4 กินครบ 95% พอดี) → เว้นว่างทั้งแถว ไม่พิมพ์เลข 0
+     * (ผู้จัดการ 20-07: ให้เว้นว่างไว้) — เลข 0 บนแบบฟอร์มราชการอ่านแล้วชวนสงสัยว่ากรอกตกหรือเปล่า
+     * ยกเว้นเจ้าหน้าที่พิมพ์ชื่อรายการเองไว้ → เคารพของเขา คงข้อความไว้ */
+    const cashLeft = al.cashLeft;
+    if (cashLeft > 0) {
+      data.use1_amt = fmt0(cashLeft);
+      if (!data.use1_item) data.use1_item = 'เงินสด';
+    } else {
+      delete data.use1_amt;
+      if (!data.use1_item) delete data.use1_item;
+    }
 
     /* ช่องรวม = บวกจาก "ค่าที่จะพิมพ์จริง" ทั้ง 5 แถว ไม่ใช่ยัดวงเงินลงไป
      * ต้องอ่านกลับจาก data.* ที่ผ่าน fmt0 แล้ว — ไม่ใช่บวกตัวแปรต้นทาง
