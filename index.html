@@ -1087,10 +1087,14 @@ function ceilingFor(security, shares){
 (function(){
   const CFG = window.CONTRACT_CONFIG;
   const tb = document.getElementById('ct_tambon');
+  // 🔒 option ว่างนำหน้าเสมอ — ถ้าไม่มี เบราว์เซอร์เลือกตัวแรกให้เอง แล้วเอกสารพิมพ์
+  //    "ตำบลนครชัยศรี"/"ค่าใช้จ่ายในการทำนา" ทั้งที่ไม่มีใครเลือก และไม่มีอะไรเตือน (บั๊ก 20-07)
+  tb.appendChild(new Option('— เลือกตำบล —', ''));
   CFG.tambon.forEach(t=>{ const o=document.createElement('option'); o.value=o.textContent=t; tb.appendChild(o); });
   function fillPurpose(){
     const lt = document.getElementById('loanType').value;
     const sel = document.getElementById('ct_purpose'); sel.innerHTML='';
+    sel.appendChild(new Option('— เลือกวัตถุประสงค์ —', ''));
     (CFG.purposes[lt]||[]).forEach(p=>{
       const o=document.createElement('option');
       if(p==='__OTHER__'){ o.value='__OTHER__'; o.textContent=CFG.otherLabel; }
@@ -1220,6 +1224,35 @@ async function genContractPDF(){
     }
     meetInp.style.outline='';
     const meetDate = parseDate(meetInp.value);
+
+    // 🔒 ด่านตรวจข้อมูลผู้กู้ — เดิมสัญญา (เอกสารผูกพันที่สุด) ไม่ตรวจเลยสักช่อง
+    //    ทำให้พิมพ์สัญญาที่ช่องชื่อ/ที่อยู่ว่างเปล่าออกมาได้ พร้อมข้อความ "สร้างสำเร็จ" (บั๊ก 20-07)
+    const _v = id => { const el=document.getElementById(id); return el ? (el.value||'').trim() : ''; };
+    const miss = [];
+    if(!_v('ct_name'))   miss.push('ชื่อ-สกุล');
+    if(!_v('ct_reg'))    miss.push('เลขทะเบียน');
+    if(!_v('ct_group'))  miss.push('กลุ่มที่');
+    if(!_v('ct_house'))  miss.push('บ้านเลขที่');
+    if(!_v('ct_moo'))    miss.push('หมู่ที่');
+    if(!_v('ct_tambon')) miss.push('ตำบล');
+    const _pv = _v('ct_purpose');
+    if(!_pv || (_pv==='__OTHER__' && !_v('ct_purpose_other'))) miss.push('วัตถุประสงค์');
+    if(miss.length){
+      st.innerHTML='<span style="color:#c00;font-weight:700">⚠️ ยังขาดข้อมูลผู้กู้: '+miss.join(' · ')+'</span>';
+      return;
+    }
+
+    // 🔒 กันงวดล้นตาราง — ฟอร์มมีที่ให้เขียนจำกัด ถ้างวดเกินความจุ งวดท้ายจะหายเงียบ
+    //    แต่ยอดรวม/วันครบกำหนดยังเป็นของเต็ม = สัญญาขัดแย้งในตัวเอง (บั๊ก 20-07)
+    const _prinCount = r.rows.filter(x=>x.isPrincipal).length;
+    const _cap = (window.FIELD_MAP && window.FIELD_MAP.table)
+      ? (window.FIELD_MAP.table.segments||[]).reduce((s,x)=>s+(x.cap||0),0) : 0;
+    if(_cap && _prinCount > _cap){
+      st.innerHTML='<span style="color:#c00;font-weight:700">⚠️ งวดชำระ '+_prinCount+' งวด เกินความจุตารางในแบบฟอร์ม ('+_cap+' งวด)'
+        +'<br>งวดท้ายจะหายจากสัญญาโดยไม่มีการเตือน — ลดจำนวนปี หรือใช้แบบฟอร์มที่มีตารางยาวกว่า</span>';
+      return;
+    }
+
     st.textContent='⏳ กำลังสร้าง PDF...';
     const coop = await fetch(window.CONTRACT_ASSET_BASE+'coop_data.json').then(x=>x.json());
     const CFG = window.CONTRACT_CONFIG;

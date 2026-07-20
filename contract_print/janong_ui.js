@@ -37,6 +37,7 @@
   H += secH('ส่วนที่ 2 · ข้อเสนอแนะเจ้าหน้าที่สินเชื่อ ' +
     '<span class="note" style="font-weight:400">(ส่วน “ความเห็นประธานกลุ่ม” เว้นไว้ให้ติ๊กมือบนกระดาษ)</span>');
   H += '<div class="note" style="margin-bottom:6px">หนี้เดิม + หลักค้ำ เติมอัตโนมัติจาก ส.-งก.13 และหลักประกันด้านบน — แก้ทับได้</div>';
+  H += '<div id="jn_debt_note" style="margin-bottom:6px;font-size:13px"></div>';
   H += '<table style="border-collapse:collapse;width:100%;max-width:620px"><tr>' + th('หนี้คงเหลือ') + th('จำนวนสัญญา') + th('จำนวนเงิน (บาท)') + '</tr>';
   DEBT.forEach(d => {
     H += '<tr>' + td('<span style="font-size:13px;padding-left:4px">' + d[1] + '</span>') +
@@ -69,21 +70,27 @@ function janongAutofill() {
   const U = window.__JANONG_UI; if (!U) return;
   const V = id => { const el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
 
-  // หลักค้ำ ← radio หลักประกันด้านบน (ไม่ทับถ้าเลือกไว้แล้ว)
+  /* หลักค้ำ ← radio หลักประกันด้านบน
+   * 🔒 sync ตามเสมอ ไม่ใช่ "เติมเฉพาะตอนยังว่าง" — เดิมถ้าเปิดแผงตอนเลือกบุคคลค้ำ
+   *    แล้วไปเปลี่ยนหลักประกันด้านบนทีหลัง ติ๊กจะค้างของเก่า ขัดกับสัญญา (บั๊ก 20-07)
+   *    ผู้ใช้ยังติ๊กทับเองได้ — แต่พอหลักประกันด้านบนเปลี่ยน ให้ถือว่าของบนเป็นความจริง */
   const secEl = document.querySelector('input[name="ct_security"]:checked');
-  const already = document.querySelector('input[name="jn_g_coll"]:checked');
-  if (secEl && !already) {
+  if (secEl) {
     const hit = U.COLL.find(c => c[2] === secEl.value);
-    if (hit) { const r = document.querySelector('input[name="jn_g_coll"][value="' + hit[0] + '"]'); if (r) r.checked = true; }
+    document.querySelectorAll('input[name="jn_g_coll"]').forEach(el => {
+      el.checked = !!(hit && el.value === hit[0]);
+    });
   }
 
-  // หนี้เดิม ← ตาราง "ข้อ 3 หนี้เงินกู้เดิม" ของ ส.-งก.13 (รวมยอด+นับสัญญาตามประเภท)
-  const agg = {};
+  /* หนี้เดิม ← ตาราง "ข้อ 3 หนี้เงินกู้เดิม" ของ ส.-งก.13 (รวมยอด+นับสัญญาตามประเภท)
+   * ⚠️ ประเภทที่ ส.-งก.13 มีแต่ฟอร์มนี้ไม่มีแถวรองรับ (เช่น "ระยะยาว") จะ map ไม่ได้
+   *    เดิมข้ามเงียบ → ตารางหนี้ว่างเปล่าเหมือนผู้กู้ไม่มีหนี้ · ตอนนี้แจ้งให้กรอกมือแทน */
+  const agg = {}, unmapped = [];
   for (let i = 1; i <= 2; i++) {
     const type = V('s13_debt' + i + '_type'), remain = V('s13_debt' + i + '_remain');
     if (!type) continue;
     const hit = U.DEBT.find(d => d[1] === type);
-    if (!hit) continue;
+    if (!hit) { unmapped.push(type + (remain ? ' (' + remain + ')' : '')); continue; }
     const n = Number(String(remain).replace(/,/g, ''));
     const a = agg[hit[0]] = agg[hit[0]] || { count: 0, sum: 0 };
     a.count++; if (!isNaN(n)) a.sum += n;
@@ -93,7 +100,22 @@ function janongAutofill() {
     if (c && !c.value) c.value = String(agg[k].count);
     if (m && !m.value && agg[k].sum) m.value = fmt0(agg[k].sum);
   });
+  const note = document.getElementById('jn_debt_note');
+  if (note) {
+    note.innerHTML = unmapped.length
+      ? '<span style="color:#c00;font-weight:700">⚠️ หนี้เดิมประเภท “' + unmapped.join('”, “')
+        + '” ไม่มีแถวรองรับในฟอร์มนี้ — กรุณากรอกลงแถวที่ใกล้เคียงเอง</span>'
+      : '';
+  }
 }
+
+/* ข้อมูลต้นทางเปลี่ยน → sync แผงความจำนงทันที (ไม่ต้องรอเปิด/ปิดแผง)
+ * ครอบ 2 ทาง: หลักประกันด้านบน (ติ๊กหลักค้ำ) · ตารางหนี้เดิมใน ส.-งก.13 (ยอด + คำเตือน)
+ * ⚠️ ถ้าไม่ดักตารางหนี้ด้วย คำเตือน "ประเภทนี้ไม่มีแถวรองรับ" จะค้างของเก่า = เตือนผิด */
+document.addEventListener('change', function (e) {
+  const t = e.target; if (!t || !document.getElementById('janong_body')) return;
+  if (t.name === 'ct_security' || /^s13_debt\d+_(type|remain)$/.test(t.id || '')) janongAutofill();
+});
 
 async function genJanongPDF() {
   const st = document.getElementById('janong_status');
@@ -113,15 +135,22 @@ async function genJanongPDF() {
 
     let purpose = V('ct_purpose');
     if (purpose === '__OTHER__') purpose = V('ct_purpose_other');
+    if (!purpose) return bad('ยังไม่ได้เลือก "วัตถุประสงค์" (แผงด้านบน)');
 
     const num = v => { const n = Number(String(v).replace(/,/g, '')); return (v !== '' && !isNaN(n)) ? n : null; };
     const fmtA = v => { const n = num(v); return n != null ? fmt0(n) : v; };
+
+    /* 🔒 ข้อ 1 + ข้อ 2 ต้องรวมได้ = วงเงินกู้ ห้ามเกิน
+     * เดิม purpose1Amount = วงเงินเต็มเสมอ → กรอกข้อ 2 ด้วยแล้วเอกสารบอกยอดรวมเกินจริง (บั๊ก 20-07) */
+    const p2 = num(V('jn_purpose2Amount')) || 0;
+    if (p2 > r.P) return bad('จำนวนเงินวัตถุประสงค์ที่ 2 (' + fmt0(p2) + ') เกินวงเงินกู้ (' + fmt0(r.P) + ')');
+    if (p2 > 0 && !V('jn_purpose2')) return bad('กรอกจำนวนเงินวัตถุประสงค์ที่ 2 แล้ว แต่ยังไม่ได้ระบุว่าเพื่ออะไร');
 
     const data = {
       docDate: ContractFill.thaiDate(parseDate(meetInp.value)),
       name: V('ct_name'), reg: V('ct_reg'), group: V('ct_group'),
       amount: fmt0(r.P),
-      purpose1Amount: fmt0(r.P), purpose1: purpose,
+      purpose1Amount: fmt0(r.P - p2), purpose1: purpose,
     };
 
     // ช่องที่ผู้ใช้กรอกในแผงนี้ (id = 'jn_' + key ใน JANONG_MAP)
