@@ -1019,6 +1019,7 @@ DATE_FIELDS.forEach(id=>{
     <button class="btn ghost" id="ct_guar_btn" onclick="genGuaranteePDF()" disabled>📄 สร้าง PDF หนังสือค้ำประกัน (2 แผ่น)</button>
     <button class="btn ghost" id="ct_share_btn" onclick="genSharePDF()" disabled>📄 สร้าง PDF หนังสือหุ้นค้ำประกัน</button>
     <button class="btn ghost" onclick="toggleSngk13()">📝 คำขอกู้ ส.-งก.13</button>
+    <button class="btn ghost" onclick="toggleJanong()">📝 หนังสือแสดงความจำนง</button>
   </div>
   <div id="ct_status" class="note" style="margin-top:10px"></div>
   <div id="ct_guar_status" class="note" style="margin-top:6px"></div>
@@ -1033,6 +1034,17 @@ DATE_FIELDS.forEach(id=>{
     </div>
     <div id="sngk13_status" class="note" style="margin-top:10px"></div>
   </div>
+
+  <!-- ===== หนังสือแสดงความจำนงขอกู้เงิน (1 หน้า) — input สร้างโดย janong_ui.js ===== -->
+  <div id="janongPanel" style="display:none;margin-top:14px;border-top:2px solid #e5e7eb;padding-top:12px">
+    <div style="font-weight:800;font-size:16px;margin-bottom:4px">📝 หนังสือแสดงความจำนงขอกู้เงิน</div>
+    <div class="note" style="margin-bottom:8px">ผู้กู้ / วงเงิน / วัตถุประสงค์ / วันที่ ดึงจากด้านบนอัตโนมัติ · หนี้เดิม + หลักค้ำ เติมจาก ส.-งก.13 · ช่องติ๊กระบบติ๊กให้ (แก้ได้)</div>
+    <div id="janong_body"></div>
+    <div style="margin-top:14px">
+      <button class="btn" onclick="genJanongPDF()">📄 สร้าง PDF หนังสือแสดงความจำนง</button>
+    </div>
+    <div id="janong_status" class="note" style="margin-top:10px"></div>
+  </div>
 </div>
 
 <script>window.CONTRACT_ASSET_BASE = "contract_print/";</script>
@@ -1042,7 +1054,7 @@ DATE_FIELDS.forEach(id=>{
 /* cache-bust: Python http.server ไม่ส่ง Cache-Control → เบราว์เซอร์จด JS เก่า (heuristic cache)
  * → โหลด engine files ที่แก้บ่อยด้วย ?v=timestamp ทุกครั้ง เห็นผลแก้ทันที ไม่ต้อง hard-reload
  * (vendor คงที่ ปล่อย cache ได้) · order สำคัญ: config→fieldmap→fill_engine (document.write = ต่อเนื่อง) */
-(function(){var v="?v="+Date.now();["config.js","fieldmap.js","guarantee_fieldmap.js","share_fieldmap.js","sngk13_fieldmap.js","fill_engine.js","sngk13_ui.js"].forEach(function(f){document.write('<scr'+'ipt src="contract_print/'+f+v+'"></scr'+'ipt>');});})();
+(function(){var v="?v="+Date.now();["config.js","fieldmap.js","guarantee_fieldmap.js","share_fieldmap.js","sngk13_fieldmap.js","janong_fieldmap.js","fill_engine.js","sngk13_ui.js","janong_ui.js"].forEach(function(f){document.write('<scr'+'ipt src="contract_print/'+f+v+'"></scr'+'ipt>');});})();
 </script>
 <script>
 /* ===== หลักค้ำประกัน (ระเบียบเงินกู้ ข้อ 8) =====

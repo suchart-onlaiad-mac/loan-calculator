@@ -281,5 +281,36 @@
     return _renderOverlayCanvas(595.2, 841.92, perPage[pageNo] || [], "#0d19b3");
   }
 
-  global.ContractFill = { generateContract, generateGuarantee, generateShare, generateLoanRequest, bahtText, thaiDate, fmtNum, debugOverlayCanvas, debugOverlayCanvasFM, _SCALE: SCALE };
+  /* ===== หนังสือแสดงความจำนงขอกู้เงิน (1 หน้า) =====
+   * base = janong_base.pdf v2 (Word export ของผู้จัดการ — ช่องติ๊กเป็น Wingdings 2 แล้ว)
+   * ช่องติ๊ก = field ธรรมดาใน JANONG_MAP ที่มี tick:true → ส่ง data[key]="✓" ก็วาดให้เอง
+   */
+  let _janongPdf = null;
+  async function _loadJanong() {
+    if (!_janongPdf) _janongPdf = await fetch(_ab() + "janong_base.pdf").then(r => r.arrayBuffer());
+    if (!_fontLoaded) {
+      const ff = new FontFace(OVERLAY_FONT, `url(${_ab()}assets/THSarabunNew.ttf)`);
+      await ff.load(); document.fonts.add(ff); _fontLoaded = true;
+    }
+  }
+
+  async function generateJanong(data, opts = {}) {
+    if (!global.JANONG_MAP) throw new Error("ไม่พบ janong_fieldmap.js");
+    await _loadJanong();
+    const { PDFDocument } = global.PDFLib;
+    const src = await PDFDocument.load(_janongPdf);
+    const perPage = _collectFields(data, global.JANONG_MAP);
+    const srcPages = src.getPages();
+    for (const pageNoStr of Object.keys(perPage)) {
+      const pg = srcPages[+pageNoStr - 1];
+      if (!pg) continue;
+      const Wpt = pg.getWidth(), Hpt = pg.getHeight();
+      const cv = _renderOverlayCanvas(Wpt, Hpt, perPage[pageNoStr], opts.calibrate ? "#0d19b3" : "#000000");
+      const png = await src.embedPng(_canvasToPngBytes(cv));
+      pg.drawImage(png, { x: 0, y: 0, width: Wpt, height: Hpt });
+    }
+    return await src.save();
+  }
+
+  global.ContractFill = { generateContract, generateGuarantee, generateShare, generateLoanRequest, generateJanong, bahtText, thaiDate, fmtNum, debugOverlayCanvas, debugOverlayCanvasFM, _SCALE: SCALE };
 })(window);
