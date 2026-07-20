@@ -95,17 +95,44 @@ function janongAutofill() {
     const a = agg[hit[0]] = agg[hit[0]] || { count: 0, sum: 0 };
     a.count++; if (!isNaN(n)) a.sum += n;
   }
-  Object.keys(agg).forEach(k => {
-    const c = document.getElementById('jn_debt' + k + 'Count'), m = document.getElementById('jn_debt' + k + 'Amount');
-    if (c && !c.value) c.value = String(agg[k].count);
-    if (m && !m.value && agg[k].sum) m.value = fmt0(agg[k].sum);
+  /* 🔒 sync ตามเสมอ + ล้างของที่ไม่มีแล้ว — หลักเดียวกับติ๊กหลักค้ำด้านบน
+   * เดิม `if (!c.value)` เขียนเฉพาะตอนช่องว่าง และวนเฉพาะประเภทที่มีใน agg
+   *   → แก้ประเภทหนี้ใน ส.-งก.13 แล้วยอดเก่าค้าง = หนี้ 1 ก้อน พิมพ์เป็น 2 ก้อน ยอดเบิ้ล
+   *   → แก้ยอดก็ไม่อัปเดต เพราะช่องไม่ว่างแล้ว = ไม่มีทางแก้ผ่านหน้าจอ (บั๊ก 20-07 ยืนยันด้วยการกดจริง)
+   * ⚠️ ต้องไม่ทับค่าที่เจ้าหน้าที่พิมพ์เอง → ทำเครื่องหมาย dataset.auto ไว้เฉพาะช่องที่เราเติม
+   *    ช่องที่คนแก้เอง (input event ด้านล่างลบเครื่องหมายทิ้ง) จะไม่ถูกแตะอีกเลย */
+  const own = el => el && (!el.value || el.dataset.auto === '1');
+  const orphan = [];   // ประเภทที่ไม่มีใน ส.-งก.13 แล้ว แต่ยังมียอดที่คนพิมพ์เองค้างอยู่
+  U.DEBT.forEach(d => {
+    const k = d[0], a = agg[k];
+    const c = document.getElementById('jn_debt' + k + 'Count'),
+          m = document.getElementById('jn_debt' + k + 'Amount');
+    if (a) {
+      if (own(c)) { c.value = String(a.count); c.dataset.auto = '1'; }
+      if (own(m)) { m.value = a.sum ? fmt0(a.sum) : ''; m.dataset.auto = '1'; }
+    } else {
+      /* ประเภทนี้ไม่มีใน ส.-งก.13 แล้ว
+       * · ที่ระบบเติมไว้ → ล้างได้เลย
+       * · ที่คนพิมพ์เอง → ห้ามลบ (ของเขา) แต่ห้ามเงียบด้วย — ไม่งั้นหนี้เบิ้ลกลับมาทางนี้
+       *   (ผู้ตรวจรับจับได้ 20-07: พิมพ์ทับเอง 99,999 แล้วเปลี่ยนประเภท → พิมพ์ออกมา 2 ก้อน) */
+      if (c && c.dataset.auto === '1') { c.value = ''; delete c.dataset.auto; }
+      if (m && m.dataset.auto === '1') { m.value = ''; delete m.dataset.auto; }
+      if ((c && c.value) || (m && m.value)) orphan.push(d[1]);
+    }
   });
   const note = document.getElementById('jn_debt_note');
   if (note) {
-    note.innerHTML = unmapped.length
-      ? '<span style="color:#c00;font-weight:700">⚠️ หนี้เดิมประเภท “' + unmapped.join('”, “')
-        + '” ไม่มีแถวรองรับในฟอร์มนี้ — กรุณากรอกลงแถวที่ใกล้เคียงเอง</span>'
-      : '';
+    const msgs = [];
+    if (unmapped.length) {
+      msgs.push('⚠️ หนี้เดิมประเภท “' + unmapped.join('”, “')
+        + '” ไม่มีแถวรองรับในฟอร์มนี้ — กรุณากรอกลงแถวที่ใกล้เคียงเอง');
+    }
+    if (orphan.length) {
+      msgs.push('⚠️ แถว “' + orphan.join('”, “') + '” มียอดที่กรอกเองค้างอยู่ '
+        + 'แต่ไม่มีหนี้ประเภทนี้ใน ส.-งก.13 แล้ว — ถ้าไม่ลบ เอกสารจะนับหนี้ก้อนเดิมซ้ำ');
+    }
+    note.innerHTML = msgs.length
+      ? '<span style="color:#c00;font-weight:700">' + msgs.join('<br>') + '</span>' : '';
   }
 }
 
@@ -115,6 +142,13 @@ function janongAutofill() {
 document.addEventListener('change', function (e) {
   const t = e.target; if (!t || !document.getElementById('janong_body')) return;
   if (t.name === 'ct_security' || /^s13_debt\d+_(type|remain)$/.test(t.id || '')) janongAutofill();
+});
+
+/* เจ้าหน้าที่พิมพ์ทับช่องหนี้เดิมเอง → ถือว่าช่องนั้นเป็นของคน ระบบเลิกยุ่งกับมันถาวร
+ * (ไม่มีบรรทัดนี้ = sync รอบหน้าจะลบสิ่งที่คนเพิ่งพิมพ์ทิ้ง) */
+document.addEventListener('input', function (e) {
+  const t = e.target;
+  if (t && /^jn_debt\w+(Count|Amount)$/.test(t.id || '')) delete t.dataset.auto;
 });
 
 async function genJanongPDF() {
@@ -129,13 +163,16 @@ async function genJanongPDF() {
     meetInp.style.outline = '';
 
     const V = id => { const el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
-    const miss = [];
-    if (!V('ct_name')) miss.push('ชื่อ-สกุล'); if (!V('ct_reg')) miss.push('เลขทะเบียน'); if (!V('ct_group')) miss.push('กลุ่มที่');
+
+    /* 🔒 ด่านร่วม (doc_gate.js) — ชื่อ/ทะเบียน/กลุ่ม/วัตถุประสงค์ + เพดานตาม ข้อ 8
+     *    เดิมใบนี้ไม่ตรวจเพดาน ทั้งที่เป็นเอกสารที่คณะกรรมการใช้พิจารณาวงเงิน (บั๊ก 20-07) */
+    const miss = DocGate.borrower('janong');
     if (miss.length) return bad('ยังขาดข้อมูลผู้กู้ (แผงด้านบน): ' + miss.join(' · '));
+    const capMsg = DocGate.ceiling(r.P);
+    if (capMsg) return bad(capMsg);
 
     let purpose = V('ct_purpose');
     if (purpose === '__OTHER__') purpose = V('ct_purpose_other');
-    if (!purpose) return bad('ยังไม่ได้เลือก "วัตถุประสงค์" (แผงด้านบน)');
 
     const num = v => { const n = Number(String(v).replace(/,/g, '')); return (v !== '' && !isNaN(n)) ? n : null; };
     const fmtA = v => { const n = num(v); return n != null ? fmt0(n) : v; };

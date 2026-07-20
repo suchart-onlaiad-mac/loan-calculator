@@ -1054,7 +1054,7 @@ DATE_FIELDS.forEach(id=>{
 /* cache-bust: Python http.server ไม่ส่ง Cache-Control → เบราว์เซอร์จด JS เก่า (heuristic cache)
  * → โหลด engine files ที่แก้บ่อยด้วย ?v=timestamp ทุกครั้ง เห็นผลแก้ทันที ไม่ต้อง hard-reload
  * (vendor คงที่ ปล่อย cache ได้) · order สำคัญ: config→fieldmap→fill_engine (document.write = ต่อเนื่อง) */
-(function(){var v="?v="+Date.now();["config.js","fieldmap.js","guarantee_fieldmap.js","share_fieldmap.js","sngk13_fieldmap.js","janong_fieldmap.js","fill_engine.js","sngk13_ui.js","janong_ui.js"].forEach(function(f){document.write('<scr'+'ipt src="contract_print/'+f+v+'"></scr'+'ipt>');});})();
+(function(){var v="?v="+Date.now();["config.js","fieldmap.js","guarantee_fieldmap.js","share_fieldmap.js","sngk13_fieldmap.js","janong_fieldmap.js","doc_gate.js","fill_engine.js","sngk13_ui.js","janong_ui.js"].forEach(function(f){document.write('<scr'+'ipt src="contract_print/'+f+v+'"></scr'+'ipt>');});})();
 </script>
 <script>
 /* ===== หลักค้ำประกัน (ระเบียบเงินกู้ ข้อ 8) =====
@@ -1133,6 +1133,10 @@ function ceilingFor(security, shares){
       '</div>';
     wrap.appendChild(box);
     const sel=box.querySelector('#g'+i+'_tambon');
+    // 🔒 option ว่างนำหน้าเสมอ — กฎเดียวกับ ct_tambon ด้านบน (บรรทัด ~1090)
+    //    เดิมช่องนี้ไม่มี → เบราว์เซอร์เลือก "นครชัยศรี" ให้เอง แล้วหนังสือค้ำพิมพ์ตำบลผิด
+    //    ทั้งที่อยู่ผู้ค้ำและที่อยู่บอกกล่าวข้อ 4 โดยไม่มีอะไรเตือน (บั๊ก 20-07)
+    sel.appendChild(new Option('— เลือกตำบล —', ''));
     CFG.tambon.forEach(t=>{ const o=document.createElement('option'); o.value=o.textContent=t; sel.appendChild(o); });
   }
   // เลือกหลักค้ำประกัน → กาง/ปิดแผงผู้ค้ำ + ปุ่มพิมพ์
@@ -1225,33 +1229,17 @@ async function genContractPDF(){
     meetInp.style.outline='';
     const meetDate = parseDate(meetInp.value);
 
-    // 🔒 ด่านตรวจข้อมูลผู้กู้ — เดิมสัญญา (เอกสารผูกพันที่สุด) ไม่ตรวจเลยสักช่อง
-    //    ทำให้พิมพ์สัญญาที่ช่องชื่อ/ที่อยู่ว่างเปล่าออกมาได้ พร้อมข้อความ "สร้างสำเร็จ" (บั๊ก 20-07)
-    const _v = id => { const el=document.getElementById(id); return el ? (el.value||'').trim() : ''; };
-    const miss = [];
-    if(!_v('ct_name'))   miss.push('ชื่อ-สกุล');
-    if(!_v('ct_reg'))    miss.push('เลขทะเบียน');
-    if(!_v('ct_group'))  miss.push('กลุ่มที่');
-    if(!_v('ct_house'))  miss.push('บ้านเลขที่');
-    if(!_v('ct_moo'))    miss.push('หมู่ที่');
-    if(!_v('ct_tambon')) miss.push('ตำบล');
-    const _pv = _v('ct_purpose');
-    if(!_pv || (_pv==='__OTHER__' && !_v('ct_purpose_other'))) miss.push('วัตถุประสงค์');
-    if(miss.length){
-      st.innerHTML='<span style="color:#c00;font-weight:700">⚠️ ยังขาดข้อมูลผู้กู้: '+miss.join(' · ')+'</span>';
-      return;
-    }
-
-    // 🔒 กันงวดล้นตาราง — ฟอร์มมีที่ให้เขียนจำกัด ถ้างวดเกินความจุ งวดท้ายจะหายเงียบ
-    //    แต่ยอดรวม/วันครบกำหนดยังเป็นของเต็ม = สัญญาขัดแย้งในตัวเอง (บั๊ก 20-07)
+    /* 🔒 ด่านร่วม (contract_print/doc_gate.js) — เงื่อนไขบล็อกทั้งหมดอยู่ที่นั่นที่เดียว
+     *    เดิมสัญญา (เอกสารผูกพันที่สุด) ไม่ตรวจเพดานวงเงินเลย ทั้งที่หนังสือค้ำคู่กันตรวจ
+     *    → พิมพ์สัญญาเกินเพดานได้พร้อม "✅ สำเร็จ" แต่พิมพ์หลักประกันคู่กันไม่ได้ (บั๊ก 20-07) */
+    const _bad = m => { st.innerHTML='<span style="color:#c00;font-weight:700">⚠️ '+m+'</span>'; };
+    const miss = DocGate.borrower('contract');
+    if(miss.length) return _bad('ยังขาดข้อมูลผู้กู้: '+miss.join(' · '));
+    const _capMsg = DocGate.ceiling(r.P);
+    if(_capMsg) return _bad(_capMsg);
     const _prinCount = r.rows.filter(x=>x.isPrincipal).length;
-    const _cap = (window.FIELD_MAP && window.FIELD_MAP.table)
-      ? (window.FIELD_MAP.table.segments||[]).reduce((s,x)=>s+(x.cap||0),0) : 0;
-    if(_cap && _prinCount > _cap){
-      st.innerHTML='<span style="color:#c00;font-weight:700">⚠️ งวดชำระ '+_prinCount+' งวด เกินความจุตารางในแบบฟอร์ม ('+_cap+' งวด)'
-        +'<br>งวดท้ายจะหายจากสัญญาโดยไม่มีการเตือน — ลดจำนวนปี หรือใช้แบบฟอร์มที่มีตารางยาวกว่า</span>';
-      return;
-    }
+    const _ovf = DocGate.capacity('contract', _prinCount);
+    if(_ovf) return _bad(_ovf);
 
     st.textContent='⏳ กำลังสร้าง PDF...';
     const coop = await fetch(window.CONTRACT_ASSET_BASE+'coop_data.json').then(x=>x.json());
@@ -1284,6 +1272,11 @@ async function genContractPDF(){
       approveAmount: fmt0(r.P),
       approveRepayBy: lastDate ? thDate(lastDate) : '',  // อ้างอิงงวดสุดท้าย → ย่อ ปี 4 หลัก "30 มิ.ย. 2570"
     };
+    /* 🚦 กันบั๊ก "ช่องว่างเงียบ" — เดิมด่านนี้มีแค่หนังสือหุ้นค้ำ/หนังสือค้ำ
+     *    สัญญาซึ่งผูกพันที่สุดกลับไม่มี → เพิ่มช่องใน fieldmap วันไหน ช่องนั้นว่างเงียบทันที */
+    const _mk = DocGate.missKeys(window.FIELD_MAP, data);
+    if(_mk.length) return _bad('ระบบผิดพลาด: โปรแกรมไม่ได้สร้างข้อมูลช่อง → '+_mk.join(', ')+' (แจ้งผู้พัฒนา)');
+
     const bytes = await ContractFill.generateContract(data, {});
     const url = URL.createObjectURL(new Blob([bytes], {type:'application/pdf'}));
     window.open(url, '_blank');
@@ -1304,18 +1297,15 @@ async function genSharePDF(){
     const r = calcCoop();
     if(!r) return bad('กรอกเงินต้น + วันรับเงินกู้ แล้วกด "คำนวณ" ก่อน');
     const shares = getShares();
-    if(!shares) return bad('กรอก "จำนวนหุ้นที่ถืออยู่" ก่อน');
-    const cap = ceilingFor('share', shares);
-    if(r.P > cap) return bad('วงเงิน '+fmt0(r.P)+' เกินเพดาน '+fmt0(cap)+' บาท (60% ของมูลค่าหุ้น — ระเบียบ ข้อ 8 วรรคแรก)');
+    const _capMsg = DocGate.ceiling(r.P);      // 🔒 ด่านร่วม — เพดานตาม ข้อ 8 + กันกรณียังไม่กรอกหุ้น (ดู doc_gate.js)
+    if(_capMsg) return bad(_capMsg);
     const meetInp=document.getElementById('ct_meetdate');
     if(!meetInp.value){ meetInp.style.outline='2px solid #c00'; meetInp.focus(); return bad('เลือก "วันที่ประชุมอนุมัติ" ก่อน'); }
     meetInp.style.outline='';
     const meetDate=parseDate(meetInp.value);
 
     const V=id=>(document.getElementById(id).value||'').trim();
-    const miss=[];
-    if(!V('ct_name')) miss.push('ชื่อ-สกุล'); if(!V('ct_reg')) miss.push('เลขทะเบียน');
-    if(!V('ct_group')) miss.push('กลุ่มที่'); if(!V('ct_house')) miss.push('บ้านเลขที่'); if(!V('ct_moo')) miss.push('หมู่ที่');
+    const miss = DocGate.borrower('share');   // 🔒 ด่านร่วม (เดิมใบนี้ไม่ตรวจตำบล ทั้งที่พิมพ์ตำบล)
     if(miss.length) return bad('ยังขาดข้อมูลผู้กู้: '+miss.join(' · '));
 
     const coop = await fetch(window.CONTRACT_ASSET_BASE+'coop_data.json').then(x=>x.json());
@@ -1360,10 +1350,10 @@ async function genGuaranteePDF(){
     if(getSecurity()!=='person') return bad('เลือก "บุคคลค้ำ 2 คน" ก่อน');
     const r = calcCoop();
     if(!r) return bad('กรอกเงินต้น + วันรับเงินกู้ แล้วกด "คำนวณ" ก่อน');
-    const shares = getShares();
-    if(!shares) return bad('กรอก "จำนวนหุ้นที่ถืออยู่" ก่อน — เพดานบุคคลค้ำขึ้นกับมูลค่าหุ้น (ระเบียบ ข้อ 8(2) ข.)');
-    const cap = ceilingFor('person', shares);
-    if(r.P > cap) return bad('วงเงิน '+fmt0(r.P)+' เกินเพดาน '+fmt0(cap)+' บาท (ระเบียบ ข้อ 8(2)) — ใช้บุคคลค้ำอย่างเดียวไม่ได้');
+    const _capMsg = DocGate.ceiling(r.P);      // 🔒 ด่านร่วม — เพดานตาม ข้อ 8 (ดู doc_gate.js)
+    if(_capMsg) return bad(_capMsg);
+    const _missB = DocGate.borrower('guarantee');   // หนังสือค้ำพิมพ์ชื่อผู้กู้ + วัตถุประสงค์ด้วย
+    if(_missB.length) return bad('ยังขาดข้อมูลผู้กู้ (แผงด้านบน): '+_missB.join(' · '));
     const meetInp=document.getElementById('ct_meetdate');
     if(!meetInp.value){ meetInp.style.outline='2px solid #c00'; meetInp.focus(); return bad('เลือก "วันที่ประชุมอนุมัติ" ก่อน'); }
     meetInp.style.outline='';
@@ -1381,10 +1371,10 @@ async function genGuaranteePDF(){
         gHouse: V('g'+i+'_house'), gMoo: V('g'+i+'_moo'), gTambon: V('g'+i+'_tambon'), gTel: V('g'+i+'_tel'),
         house4: V('g'+i+'_house'), moo4: V('g'+i+'_moo'), tambon4: V('g'+i+'_tambon'), // ข้อ 4 = ที่อยู่บอกกล่าว (ที่อยู่เดียวกัน)
       };
-      const miss=[];
-      if(!g.gName) miss.push('ชื่อ-สกุล'); if(!g.gReg) miss.push('เลขทะเบียน');
-      if(!g.gGroup) miss.push('กลุ่มที่'); if(!g.gHouse) miss.push('บ้านเลขที่'); if(!g.gMoo) miss.push('หมู่ที่');
-      if(g.idcard.length!==13) miss.push('เลขบัตร 13 หลัก');
+      /* 🔒 ด่านร่วม — รวม "ตำบล" ที่เดิมไม่ถูกตรวจ เพราะดรอปดาวน์ไม่มีตัวเลือกว่าง
+       *    จึงไม่เคยว่าง แล้วพิมพ์ "นครชัยศรี" ให้เองทั้งที่ไม่มีใครเลือก — ผิดทั้งที่อยู่ผู้ค้ำ
+       *    และที่อยู่สำหรับบอกกล่าวตามข้อ 4 ที่ใช้ส่งหนังสือทวงถามตามกฎหมาย (บั๊ก 20-07) */
+      const miss = DocGate.guarantor(i);
       if(miss.length) return bad('ผู้ค้ำคนที่ '+i+' ยังขาด: '+miss.join(' · '));
       if(!thaiIdOK(g.idcard)) warns.push('เลขบัตรผู้ค้ำคนที่ '+i+' ไม่ผ่าน checksum — ตรวจอีกครั้ง');
       guars.push(g);

@@ -188,16 +188,48 @@ function updateSngk13Hints() {
     : '📌 <b>ระยะปานกลาง</b> — เขียน “รายละเอียดแผนงาน” การใช้เงินกู้';
 }
 
+/* ผู้ค้ำใน ส.-งก.13 ← แผงผู้ค้ำด้านบน (ของบนเป็นความจริง)
+ * 🔒 sync ตามเสมอ + ล้างเมื่อหลักประกันไม่ใช่บุคคลค้ำ — หลักเดียวกับติ๊กหลักค้ำใน janong_ui.js
+ * เดิมเติมครั้งเดียวตอนเปิดแผง (`!dst.value`) และไม่เคยดู ct_security เลย → 2 อาการ (บั๊ก 20-07):
+ *   ก) แก้ชื่อผู้ค้ำด้านบนทีหลัง → คำขอกู้พิมพ์ชื่อเก่า ขณะหนังสือค้ำพิมพ์ชื่อใหม่ = สองใบคนละชื่อ
+ *   ข) เปลี่ยนหลักประกันเป็นหุ้นตนเอง/จำนอง → คำขอกู้ยังพิมพ์ชื่อผู้ค้ำจากซากเดิม
+ * ⚠️ ไม่ทับค่าที่เจ้าหน้าที่พิมพ์เอง — ทำเครื่องหมาย dataset.auto เฉพาะช่องที่เราเติม */
+function syncSngk13Guarantors() {
+  const secEl = document.querySelector('input[name="ct_security"]:checked');
+  const isPerson = !secEl || secEl.value === 'person';
+  const own = el => el && (!el.value || el.dataset.auto === '1');
+  const put = (el, v) => {
+    if (!own(el)) return;
+    if (v) { el.value = v; el.dataset.auto = '1'; }
+    else if (el.dataset.auto === '1') { el.value = ''; delete el.dataset.auto; }
+  };
+  for (let i = 1; i <= 2; i++) {
+    const src = document.getElementById('g' + i + '_name');
+    const sg = document.getElementById('g' + i + '_group'), sr = document.getElementById('g' + i + '_reg');
+    const parts = [sg && sg.value.trim(), sr && sr.value.trim()].filter(Boolean);
+    put(document.getElementById('s13_g' + i + '_name'),
+        isPerson && src ? src.value.trim() : '');
+    put(document.getElementById('s13_g' + i + '_group'),
+        isPerson && parts.length ? parts.join(' / ') : '');
+  }
+}
+
+/* ต้นทางเปลี่ยน → sync ทันที ไม่ต้องรอเปิด/ปิดแผง · คนพิมพ์ทับเอง → ระบบเลิกยุ่งกับช่องนั้น */
+document.addEventListener('change', function (e) {
+  const t = e.target; if (!t || !document.getElementById('sngk13Panel')) return;
+  if (t.name === 'ct_security' || /^g[12]_(name|group|reg)$/.test(t.id || '')) syncSngk13Guarantors();
+});
+document.addEventListener('input', function (e) {
+  const t = e.target;
+  if (t && /^s13_g[12]_(name|group)$/.test(t.id || '')) delete t.dataset.auto;
+  else if (t && /^g[12]_(name|group|reg)$/.test(t.id || '') && document.getElementById('sngk13Panel')) syncSngk13Guarantors();
+});
+
 function toggleSngk13() {
   const p = document.getElementById('sngk13Panel');
   p.style.display = (p.style.display === 'none') ? 'block' : 'none';
   if (p.style.display === 'block') {
-    for (let i = 1; i <= 2; i++) {   // prefill บุคคลค้ำจากแผงผู้ค้ำหลัก
-      const src = document.getElementById('g' + i + '_name'), dst = document.getElementById('s13_g' + i + '_name');
-      if (src && dst && !dst.value && src.value) dst.value = src.value.trim();
-      const sg = document.getElementById('g' + i + '_group'), sr = document.getElementById('g' + i + '_reg'), dg = document.getElementById('s13_g' + i + '_group');
-      if (dg && !dg.value) { const parts = [sg && sg.value.trim(), sr && sr.value.trim()].filter(Boolean); if (parts.length) dg.value = parts.join(' / '); }
-    }
+    syncSngk13Guarantors();
     // default ลักษณะการปรับพื้นที่จากวัตถุประสงค์ (ถ้ายังไม่เลือก)
     const modeEl = document.getElementById('s13_medMode');
     if (modeEl && !modeEl.value) {
@@ -241,10 +273,29 @@ async function genLoanRequestPDF() {
     const meetDate = parseDate(meetInp.value);
 
     const V = id => { const el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
-    const miss = [];
-    if (!V('ct_name')) miss.push('ชื่อ-สกุล'); if (!V('ct_reg')) miss.push('เลขทะเบียน');
-    if (!V('ct_group')) miss.push('กลุ่มที่'); if (!V('ct_house')) miss.push('บ้านเลขที่'); if (!V('ct_moo')) miss.push('หมู่ที่');
+
+    /* 🔒 ด่านร่วม (doc_gate.js) — เดิมใบนี้ตรวจน้อยที่สุดในบรรดา 5 ใบ
+     *    ไม่ตรวจตำบล · ไม่ตรวจวัตถุประสงค์ · ไม่ตรวจเพดาน · ไม่ตรวจความจุตารางงวด
+     *    ผลคือ ส.-งก.14 บล็อก แต่ ส.-งก.13 ในแฟ้มเดียวกันพิมพ์ผ่าน = เอกสารขัดกันเอง (บั๊ก 20-07) */
+    const miss = DocGate.borrower('sngk13');
     if (miss.length) return bad('ยังขาดข้อมูลผู้กู้ (แผงด้านบน): ' + miss.join(' · '));
+    const capMsg = DocGate.ceiling(r.P);
+    if (capMsg) return bad(capMsg);
+    const ovf = DocGate.capacity('sngk13', r.rows.filter(x => x.isPrincipal).length);
+    if (ovf) return bad(ovf);
+
+    /* 🔒 ขัดกันเองระหว่างเอกสาร: หลักประกันไม่ใช่บุคคลค้ำ แต่คำขอกู้ยังระบุผู้ค้ำ
+     * syncSngk13Guarantors() ล้างให้เฉพาะช่องที่ระบบเติม — ช่องที่เจ้าหน้าที่พิมพ์เองจะไม่ถูกแตะ
+     * ถ้าปล่อยผ่าน คำขอกู้จะบอกว่ามีบุคคลค้ำ ขณะที่สัญญาบอกว่าใช้หลักประกันอื่น (ผู้ตรวจรับจับได้ 20-07) */
+    const secEl2 = document.querySelector('input[name="ct_security"]:checked');
+    if (secEl2 && secEl2.value !== 'person') {
+      const stuck = [1, 2].filter(i => V('s13_g' + i + '_name'));
+      if (stuck.length) {
+        return bad('หลักประกันที่เลือกไว้ไม่ใช่ “บุคคลค้ำ 2 คน” แต่ข้อ 5 ก ยังมีชื่อผู้ค้ำคนที่ '
+          + stuck.join(' และ ') + ' อยู่<br><span style="font-weight:400">ลบชื่อออก '
+          + 'หรือเปลี่ยนหลักประกันด้านบนให้ตรงกัน — ไม่งั้นคำขอกู้จะขัดกับสัญญาในแฟ้มเดียวกัน</span>');
+      }
+    }
 
     const coop = await fetch(window.CONTRACT_ASSET_BASE + 'coop_data.json').then(x => x.json());
     const CFG = window.CONTRACT_CONFIG;
@@ -271,11 +322,26 @@ async function genLoanRequestPDF() {
     }
     data.repTotal = fmt0(r.P);
 
-    // input จากแผง (วน fieldmap key ที่มีช่อง)
+    /* input จากแผง (วน fieldmap key ที่มีช่อง)
+     * 🔒 ข้ามช่องที่ "ถูกซ่อนอยู่ตอนนี้" — ซ่อน = ไม่เกี่ยวกับประเภทเงินกู้ที่เลือก
+     *    เดิม updateSngk13Hints() ซ่อนแถวใช้เงิน 2-4 ด้วย display:none แต่ไม่ล้างค่า
+     *    → กรอกตอนปานกลาง แล้วสลับเป็นระยะสั้น ค่ายังลง PDF ทั้งที่หายจากจอ
+     *      แถวบนกระดาษบวกได้ 130,000 แต่ช่อง "รวมเงินกู้" พิมพ์ 100,000 (บั๊ก 20-07 ยืนยันด้วยการกดจริง)
+     * ⚠️ เช็ก inline display ไล่ขึ้นถึงตัวแผง ไม่ใช่ offsetParent — ไม่ต้องพึ่ง layout
+     *    และถ้าหาแผงไม่เจอ ให้เก็บทุกช่องตามเดิม (ยอมพลาดดีกว่าเอกสารว่างทั้งใบ) */
+    const panelEl = document.getElementById('sngk13Panel');
+    const isHiddenIn = (el, root) => {
+      if (!root) return false;
+      for (let n = el; n && n !== root; n = n.parentElement) {
+        if (n.style && n.style.display === 'none') return true;
+      }
+      return false;
+    };
     Object.keys(window.SNGK13_MAP).forEach(k => {
       if (k === 'baseDY') return;
       const el = document.getElementById('s13_' + k);
       if (!el) return;
+      if (isHiddenIn(el, panelEl)) return;   // 🔒 ช่องที่ถูกซ่อนอยู่ = ไม่ใช่ของที่ผู้ใช้กรอกไว้จริง (ดูหมายเหตุด้านบน)
       const raw = (el.value || '').trim();
       if (raw === '') return;
       data[k] = /_(amt|value|remain|owePrin|oweInt)$|ownFund/.test(k) ? fmtA(raw) : raw;
