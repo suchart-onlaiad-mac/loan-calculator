@@ -1,0 +1,1410 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>เครื่องคิดเงินกู้ — สหกรณ์การเกษตรนครชัยศรี จำกัด</title>
+<style>
+  :root{
+    --brand:#16a34a; --brand-d:#15803d; --brand-dd:#14532d;
+    --brand-soft:#dcfce7; --brand-tint:#f0fdf5;
+    --hl:#bbf7d0; --hl2:#86efac;
+    --amber:#b45309; --amber-soft:#fef3c7; --amber-tint:#fffbeb;
+    --red:#dc2626; --red-soft:#fee2e2;
+    --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --bg1:#f1f5f9; --bg2:#e6f4ea; --card:#ffffff; --card2:#f8fafc;
+    --shadow:0 1px 3px rgba(15,23,42,.06),0 8px 24px -12px rgba(15,23,42,.12);
+    --radius:16px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --brand:#22c55e; --brand-d:#4ade80; --brand-dd:#bbf7d0;
+      --brand-soft:#14311f; --brand-tint:#0f2418;
+      --hl:#1c4a2e; --hl2:#256b3f;
+      --amber:#fbbf24; --amber-soft:#3a2c0a; --amber-tint:#241a06;
+      --red:#f87171; --red-soft:#3a1414;
+      --ink:#e2e8f0; --muted:#94a3b8; --line:#243244;
+      --bg1:#0b1220; --bg2:#0f1e17; --card:#141c2b; --card2:#1a2436;
+      --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 30px -12px rgba(0,0,0,.6);
+    }
+  }
+  /* โหมดปรับโครงสร้างหนี้ = ธีมม่วง (แยกจากเงินกู้ปกติสีเขียว/ปานกลางน้ำเงิน/เบี้ยปรับแดง กันสับสน) */
+  body.mode-violet{
+    --brand:#7e22ce; --brand-d:#6b21a8; --brand-dd:#581c87;
+    --brand-soft:#f3e8ff; --brand-tint:#faf5ff;
+    --hl:#e9d5ff; --hl2:#d8b4fe;
+  }
+  @media (prefers-color-scheme:dark){
+    body.mode-violet{
+      --brand:#a855f7; --brand-d:#c084fc; --brand-dd:#e9d5ff;
+      --brand-soft:#3b1464; --brand-tint:#280f45;
+      --hl:#4c1d75; --hl2:#5f2a90;
+    }
+  }
+  /* โหมดเงินกู้ปานกลาง = ธีมน้ำเงินฟ้า (แยกจากระยะสั้นสีเขียว) */
+  body.mode-blue{
+    --brand:#2563eb; --brand-d:#1d4ed8; --brand-dd:#1e3a8a;
+    --brand-soft:#dbeafe; --brand-tint:#eff6ff;
+    --hl:#bfdbfe; --hl2:#93c5fd;
+  }
+  @media (prefers-color-scheme:dark){
+    body.mode-blue{
+      --brand:#3b82f6; --brand-d:#60a5fa; --brand-dd:#bfdbfe;
+      --brand-soft:#172554; --brand-tint:#0f1e3d;
+      --hl:#1e3a5f; --hl2:#28507f;
+    }
+  }
+  /* แท็บเบี้ยปรับ = accent แดง (เตือน/ค่าปรับ จำง่าย) — เฉพาะการ์ดนี้ */
+  #pane-penalty{
+    --brand:#dc2626; --brand-d:#b91c1c; --brand-dd:#991b1b;
+    --brand-soft:#fee2e2; --brand-tint:#fef2f2; --hl:#fecaca; --hl2:#fca5a5;
+  }
+  @media (prefers-color-scheme:dark){
+    #pane-penalty{
+      --brand:#ef4444; --brand-d:#f87171; --brand-dd:#fecaca;
+      --brand-soft:#3a1414; --brand-tint:#2a0f0f; --hl:#4a1818; --hl2:#5c1f1f;
+    }
+  }
+  .tabs .tab[data-tab=penalty]{color:#dc2626}
+  .tabs .tab[data-tab=penalty].active{background:#dc2626;color:#fff;box-shadow:0 4px 12px -4px #dc2626}
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;color:var(--ink);
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));background-attachment:fixed;min-height:100vh;
+    font-family:"Sarabun","Sukhumvit Set","IBM Plex Sans Thai","Noto Sans Thai",-apple-system,"Segoe UI",sans-serif;
+    font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:900px;margin:0 auto;padding:clamp(12px,3vw,28px) clamp(12px,3vw,20px) 96px}
+
+  /* header */
+  header{background:linear-gradient(135deg,var(--brand-d),var(--brand));color:#fff;
+    border-radius:var(--radius);padding:clamp(18px,4vw,28px);box-shadow:var(--shadow);
+    text-align:center;margin-bottom:16px;position:relative;overflow:hidden}
+  header::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;
+    background:radial-gradient(circle,rgba(255,255,255,.16),transparent 70%);pointer-events:none}
+  header .badge{font-size:34px;line-height:1}
+  header .head-row{display:flex;align-items:center;justify-content:center;gap:14px}
+  header .logo{width:56px;height:auto;flex-shrink:0;filter:drop-shadow(0 2px 5px rgba(0,0,0,.28))}
+  header .head-text{text-align:left}
+  header .head-text h1,header .head-text p{margin:0}
+  @media (max-width:420px){
+    header .logo{width:44px}
+    header .head-text h1{font-size:18px}
+  }
+  header h1{margin:6px 0 2px;font-size:clamp(19px,5vw,26px);font-weight:800;letter-spacing:-.3px}
+  header p{margin:0;opacity:.9;font-size:clamp(12px,3.2vw,14px)}
+  header .meta{display:inline-flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+  header .meta span{background:rgba(255,255,255,.16);padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:600}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:clamp(14px,3.5vw,20px);margin-bottom:14px;box-shadow:var(--shadow)}
+  .card h2{margin:0 0 14px;font-size:16px;color:var(--brand-dd);display:flex;align-items:center;gap:8px}
+  .card h2 .n{background:var(--brand);color:#fff;width:24px;height:24px;border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:0 0 auto}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (min-width:620px){.grid{grid-template-columns:repeat(4,1fr)}}
+  .field{min-width:0}
+  .field.wide{grid-column:1/-1}
+  /* วันที่ พ.ศ. ทับบน input[type=date] (native picker บังคับโชว์ ค.ศ. แก้ตรงไม่ได้ — ซ่อนตัวเลขเดิมด้วย color:transparent แล้ววางทับ) */
+  .date-wrap{position:relative}
+  .date-wrap input[type=date]{color:transparent}
+  .date-wrap input[type=date]::-webkit-datetime-edit-fields-wrapper,
+  .date-wrap input[type=date]::-webkit-datetime-edit-text,
+  .date-wrap input[type=date]::-webkit-datetime-edit-day-field,
+  .date-wrap input[type=date]::-webkit-datetime-edit-month-field,
+  .date-wrap input[type=date]::-webkit-datetime-edit-year-field{color:transparent}
+  .date-wrap .date-hint{position:absolute;left:13px;top:0;bottom:0;right:38px;display:flex;align-items:center;
+    font-size:16px;font-weight:700;color:var(--ink);pointer-events:none;white-space:nowrap;overflow:hidden}
+  label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px;font-weight:700}
+  .inp{position:relative}
+  input,select{width:100%;padding:12px 12px;border:1.5px solid var(--line);border-radius:12px;
+    font:inherit;font-size:16px;color:var(--ink);background:var(--card2);transition:border-color .15s,box-shadow .15s}
+  input:focus,select:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+  /* ช่องประเภทสัญญา — เน้นให้เด่น (สีตามธีม สั้น=เขียว/ปานกลาง=น้ำเงิน) */
+  #loanType{border:2px solid var(--brand);background:var(--brand-tint);font-weight:800;color:var(--brand-dd)}
+  .field.type-field label{color:var(--brand-d);font-weight:800}
+  .inp .suffix{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none}
+  .inp input[type=number]{padding-right:42px}
+
+  .chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .chip{padding:10px 16px;border:1.5px solid var(--line);border-radius:24px;background:var(--card2);
+    cursor:pointer;font-weight:700;color:var(--ink);user-select:none;font-size:15px;transition:.12s}
+  .chip:hover{border-color:var(--brand)}
+  .chip.active{background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:0 4px 12px -4px var(--brand)}
+  .chips input{width:110px}
+
+  /* หลักค้ำประกัน (ระเบียบเงินกู้ ข้อ 8) — เลือกผิด = เอกสารผิดระเบียบ
+   * ใช้ทรงเดียวกับ .chip (ปุ่มเลือกอัตราดอกเบี้ย): เม็ดยา ปุ่มทั้งใบเปลี่ยนสี = ตัวบอกสถานะ
+   * ไม่มีจุด radio — ปุ่มเขียวทึบเด่นกว่าจุดเล็กที่คนทำงานเพ่งหา (ผู้จัดการแจ้ง 14-07-2569) */
+  .secopt{display:inline-flex;align-items:center;gap:7px;margin:0;padding:10px 16px;
+    border:1.5px solid var(--line);border-radius:24px;background:var(--card2);
+    cursor:pointer;user-select:none;font-size:15px;font-weight:700;color:var(--ink);
+    line-height:1.35;transition:.12s}
+  .secopt:hover{border-color:var(--brand)}
+  .secopt:has(:checked){background:var(--brand);border-color:var(--brand);color:#fff;
+    box-shadow:0 4px 12px -4px var(--brand)}
+  .secopt .note{margin:0;line-height:1.35;font-size:12.5px}  /* .note เดิมมี margin-top:12px → ดันข้อความในวงเล็บลงต่ำ */
+  .secopt:has(:checked) .note{color:rgba(255,255,255,.85)}
+  .secopt:has(:focus-visible){outline:3px solid var(--hl2);outline-offset:2px}
+  /* ซ่อน radio ไว้ใต้ปุ่ม — ยังกด Tab/ลูกศรเลือกด้วยคีย์บอร์ดได้ปกติ */
+  .secopt input{position:absolute;width:1px;height:1px;margin:0;padding:0;
+    opacity:0;pointer-events:none}
+
+  .btn{background:var(--brand);color:#fff;border:none;border-radius:12px;padding:14px 22px;
+    font:inherit;font-size:16px;font-weight:800;cursor:pointer;transition:.15s;box-shadow:0 6px 16px -6px var(--brand)}
+  .btn:hover{background:var(--brand-d)}
+  .btn:active{transform:translateY(1px)}
+  .btn.ghost{background:transparent;color:var(--brand-d);border:1.5px solid var(--brand);box-shadow:none}
+  /* ปุ่มที่กดไม่ได้ต้องดูออกว่ากดไม่ได้ — พื้นเรากำหนดเอง เบราว์เซอร์เลยไม่ทำให้ซีดให้
+   * (เช่น ปุ่มพิมพ์หนังสือค้ำ ตอนยังไม่เลือก "บุคคลค้ำ") */
+  .btn:disabled{opacity:.4;filter:grayscale(.7);box-shadow:none;cursor:not-allowed}
+  .btn:disabled:hover{background:var(--brand)}
+  .btn.ghost:disabled:hover{background:transparent}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .actions .btn{flex:1 1 auto}
+
+  .warnbar{margin:0 0 14px}
+  .warnbar .w{background:var(--red-soft);color:var(--red);border-radius:12px;padding:10px 14px;
+    font-size:13.5px;font-weight:600;margin-bottom:8px;display:flex;gap:8px;align-items:flex-start}
+
+  /* mode switch */
+  .modebar{display:flex;gap:10px;margin-bottom:14px}
+  .modebtn{flex:1;padding:15px 12px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);
+    font:inherit;font-size:clamp(14px,3.6vw,16px);font-weight:800;color:var(--muted);cursor:pointer;
+    transition:.15s;box-shadow:var(--shadow)}
+  .modebtn:hover{border-color:var(--brand)}
+  .modebtn.active{background:linear-gradient(135deg,var(--brand-d),var(--brand));color:#fff;border-color:transparent;
+    box-shadow:0 6px 18px -6px var(--brand)}
+  /* tabs */
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:14px;
+    padding:5px;margin-bottom:14px;position:sticky;top:8px;z-index:5;box-shadow:var(--shadow)}
+  .tab{flex:1 1 auto;text-align:center;padding:11px 8px;border-radius:10px;cursor:pointer;font-weight:700;
+    color:var(--muted);font-size:14.5px;transition:.15s;white-space:nowrap}
+  @media (max-width:540px){.tab{flex:1 1 40%}}
+  .tab.active{background:var(--brand);color:#fff;box-shadow:0 4px 12px -4px var(--brand)}
+  .pane{display:none}.pane.active{display:block;animation:fade .25s ease}
+  .rpane{display:none}.rpane.active{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  .qpill{display:inline-block;font-size:12px;font-weight:700;color:var(--brand-dd);
+    background:var(--brand-soft);padding:4px 12px;border-radius:20px;margin-bottom:14px}
+
+  .summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+  @media (min-width:620px){.summary{grid-template-columns:repeat(3,1fr)}}
+  .stat{background:linear-gradient(135deg,var(--brand-tint),var(--card2));border:1px solid var(--line);
+    border-radius:12px;padding:12px 14px}
+  .stat.hl{background:linear-gradient(135deg,var(--brand-soft),var(--brand-tint));border-color:var(--brand)}
+  .stat .k{font-size:11.5px;color:var(--muted);font-weight:700}
+  .stat .v{font-size:clamp(16px,4.4vw,19px);font-weight:800;color:var(--ink);margin-top:3px;line-height:1.2}
+
+  /* table */
+  .tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;-webkit-overflow-scrolling:touch}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:660px}
+  th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{background:var(--brand);color:#fff;font-weight:700;font-size:12.5px;position:sticky;top:0}
+  td.tl,th.tl{text-align:left}
+  td.head-cell{display:none}          /* หัวการ์ด — โชว์เฉพาะจอมือถือ */
+  tbody tr:nth-child(even){background:var(--card2)}
+  tr.close td{color:var(--amber);background:var(--amber-tint)}
+  tr.principal td{font-weight:700}
+  tr.total td{background:var(--brand-soft);font-weight:800;color:var(--brand-dd);border-top:2px solid var(--brand)}
+  /* คอลัมน์สำคัญ: เงินต้นที่ส่ง (.pcol) + รวมชำระ (.tcol) — แถบเน้นให้เด่น */
+  th.pcol,th.tcol{background:var(--brand-dd);color:#fff}
+  th.tcol{border-left:2px solid rgba(255,255,255,.5)}
+  td.pcol{font-weight:800;font-size:14.5px;background:var(--hl)!important;color:var(--brand-dd)}
+  td.tcol{font-weight:800;font-size:15.5px;color:var(--brand-dd);background:var(--hl2)!important;
+    border-left:2px solid var(--brand)}
+  .badge-due{display:inline-block;font-size:10.5px;font-weight:800;color:#fff;background:var(--brand);
+    padding:1px 7px;border-radius:20px;margin-left:6px;vertical-align:middle}
+  .badge-close{display:inline-block;font-size:10.5px;font-weight:800;color:#fff;background:var(--amber);
+    padding:1px 7px;border-radius:20px;margin-left:6px;vertical-align:middle}
+
+  .note{font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.7}
+  .mode-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .mode-row label{flex:1 1 200px;display:flex;align-items:center;gap:8px;margin:0;padding:12px;
+    border:1.5px solid var(--line);border-radius:12px;background:var(--card2);cursor:pointer;
+    color:var(--ink);font-weight:600;font-size:14px}
+  .mode-row label:has(input:checked){border-color:var(--brand);background:var(--brand-tint)}
+  .mode-row input{width:auto;accent-color:var(--brand);transform:scale(1.15)}
+
+  /* ===== MOBILE: table -> cards ===== */
+  @media (max-width:680px){
+    table{min-width:0}
+    thead{display:none}
+    table,tbody,tr,td{display:block;width:100%}
+    tbody tr{background:var(--card2)!important;border:1px solid var(--line);border-radius:12px;
+      padding:6px 12px;margin-bottom:10px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    td{text-align:right;border:none;border-bottom:1px dashed var(--line);padding:8px 0;
+      display:flex;justify-content:space-between;align-items:baseline;gap:12px;white-space:normal}
+    td:last-child{border-bottom:none}
+    td::before{content:attr(data-label);color:var(--muted);font-size:12px;font-weight:700;
+      text-align:left;flex:0 0 auto}
+    td.tl{text-align:right}
+    td.col-idx{display:none}
+    td.head-cell{display:block;background:var(--brand-soft);margin:-6px -12px 6px;padding:10px 12px;border-radius:11px 11px 0 0;
+      font-weight:800;color:var(--brand-dd);border-bottom:none;text-align:left}
+    td.total-lead{font-weight:800;color:var(--brand-dd);border-bottom:1px dashed var(--line);justify-content:flex-start}
+    tr.close td.head-cell{background:var(--amber-soft);color:var(--amber)}
+    td.head-cell::before{content:none}
+    tr.close td.head-cell{background:var(--amber-soft);color:var(--amber)}
+    tr.total{background:var(--brand-soft)!important;border-color:var(--brand)}
+    tr.total td{color:var(--brand-dd)}
+    tr.total td::before{color:var(--brand-dd)}
+    /* คอลัมน์สำคัญบนการ์ดมือถือ = แถบสีเน้น */
+    td.pcol{background:var(--hl)!important;margin:0 -12px;padding-left:12px;padding-right:12px;color:var(--brand-dd)}
+    td.pcol::before{font-weight:800;color:var(--brand-dd)}
+    td.tcol{background:var(--hl2)!important;margin:0 -12px;padding:11px 12px;border-top:2px solid var(--brand);
+      font-size:17px;color:var(--brand-dd)}
+    td.tcol::before{font-weight:800;color:var(--brand-dd);font-size:14px}
+  }
+
+  footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:8px}
+
+  @media print{
+    @page{size:A4 portrait;margin:8mm}
+    body{background:#fff}.no-print{display:none!important}
+    .pane{display:none!important}.pane.active{display:block!important}
+    .rpane{display:none!important}.rpane.active{display:block!important}
+    .card{box-shadow:none;border-color:#ccc}
+    header{background:linear-gradient(135deg,var(--brand-d),var(--brand))!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+    /* ===== ตารางงวดชำระ: บังคับให้พอดีหน้ากระดาษ ไม่ตัดคอลัมน์ (บั๊ก print เดิม) ===== */
+    .tbl-scroll{overflow:visible!important;border:1px solid #ccc;border-radius:0}
+    table{min-width:0!important;width:100%!important;table-layout:fixed;font-size:9px!important}
+    thead{display:table-header-group!important}        /* หัวตารางซ้ำทุกหน้า */
+    tbody{display:table-row-group!important}
+    tr{display:table-row!important;break-inside:avoid;page-break-inside:avoid}
+    th,td{display:table-cell!important;white-space:normal!important;word-break:break-word;
+      overflow-wrap:anywhere;padding:3px 2px!important;font-size:9px!important;position:static!important}
+    th{font-size:8.5px!important}
+    td.pcol,td.tcol{font-size:9px!important}
+    td.head-cell{display:none!important}               /* กันโหมดการ์ดตอนพิมพ์แคบ */
+    td.col-idx{display:table-cell!important}
+    td::before{content:none!important}
+    .badge-due,.badge-close{font-size:7.5px!important;padding:0 3px!important;margin-left:2px}
+    .summary,.stat{break-inside:avoid;page-break-inside:avoid}
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="head-row">
+      <img class="logo" alt="ตราสหกรณ์การเกษตรนครชัยศรี จำกัด" src="data:image/png;base64,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">
+      <div class="head-text">
+        <h1>เครื่องคิดเงินกู้</h1>
+        <p>สหกรณ์การเกษตรนครชัยศรี จำกัด · ลดต้นลดดอก</p>
+      </div>
+    </div>
+    <div class="meta">
+      <span>📅 ปีบัญชี 1 ต.ค.–30 ก.ย.</span>
+      <span>🧮 ดอกรายวัน ÷365</span>
+      <span>🔒 ไม่เก็บข้อมูล</span>
+    </div>
+  </header>
+
+  <!-- MODE SWITCH -->
+  <div class="modebar no-print">
+    <button class="modebtn active" data-mode="normal" onclick="setMode('normal')">💵 เงินกู้ปกติ</button>
+    <button class="modebtn" data-mode="restruct" onclick="setMode('restruct')">🔧 ปรับปรุงโครงสร้างหนี้</button>
+  </div>
+
+  <div id="mode-normal">
+  <!-- INPUT -->
+  <div class="card no-print">
+    <h2><span class="n">1</span> ข้อมูลเงินกู้</h2>
+    <div class="grid">
+      <div class="field">
+        <label>เงินต้น</label>
+        <div class="inp"><input id="principal" type="number" inputmode="numeric" min="0" step="1" placeholder="100000" value="100000" onchange="snapPrincipal()" onblur="snapPrincipal()"><span class="suffix">บาท</span></div>
+        <div id="principal_note" style="font-size:12px;color:#b06000;margin-top:4px"></div>
+      </div>
+      <div class="field">
+        <label>วันรับเงินกู้</label>
+        <div class="date-wrap"><input id="startDate" type="date"><div class="date-hint" id="startDate-th"></div></div>
+      </div>
+      <div class="field type-field">
+        <label>ประเภทสัญญา</label>
+        <select id="loanType">
+          <option value="short">ระยะสั้น (1 ปี)</option>
+          <option value="medium">ปานกลาง (2–10 ปี)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>จำนวนปี (งวดต้น ปีละครั้ง)</label>
+        <div class="inp"><input id="years" type="number" min="1" max="15" step="1" value="1"><span class="suffix">ปี</span></div>
+      </div>
+      <div class="field wide">
+        <label>อัตราดอกเบี้ยต่อปี — เลือกตามชั้นสมาชิก หรือพิมพ์เอง</label>
+        <div class="chips">
+          <span class="chip" data-rate="8">8%</span>
+          <span class="chip" data-rate="7.5">7.5%</span>
+          <span class="chip" data-rate="7">7%</span>
+          <div class="inp" style="width:120px"><input id="rate" type="number" step="0.01" inputmode="decimal" value="7"><span class="suffix">%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="calcAll()">คำนวณ</button>
+      <button class="btn ghost" onclick="printReport()">🖨️ พิมพ์ / บันทึก PDF</button>
+      <button class="btn ghost" onclick="toggleContract()">📄 พิมพ์สัญญากู้ ส.-งก.14</button>
+    </div>
+  </div>
+
+  <div id="warnbar" class="warnbar no-print"></div>
+
+  <div id="results" style="display:none">
+    <div class="tabs no-print">
+      <div class="tab active" data-tab="coop" onclick="showTab('coop')">📋 รายปี</div>
+      <div class="tab" data-tab="monthly" onclick="showTab('monthly')">📅 รายเดือน</div>
+      <div class="tab" data-tab="payoff" onclick="showTab('payoff')">💰 ยอดปิด</div>
+      <div class="tab" data-tab="penalty" onclick="showTab('penalty')">⚠️ เบี้ยปรับ</div>
+    </div>
+
+    <!-- COOP -->
+    <div class="pane active" id="pane-coop">
+      <div class="card">
+        <h2><span class="n">2</span> กำหนดชำระตามระเบียบ</h2>
+        <div id="qpill" class="qpill"></div>
+        <div class="summary" id="coopSummary"></div>
+        <div class="tbl-scroll"><table id="coopTable"></table></div>
+        <div class="note" id="coopNote"></div>
+      </div>
+    </div>
+
+    <!-- MONTHLY -->
+    <div class="pane" id="pane-monthly">
+      <div class="card">
+        <h2><span class="n">2</span> โหมดรายเดือน <span style="font-size:12px;font-weight:600;color:var(--muted)">— ผูกกับสัญญา (กระจายต่อปี)</span></h2>
+        <div class="mode-row no-print">
+          <label><input type="radio" name="mmode" value="fixed" checked onchange="calcMonthly()"> (ก) ต้นเท่ากัน/เดือน + ดอกลดลง</label>
+          <label><input type="radio" name="mmode" value="annuity" onchange="calcMonthly()"> (ข) ยอดรวมเท่ากันทุกเดือน</label>
+        </div>
+        <div class="summary" id="mSummary"></div>
+        <div class="tbl-scroll"><table id="mTable"></table></div>
+        <div class="note" id="mNote"></div>
+      </div>
+    </div>
+
+    <!-- PAYOFF (ยอดปิด ณ วันที่) -->
+    <div class="pane" id="pane-payoff">
+      <div class="card">
+        <h2><span class="n">2</span> ยอดปิดบัญชี ณ วันที่ <span style="font-size:12px;font-weight:600;color:var(--muted)">— ปิดก่อนกำหนด / สอบถามยอด</span></h2>
+        <div class="grid no-print" style="margin-bottom:6px">
+          <div class="field"><label>คำนวณ ณ วันที่</label><div class="date-wrap"><input id="asofDate" type="date"><div class="date-hint" id="asofDate-th"></div></div></div>
+        </div>
+        <div class="summary" id="payoffSummary"></div>
+        <div class="note" id="payoffNote"></div>
+      </div>
+    </div>
+
+    <!-- PENALTY (เบี้ยปรับผิดนัด) -->
+    <div class="pane" id="pane-penalty">
+      <div class="card">
+        <h2><span class="n">2</span> เบี้ยปรับผิดนัดชำระ <span style="font-size:12px;font-weight:600;color:var(--muted)">— ค่าปรับล้วน 3%/ปี บนต้นค้าง (ข้อ 16 ว.3)</span></h2>
+        <div class="grid no-print" style="margin-bottom:6px">
+          <div class="field"><label>เงินต้นที่ค้างชำระ</label><div class="inp"><input id="penPrincipal" type="number" inputmode="decimal" min="0" placeholder="50000"><span class="suffix">บาท</span></div></div>
+          <div class="field"><label>วันครบกำหนด (เริ่มนับปรับ)</label><div class="date-wrap"><input id="penDue" type="date"><div class="date-hint" id="penDue-th"></div></div></div>
+          <div class="field"><label>วันที่ชำระจริง (สิ้นสุด)</label><div class="date-wrap"><input id="penPaid" type="date"><div class="date-hint" id="penPaid-th"></div></div></div>
+          <div class="field"><label>อัตราเบี้ยปรับ (ระเบียบ = 3%)</label><div class="inp"><input id="penFine" type="number" step="0.01" inputmode="decimal" value="3"><span class="suffix">%</span></div></div>
+        </div>
+        <div class="summary" id="penSummary"></div>
+        <div class="note" id="penNote"></div>
+      </div>
+    </div>
+
+  </div>
+  </div><!-- /mode-normal -->
+
+  <!-- MODE: RESTRUCTURE (ปรับปรุงโครงสร้างหนี้) -->
+  <div id="mode-restruct" style="display:none">
+    <div class="card no-print">
+      <h2><span class="n">1</span> ข้อมูลปรับปรุงโครงสร้างหนี้ <span style="font-size:12px;font-weight:600;color:var(--muted)">— 2 ยอด (ระเบียบ 302)</span></h2>
+      <div class="grid">
+        <div class="field"><label>ยอด A — ต้นเงินรวม (คิดดอกเบี้ย)</label><div class="inp"><input id="rA" type="number" inputmode="decimal" min="0" placeholder="500000"><span class="suffix">บาท</span></div></div>
+        <div class="field"><label>ยอด B — ดอก+เบี้ยปรับค้าง (0%)</label><div class="inp"><input id="rB" type="number" inputmode="decimal" min="0" placeholder="80000"><span class="suffix">บาท</span></div></div>
+        <div class="field"><label>วันอนุมัติ / รับเงิน</label><div class="date-wrap"><input id="rStart" type="date"><div class="date-hint" id="rStart-th"></div></div></div>
+        <div class="field"><label>จำนวนปี (≤15)</label><div class="inp"><input id="rYears" type="number" min="1" max="15" step="1" value="10"><span class="suffix">ปี</span></div></div>
+        <div class="field"><label>ปลอดชำระ (ปีแรก ≤3)</label><div class="inp"><input id="rGrace" type="number" min="0" max="3" step="1" value="0"><span class="suffix">ปี</span></div></div>
+        <div class="field"><label>อัตราดอกเบี้ยยอด A (สูงสุด)</label><div class="inp"><input id="rRate" type="number" step="0.01" inputmode="decimal" value="8"><span class="suffix">%</span></div></div>
+      </div>
+      <div class="actions">
+        <button class="btn" onclick="calcRestructure()">คำนวณ</button>
+        <button class="btn ghost" onclick="printReport()">🖨️ พิมพ์ / บันทึก PDF</button>
+      </div>
+    </div>
+    <div class="tabs no-print">
+      <div class="tab active" data-rtab="year" onclick="showRTab('year')">📋 รายปี</div>
+      <div class="tab" data-rtab="month" onclick="showRTab('month')">📅 รายเดือน</div>
+    </div>
+    <div class="rpane active" id="rpane-year">
+      <div class="card">
+        <h2><span class="n">2</span> ตารางรายปี</h2>
+        <div class="summary" id="rSummary"></div>
+        <div class="tbl-scroll"><table id="rTable"></table></div>
+        <div class="note" id="rNote"></div>
+      </div>
+    </div>
+    <div class="rpane" id="rpane-month">
+      <div class="card">
+        <h2><span class="n">2</span> รายเดือน <span style="font-size:12px;font-weight:600;color:var(--muted)">— ผูกกับสัญญา (กระจายต่อปี)</span></h2>
+        <div class="mode-row no-print">
+          <label><input type="radio" name="rmmode" value="fixed" checked onchange="calcRestructMonthly()"> (ก) ต้น A+B เท่ากัน/เดือน + ดอก A ลด</label>
+          <label><input type="radio" name="rmmode" value="annuity" onchange="calcRestructMonthly()"> (ข) ยอดรวมเท่ากันทุกเดือน</label>
+        </div>
+        <div class="summary" id="rmSummary"></div>
+        <div class="tbl-scroll"><table id="rmTable"></table></div>
+        <div class="note" id="rmNote"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>เครื่องมือช่วยคำนวณ — โปรดตรวจทานกับสมุดคู่บัญชีเงินกู้และระเบียบสหกรณ์ทุกครั้ง</footer>
+</div>
+
+<script src="loan_core.js"></script>
+<script>
+/*<<CORE-TEST-SLICE-START>>*/
+// ---------- helpers ----------
+/* 🔁 แกนคำนวณย้ายไป loan_core.js แล้ว (20-07-2569) — ยกก้อนมาทั้งดุ้น ไม่แก้สูตร
+ *    ที่ย้าย: TH_MONTH GUAR_CEILING SHARE_PAR · round2 fmt fmt0 thDate daysBetween
+ *            lastDay addMonthsClamp monthsBetween quarterInfo firstDueDate autoUnit
+ *            instAmounts solveAnnuity parseDate ceilingFor · calcXxxCore ทั้ง 6 ตัว
+ *    loan_core.js ผูกชื่อเดิมทุกตัวไว้บน window ให้ด้วย → เรียกด้วยชื่อเปล่าได้เหมือนเดิม
+ *    ทั้งในไฟล์นี้และใน contract_print/*.js (fmt0 · thDate · parseDate · ceilingFor)
+ *    🔒 <script src="loan_core.js"> ต้องมาก่อน block นี้เสมอ
+ *    ที่เหลือในไฟล์นี้ = ตัวที่ "แตะ DOM" เท่านั้น (อ่านช่องกรอก + วาดผล) */
+function getRate(){ return parseFloat(document.getElementById('rate').value)||0; }
+/* 🔒 เงินต้นโหมดปกติ = จำนวนเต็มเสมอ (ผู้จัดการ 20-07: "ปกติทำสัญญาเป็นจำนวนเต็ม")
+ * เดิมช่องรับทศนิยมได้ แล้วตัวเลขกับตัวอักษรบนเอกสารมาคนละสูตร:
+ *   fmt0 ปัดด้วย Math.round → 100,000.50 พิมพ์เป็น "100,001"
+ *   bahtText คงสตางค์ไว้    → พิมพ์เป็น "หนึ่งแสนบาทห้าสิบสตางค์"
+ * = สัญญาผูกพันที่ตัวเลขขัดกับตัวอักษรในบรรทัดเดียวกัน (บั๊ก 20-07)
+ * ปัดที่จุดอ่านจุดเดียวนี้ → ทุกที่ที่ใช้ P ได้ค่าที่ปัดแล้วเหมือนกันหมด
+ * ℹ️ ไม่กระทบ ปปน (ปรับโครงสร้างหนี้) — โหมดนั้นใช้ช่อง rA/rB คนละชุด ยังมีเศษสตางค์ได้ */
+/* 🔒 ตัดเศษทิ้ง ไม่ใช่ปัดขึ้น (ผู้จัดการเคาะ 21-07-2569)
+ * ปัดขึ้นจะ "ให้กู้เกินที่พิมพ์" — 10,000.89 → 10,001 คือปล่อยเพิ่ม 11 สตางค์
+ * ตัดทิ้งไม่มีวันเกินที่ขอ · เงินกู้ระยะสั้น/ปานกลางเป็นจำนวนเต็มเสมอ */
+function getPrincipal(){ return Math.floor(parseFloat(document.getElementById('principal').value)||0); }
+
+/* ปัดให้เห็นในช่อง — ห้ามให้ "สิ่งที่เห็น" ต่างจาก "สิ่งที่คำนวณและพิมพ์ลงสัญญา"
+ * เดิมพิมพ์ 10,000.89 แล้วช่องยังโชว์ 10,000.89 แต่สัญญาที่สมาชิกเซ็นพิมพ์ 10,001
+ * = ระบบเปลี่ยนตัวเลขของคนเงียบ ๆ (ผู้จัดการจับได้ 21-07-2569) */
+function snapPrincipal(){
+  const el = document.getElementById('principal');
+  const note = document.getElementById('principal_note');
+  const raw = (el.value || '').trim();
+  if (note) note.textContent = '';
+  if (raw === '') return;
+  const n = parseFloat(raw);
+  if (isNaN(n) || n < 0) return;
+  if (Number.isInteger(n)) return;                 // จำนวนเต็มอยู่แล้ว ไม่ต้องแตะ
+  const cut = Math.floor(n);
+  el.value = String(cut);
+  if (note) note.textContent = 'เงินกู้ระยะสั้น/ปานกลางเป็นจำนวนเต็ม — ตัดเศษจาก ' +
+    raw.replace(/,/g, '') + ' เหลือ ' + cut.toLocaleString('en-US') + ' บาท';
+  if (typeof validate === 'function') validate();
+}
+function getYears(){ return Math.max(1,Math.round(parseFloat(document.getElementById('years').value)||1)); }
+function getStart(){
+  const v=document.getElementById('startDate').value;
+  if(!v) return null;
+  const [y,m,d]=v.split('-').map(Number); return new Date(y,m-1,d);
+}
+function stat(k,v,hl){ return '<div class="stat'+(hl?' hl':'')+'"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>'; }
+
+// ---------- validation ----------
+function validate(){
+  const P=getPrincipal(), rate=parseFloat(document.getElementById('rate').value), N=getYears();
+  const type=document.getElementById('loanType').value;
+  const w=[];
+  if(document.getElementById('principal').value!=='' && P<=0) w.push('เงินต้นต้องมากกว่า 0');
+  if(!isNaN(rate) && rate<0) w.push('อัตราดอกเบี้ยติดลบ');
+  if(!isNaN(rate) && rate>15) w.push('อัตรา '+rate+'% เกินเพดานระเบียบ 15%/ปี (ข้อ 16) — โปรดตรวจสอบ');
+  const lim={short:[1,1,'ระยะสั้น'],medium:[2,10,'ปานกลาง'],restructure:[1,15,'ปรับโครงสร้างหนี้']}[type];
+  if(lim && (N<lim[0]||N>lim[1])) w.push('สัญญา'+lim[2]+'กำหนด '+lim[0]+'–'+lim[1]+' ปี (ใส่ '+N+' ปี) — โปรดตรวจสอบ');
+  const bar=document.getElementById('warnbar');
+  bar.innerHTML = w.map(x=>'<div class="w">⚠️ <span>'+x+'</span></div>').join('');
+}
+
+// ---------- COOP schedule ----------
+// wrapper: อ่าน DOM → LoanCore.calcCoopCore (คณิตอยู่ใน loan_core.js)
+function calcCoop(){
+  return calcCoopCore({P:getPrincipal(), d0:getStart(), rate:getRate(), N:getYears()});
+}
+function renderCoop(){
+  const r=calcCoop();
+  const tbl=document.getElementById('coopTable'), sum=document.getElementById('coopSummary'), note=document.getElementById('coopNote');
+  document.getElementById('qpill').textContent = r? ('กู้ช่วง '+r.q.label+' → ครบกำหนด '+r.q.due) : '';
+  if(!r){ tbl.innerHTML=''; sum.innerHTML='<div class="stat">กรอกเงินต้นและวันรับเงินกู้ก่อน</div>'; note.textContent=''; return; }
+  sum.innerHTML =
+    stat('เงินต้น', fmt0(r.P)+' บาท') +
+    stat('อัตราดอกเบี้ย', r.rate+'% / ปี') +
+    stat('จำนวนงวดต้น', r.N+' งวด') +
+    stat('ดอกเบี้ยรวม', fmt(r.totI)+' ฿', true) +
+    stat('ชำระรวมทั้งสิ้น', fmt(r.totPay)+' ฿', true) +
+    stat('ครบกำหนดสุดท้าย', thDate(r.finalP));
+  let h='<thead><tr><th class="tl">#</th><th class="tl">ประเภทงวด</th><th class="tl">วันที่</th>'+
+        '<th>วัน</th><th>ต้นคงเหลือ</th><th>ดอกเบี้ย</th><th class="pcol">เงินต้นที่ส่ง</th><th class="tcol">รวมชำระ</th><th>คงเหลือหลังชำระ</th></tr></thead><tbody>';
+  r.rows.forEach((x,i)=>{
+    const cls=x.isPrincipal?'principal':(x.isClose?'close':'');
+    const tag=x.isPrincipal?'<span class="badge-due">ครบกำหนด</span>':(x.isClose?'<span class="badge-close">ตัดดอก</span>':'');
+    h+='<tr class="'+cls+'">'+
+       '<td class="tl col-idx">'+(i+1)+'</td>'+
+       '<td class="tl head-cell">งวดที่ '+(i+1)+' — '+thDate(x.date)+tag+'</td>'+
+       '<td class="tl" data-label="ประเภท">'+x.type+'</td>'+
+       '<td class="tl" data-label="วันที่">'+thDate(x.date)+'</td>'+
+       '<td data-label="จำนวนวัน">'+x.days+'</td>'+
+       '<td data-label="ต้นคงเหลือ">'+fmt(x.balBefore)+'</td>'+
+       '<td data-label="ดอกเบี้ย">'+fmt(x.interest)+'</td>'+
+       '<td class="pcol" data-label="เงินต้นที่ส่ง">'+(x.principalPaid?fmt(x.principalPaid):'—')+'</td>'+
+       '<td class="tcol" data-label="รวมชำระ">'+fmt(x.pay)+'</td>'+
+       '<td data-label="คงเหลือหลังชำระ">'+fmt(x.balAfter)+'</td></tr>';
+  });
+  h+='<tr class="total"><td class="tl total-lead" colspan="5">รวมทั้งสิ้น</td>'+
+     '<td class="tl" data-label="ดอกเบี้ยรวม">'+fmt(r.totI)+'</td>'+
+     '<td class="pcol" data-label="เงินต้นรวม">'+fmt(r.P)+'</td>'+
+     '<td class="tcol" data-label="ชำระรวม">'+fmt(r.totPay)+'</td>'+
+     '<td data-label="คงเหลือ">0.00</td></tr></tbody>';
+  tbl.innerHTML=h;
+  const iu=r.instArr;
+  const instTxt = r.N===1 ? fmt0(iu[0])+' บาท' : (fmt0(iu[0])+' บาท × '+(r.N-1)+' งวด + งวดสุดท้าย '+fmt0(iu[r.N-1])+' บาท (ทดเศษ)');
+  note.innerHTML='• <b style="color:var(--amber)">ตัดดอก</b> = สิ้นปีบัญชี 30 ก.ย. จ่ายเฉพาะดอกเบี้ย เริ่มนับใหม่ 1 ต.ค. &nbsp;• <b style="color:var(--brand-d)">ครบกำหนด</b> = ส่งเงินต้น + ดอกเบี้ยช่วงนั้น<br>'+
+    '• งวดต้น: '+instTxt+' (ปัดจำนวนเต็ม ทดเศษไว้งวดสุดท้าย)<br>'+
+    '• ดอกเบี้ย = ต้นคงเหลือ × '+r.rate+'% × วัน ÷ 365 (เริ่มนับวันถัดจากวันรับเงิน — ระเบียบข้อ 16)';
+}
+
+// ---------- MONTHLY (ผูกกับสัญญา · กระจายต่อปี) ----------
+function calcMonthly(){
+  const P=getPrincipal(), d0=getStart(), rate=getRate(), N=getYears();
+  const mode=document.querySelector('input[name=mmode]:checked').value;
+  const tbl=document.getElementById('mTable'), sum=document.getElementById('mSummary'), note=document.getElementById('mNote');
+  const _c=calcMonthlyCore({P,d0,rate,N,mode});
+  if(!_c){ tbl.innerHTML=''; sum.innerHTML='<div class="stat">กรอกเงินต้นและวันรับเงินกู้ก่อน</div>'; note.innerHTML=''; return; }
+  const dueDates=_c.dueDates, rows=_c.rows, totI=_c.totI, totPay=_c.totPay, aFirst=_c.aFirst;
+  const perMonth=mode==='annuity' ? ('~'+fmt0(aFirst)+' ฿ (ปีแรก)') : ('~'+fmt0(aFirst)+' ฿ ต้น + ดอก');
+  sum.innerHTML =
+    stat('รูปแบบ', mode==='annuity'?'ยอดรวมเท่ากัน':'ต้นเท่ากัน + ดอกลด') +
+    stat('งวดรายเดือน', rows.length+' งวด ('+N+' ปี)') +
+    stat('ยอด/เดือน โดยประมาณ', perMonth, true) +
+    stat('ดอกเบี้ยรวม', fmt(round2(totI))+' ฿', true) +
+    stat('ชำระรวมทั้งสิ้น', fmt(round2(totPay))+' ฿');
+  let h='<thead><tr><th class="tl">#</th><th class="tl">ปีสัญญา</th><th class="tl">วันที่</th><th>วัน</th>'+
+        '<th>ต้นคงเหลือ</th><th>ดอกเบี้ย</th><th class="pcol">เงินต้น</th><th class="tcol">รวมชำระ</th><th>คงเหลือหลังชำระ</th></tr></thead><tbody>';
+  rows.forEach(x=>{
+    h+='<tr'+(x.yearEnd?' class="principal"':'')+'>'+
+       '<td class="tl col-idx">'+x.no+'</td>'+
+       '<td class="tl head-cell">งวดที่ '+x.no+' — '+thDate(x.date)+(x.yearEnd?'<span class="badge-due">ครบกำหนดปี '+x.yr+'</span>':'')+'</td>'+
+       '<td class="tl" data-label="ปีสัญญา">ปีที่ '+x.yr+(x.yearEnd?' • ครบกำหนด':'')+'</td>'+
+       '<td class="tl" data-label="วันที่">'+thDate(x.date)+'</td>'+
+       '<td data-label="จำนวนวัน">'+x.days+'</td>'+
+       '<td data-label="ต้นคงเหลือ">'+fmt(x.balBefore)+'</td>'+
+       '<td data-label="ดอกเบี้ย">'+fmt(x.interest)+'</td>'+
+       '<td class="pcol" data-label="เงินต้น">'+fmt(x.principalPaid)+'</td>'+
+       '<td class="tcol" data-label="รวมชำระ">'+fmt(x.pay)+'</td>'+
+       '<td data-label="คงเหลือหลังชำระ">'+fmt(x.balAfter)+'</td></tr>';
+  });
+  h+='<tr class="total"><td class="tl total-lead" colspan="5">รวมทั้งสิ้น</td>'+
+     '<td class="tl" data-label="ดอกเบี้ยรวม">'+fmt(round2(totI))+'</td>'+
+     '<td class="pcol" data-label="เงินต้นรวม">'+fmt(P)+'</td>'+
+     '<td class="tcol" data-label="ชำระรวม">'+fmt(round2(totPay))+'</td>'+
+     '<td data-label="คงเหลือ">0.00</td></tr></tbody>';
+  tbl.innerHTML=h;
+  note.innerHTML=(mode==='annuity'
+    ? '• (ข) ยอดรวมเท่ากันทุกเดือน (annuity) ต่อปี — ปีถัดไปคำนวณใหม่ตามต้นคงเหลือ'
+    : '• (ก) ต้นเงินเท่ากันทุกเดือน (ปัดเลขสวยอัตโนมัติเหมือนรายปี ทดเศษเดือนสุดท้ายของปี) + ดอกเบี้ยลดลง → ยอดรวมค่อย ๆ ลด')
+    + '<br>• กระจาย<b>ต่อปี</b> · ปีแรก '+(monthsBetween(d0,dueDates[0])||1)+' เดือน (วันกู้→ครบกำหนด) · ปีถัดไปปีละ 12 เดือน · ดอกจากต้นคงเหลือจริง รายวัน ÷365'
+    + negPrincipalNote(rows);
+}
+
+/* ── หมายเหตุแถวเงินต้นติดลบ — "ทาง ง" (ผู้จัดการเคาะ 21-07-2569) ────────────
+ * มติ: ไม่แก้สูตร แต่ต้องไม่ปล่อยให้แถวติดลบโผล่โดยไม่มีคำอธิบาย
+ *      สมาชิกอ่านแล้วเหมือนหนี้งอกขึ้นเดือนนั้น ทั้งที่ยอดรวมทั้งตารางถูกต้อง
+ *
+ * ทำไมไม่แก้สูตร (วัดจริง 37,800 ชุด · สรุปใน plan_แก้งวดเงินต้นติดลบใน_20-07-2569):
+ *   - เกิด 644/37,800 = 1.70% · แถวเดียวเสมอ · ปีที่ 1 เสมอ
+ *   - ต้องครบ 4 เงื่อนไข: annuity + ดอกเบี้ย ≥ 8.4% + ≥ 9 ปี + รับเงินวันที่ 1-13
+ *   - อัตราที่สหกรณ์ใช้จริง 6-8% ไม่เกิดเลย (รัน ~274,000 ชุด พบ 0 เคส)
+ *   - ทุกทางที่แก้สูตรเขียนตัวเลขใหม่ 93-100% ของตาราง ที่อาจเคยพิมพ์ให้สมาชิกไปแล้ว
+ *   - 🔴 ห้ามใช้ทาง ค (โชว์ 0 ไม่แตะสูตร) — เงินต้น 0 แต่ยอดคงเหลือเพิ่ม = ตารางขัดกันเอง
+ *
+ * สาเหตุจริง: ช่วงเวลาที่ยาวผิดปกติช่วงเดียว (งวดเดินตามวันรับเงิน แต่รอบปีปิดที่
+ * วันครบกำหนดไตรมาส) → ดอกเบี้ยช่วงนั้นมากกว่างวดที่จ่าย → เงินต้นงวดนั้นติดลบ */
+function negPrincipalNote(rows){
+  const neg=(rows||[]).filter(x=>x.principalPaid<0);
+  if(!neg.length) return '';
+  const worst=Math.min(...neg.map(x=>x.principalPaid));
+  return '<div style="margin-top:8px;padding:8px 10px;border-left:3px solid #b06000;'
+    + 'background:#fff8ec;color:#7a4400;font-size:13px;line-height:1.6">'
+    + '<b>⚠️ หมายเหตุ — งวดที่ '+neg.map(x=>x.no).join(', ')+' ช่องเงินต้นเป็นค่าติดลบ</b><br>'
+    + 'งวดนั้นครอบคลุมช่วงเวลาที่ยาวกว่างวดอื่น (วันชำระยึดตามวันรับเงิน แต่รอบปีปิดที่วันครบกำหนด) '
+    + 'ดอกเบี้ยของช่วงยาวจึงมากกว่ายอดที่ชำระ ส่วนต่าง '+fmt(Math.abs(worst))+' บาท ถูกยกไปรวมกับต้นคงเหลือ '
+    + '<b>ไม่ใช่หนี้ที่เพิ่มขึ้นใหม่</b><br>'
+    + 'ยอดรวมทั้งตารางยังถูกต้อง — เงินต้นรวมเท่ากับวงเงินที่กู้ และปิดที่ 0 ในงวดสุดท้าย'
+    + '</div>';
+}
+
+// ---------- PAYOFF (ยอดปิด ณ วันที่) ----------
+function calcPayoff(){
+  const P=getPrincipal(), d0=getStart(), rate=getRate(), N=getYears();
+  const X=parseDate(document.getElementById('asofDate').value);
+  const sum=document.getElementById('payoffSummary'), note=document.getElementById('payoffNote');
+  const _c=calcPayoffCore({P,d0,rate,N,X});
+  if(!_c){ sum.innerHTML='<div class="stat">กรอกข้อมูลเงินกู้ (แท็บสหกรณ์) + วันที่คำนวณ</div>'; note.innerHTML=''; return; }
+  if(_c.tooEarly){ sum.innerHTML='<div class="stat">วันที่คำนวณต้องไม่ก่อนวันรับเงินกู้</div>'; note.innerHTML=''; return; }
+  const finalP=_c.finalP, paidCount=_c.paidCount, outstanding=_c.outstanding,
+        lastSettle=_c.lastSettle, closed=_c.closed, days=_c.days, accrued=_c.accrued, payoff=_c.payoff;
+  sum.innerHTML =
+    stat('คำนวณ ณ วันที่', thDate(X)) +
+    stat('ต้นเงินคงเหลือ', fmt(outstanding)+' ฿') +
+    stat('ดอกเบี้ยค้าง ('+days+' วัน)', fmt(accrued)+' ฿') +
+    stat('ยอดปิดบัญชีรวม', closed?'✓ ปิดสัญญาครบแล้ว':fmt(payoff)+' ฿', true) +
+    stat('งวดต้นที่ถึงกำหนดแล้ว', paidCount+' / '+N+' งวด') +
+    stat('ครบกำหนดสุดท้าย', thDate(finalP));
+  note.innerHTML='• ยอดปิดบัญชี = ต้นคงเหลือ (หักงวดต้นที่ถึงกำหนดแล้ว ถือว่าชำระตามงวด) + ดอกเบี้ยค้างตั้งแต่จุดชำระล่าสุด ('+thDate(lastSettle)+') ถึงวันที่เลือก<br>'+
+    '• รองรับ<b>ชำระก่อนกำหนด</b> — เมื่อรับคืนต้นเงินแล้ว สหกรณ์ไม่คิดดอกเบี้ยต้นส่วนนั้นต่อ (ระเบียบข้อ 7 วรรคท้าย) · ดอกเบี้ยรายวัน ÷365 (ข้อ 16)<br>'+
+    '• หากงวดที่ถึงกำหนดยัง<b>ไม่ได้ชำระจริง</b> (ผิดนัด) ให้ดูแท็บ ⚠️ เบี้ยปรับ เพิ่ม';
+}
+
+// ---------- PENALTY (เบี้ยปรับผิดนัด 3%/ปี — ข้อ 16 ว.3) ----------
+function calcPenalty(){
+  const Op=parseFloat(document.getElementById('penPrincipal').value)||0;
+  const Dd=parseDate(document.getElementById('penDue').value);
+  const Pd=parseDate(document.getElementById('penPaid').value);
+  let fineRate=parseFloat(document.getElementById('penFine').value); if(isNaN(fineRate)) fineRate=3;  // ว่าง = 3% (กันกรอกผิด)
+  const sum=document.getElementById('penSummary'), note=document.getElementById('penNote');
+  const _c=calcPenaltyCore({Op,Dd,Pd,fineRate});
+  if(!_c){ sum.innerHTML='<div class="stat">กรอกต้นค้าง + วันครบกำหนด + วันที่ชำระจริง</div>'; note.innerHTML=''; return; }
+  if(_c.notLate){ sum.innerHTML='<div class="stat">✓ ยังไม่ผิดนัด (วันชำระไม่เกินวันครบกำหนด) — ไม่มีเบี้ยปรับ</div>'; note.innerHTML=''; return; }
+  const daysLate=_c.daysLate, penalty=_c.penalty;
+  sum.innerHTML =
+    stat('ต้นเงินค้างชำระ', fmt(Op)+' ฿') +
+    stat('จำนวนวันผิดนัด', daysLate+' วัน') +
+    stat('อัตราเบี้ยปรับ', fineRate+'% / ปี') +
+    stat('เบี้ยปรับที่ต้องชำระ', fmt(penalty)+' ฿', true) +
+    stat('รวม ต้นค้าง + เบี้ยปรับ', fmt(Op+penalty)+' ฿', true);
+  note.innerHTML='• เบี้ยปรับ = ต้นค้าง × <b>'+fineRate+'%/ปี</b> × วันผิดนัด ÷ 365 · นับตั้งแต่วันถัดจากครบกำหนดถึงวันชำระจริง (ระเบียบข้อ 16 วรรค 3 — ปัจจุบัน 3%)<br>'+
+    '• เครื่องมือนี้คิด<b>ค่าปรับอย่างเดียว</b> (สำหรับรายที่ผิดนัด) · <b>ดอกเบี้ยปกติ</b>คิดจากช่วงเวลาต่างกัน ดูที่แท็บ 💰 ยอดปิด ณ วันที่ (ใช้อัตราหลักตัวเดียวทั้งแอป)';
+}
+
+// ---------- RESTRUCTURE (ปรับโครงสร้างหนี้ — ระเบียบ 302) ----------
+function calcRestructure(){
+  const A=parseFloat(document.getElementById('rA').value)||0;
+  const B=parseFloat(document.getElementById('rB').value)||0;
+  const d0=parseDate(document.getElementById('rStart').value);
+  const rate=parseFloat(document.getElementById('rRate').value)||0;
+  const nYears=parseFloat(document.getElementById('rYears').value);
+  const nGrace=parseFloat(document.getElementById('rGrace').value);
+  const sum=document.getElementById('rSummary'), tbl=document.getElementById('rTable'), note=document.getElementById('rNote');
+  const _c=calcRestructureCore({A,B,d0,rate,nYears,nGrace});
+  if(!_c){ sum.innerHTML='<div class="stat">กรอกยอด A (ต้นเงินรวม) + วันอนุมัติ</div>'; tbl.innerHTML=''; note.innerHTML=''; return; }
+  const N=_c.N, G=_c.G, R=_c.R, finalP=_c.finalP, rows=_c.rows,
+        totI=_c.totI, totPay=_c.totPay, graceInt=_c.graceInt;
+  sum.innerHTML =
+    stat('ยอด A (ต้นเงิน)', fmt0(A)+' ฿') +
+    stat('ยอด B (ดอก+ปรับ 0%)', fmt0(B)+' ฿') +
+    stat('รวมหนี้ปรับโครงสร้าง', fmt0(A+B)+' ฿') +
+    (G>0? stat('ปลอดชำระ '+G+' ปี — ดอกสะสม', fmt(graceInt)+' ฿') : '') +
+    stat('ดอกเบี้ย A ('+rate+'%) รวม', fmt(totI)+' ฿', true) +
+    stat('ชำระรวมทั้งสิ้น', fmt(totPay)+' ฿', true) +
+    stat('ครบกำหนดสุดท้าย', thDate(finalP));
+  let h='<thead><tr><th class="tl">#</th><th class="tl">ประเภทงวด</th><th class="tl">วันที่</th><th>วัน</th>'+
+        '<th>ดอกเบี้ย A</th><th class="pcol">ส่งต้น A</th><th class="pcol">ส่งต้น B</th><th class="tcol">รวมชำระ</th><th>A คงเหลือ</th><th>B คงเหลือ</th></tr></thead><tbody>';
+  rows.forEach((x,i)=>{
+    const cls=x.inGrace?'close':(x.isPrincipal?'principal':(x.isClose?'close':''));
+    const tag=x.inGrace?'<span class="badge-close">ปลอดชำระ</span>':(x.isPrincipal?'<span class="badge-due">ครบกำหนด</span>':'<span class="badge-close">ตัดดอก A</span>');
+    h+='<tr class="'+cls+'">'+
+       '<td class="tl col-idx">'+(i+1)+'</td>'+
+       '<td class="tl head-cell">งวดที่ '+(i+1)+' — '+thDate(x.date)+tag+'</td>'+
+       '<td class="tl" data-label="ประเภท">'+x.type+'</td>'+
+       '<td class="tl" data-label="วันที่">'+thDate(x.date)+'</td>'+
+       '<td data-label="จำนวนวัน">'+x.days+'</td>'+
+       '<td data-label="ดอกเบี้ย A">'+fmt(x.interest)+'</td>'+
+       '<td class="pcol" data-label="ส่งต้น A">'+(x.payA?fmt(x.payA):'—')+'</td>'+
+       '<td class="pcol" data-label="ส่งต้น B">'+(x.payB?fmt(x.payB):'—')+'</td>'+
+       '<td class="tcol" data-label="รวมชำระ">'+fmt(x.pay)+'</td>'+
+       '<td data-label="A คงเหลือ">'+fmt(x.balAafter)+'</td>'+
+       '<td data-label="B คงเหลือ">'+fmt(x.balBafter)+'</td></tr>';
+  });
+  h+='<tr class="total"><td class="tl total-lead" colspan="4">รวมทั้งสิ้น</td>'+
+     '<td data-label="ดอกเบี้ย A รวม">'+fmt(totI)+'</td>'+
+     '<td class="pcol" data-label="ต้น A">'+fmt(A)+'</td>'+
+     '<td class="pcol" data-label="ต้น B">'+fmt(B)+'</td>'+
+     '<td class="tcol" data-label="ชำระรวม">'+fmt(totPay)+'</td>'+
+     '<td data-label="A คงเหลือ">0.00</td><td data-label="B คงเหลือ">0.00</td></tr></tbody>';
+  tbl.innerHTML=h;
+  note.innerHTML='• <b>ยอด A</b> (รวมต้นเงินทุกบัญชี) คิดดอกเบี้ยลดต้นลดดอก '+rate+'%/ปี รายวัน ÷365 + ตัดดอกสิ้นปี 30 ก.ย. (ข้อ 12(1)) · ผิดนัด +3% ดูแท็บ ⚠️ เบี้ยปรับ<br>'+
+    '• <b>ยอด B</b> (รวมดอกเบี้ยค้าง+เบี้ยปรับค้าง) <b>ดอกเบี้ย 0%</b> ผ่อนต้นเท่ากันคู่กับ A '+(G>0?('ใน '+R+' ปีหลังพ้นปลอด'):(N+' ปี'))+' (ข้อ 12(2)) · งวดต้นปัดจำนวนเต็ม ทดเศษงวดสุดท้าย'+
+    (G>0? '<br>• <b style="color:var(--amber)">ปลอดชำระ '+G+' ปีแรก</b> (ข้อ 9 ว.2): ไม่ส่งต้น A/B และไม่เก็บดอก แต่<b>ดอก A เดินสะสม '+fmt(graceInt)+' บาท</b> (ต้นไม่ทบ) → เก็บงวดแรกหลังพ้นปลอด · ต้นผ่อนใน '+R+' ปีที่เหลือ' : '');
+  calcRestructMonthly();
+}
+// รายเดือนของ ปปน. — กระจายต่อปี (reset) · ต้น A+B เต็มบาท · grace เดือนปลอด=0 (ดอกสะสมเก็บงวดแรก)
+function calcRestructMonthly(){
+  const A=parseFloat(document.getElementById('rA').value)||0;
+  const B=parseFloat(document.getElementById('rB').value)||0;
+  const d0=parseDate(document.getElementById('rStart').value);
+  const rate=parseFloat(document.getElementById('rRate').value)||0;
+  const nYears=parseFloat(document.getElementById('rYears').value);
+  const nGrace=parseFloat(document.getElementById('rGrace').value);
+  const mode=document.querySelector('input[name=rmmode]:checked').value;
+  const sum=document.getElementById('rmSummary'), tbl=document.getElementById('rmTable'), note=document.getElementById('rmNote');
+  const _c=calcRestructMonthlyCore({A,B,d0,rate,nYears,nGrace,mode});
+  if(!_c){ sum.innerHTML='<div class="stat">กรอกยอด A + วันอนุมัติ</div>'; tbl.innerHTML=''; note.innerHTML=''; return; }
+  const N=_c.N, G=_c.G, deferred=_c.deferred, rows=_c.rows,
+        totI=_c.totI, totPay=_c.totPay, firstAmt=_c.firstAmt;
+  sum.innerHTML =
+    stat('รูปแบบ', mode==='annuity'?'ยอดรวมเท่ากัน':'ต้น A+B เท่ากัน + ดอกลด') +
+    stat('งวดรายเดือน', rows.length+' งวด'+(G>0?(' (ปลอด '+G+' ปี)'):'')) +
+    stat('ยอด/เดือน '+(G>0?'(งวดแรก+ดอกสะสม)':'โดยประมาณ'), '~'+fmt0(firstAmt)+' ฿', true) +
+    stat('ดอกเบี้ย A รวม', fmt(totI)+' ฿', true) +
+    stat('ชำระรวมทั้งสิ้น', fmt(totPay)+' ฿');
+  let h='<thead><tr><th class="tl">#</th><th class="tl">ปีสัญญา</th><th class="tl">วันที่</th><th>วัน</th>'+
+        '<th>ดอกเบี้ย A</th><th class="pcol">ต้น A</th><th class="pcol">ต้น B</th><th class="tcol">รวมชำระ</th><th>A คงเหลือ</th><th>B คงเหลือ</th></tr></thead><tbody>';
+  rows.forEach(x=>{
+    h+='<tr'+(x.yearEnd?' class="principal"':'')+'>'+
+       '<td class="tl col-idx">'+x.no+'</td>'+
+       '<td class="tl head-cell">งวดที่ '+x.no+' — '+thDate(x.date)+(x.firstDefer?'<span class="badge-close">+ดอกสะสม</span>':(x.yearEnd?'<span class="badge-due">ครบปี '+x.yr+'</span>':''))+'</td>'+
+       '<td class="tl" data-label="ปีสัญญา">ปีที่ '+x.yr+'</td>'+
+       '<td class="tl" data-label="วันที่">'+thDate(x.date)+'</td>'+
+       '<td data-label="จำนวนวัน">'+x.days+'</td>'+
+       '<td data-label="ดอกเบี้ย A">'+fmt(x.interest)+'</td>'+
+       '<td class="pcol" data-label="ต้น A">'+fmt(x.ppA)+'</td>'+
+       '<td class="pcol" data-label="ต้น B">'+fmt(x.ppB)+'</td>'+
+       '<td class="tcol" data-label="รวมชำระ">'+fmt(x.pay)+'</td>'+
+       '<td data-label="A คงเหลือ">'+fmt(x.outAafter)+'</td>'+
+       '<td data-label="B คงเหลือ">'+fmt(x.outBafter)+'</td></tr>';
+  });
+  h+='<tr class="total"><td class="tl total-lead" colspan="4">รวมทั้งสิ้น</td>'+
+     '<td data-label="ดอกเบี้ย A รวม">'+fmt(totI)+'</td>'+
+     '<td class="pcol" data-label="ต้น A">'+fmt(A)+'</td><td class="pcol" data-label="ต้น B">'+fmt(B)+'</td>'+
+     '<td class="tcol" data-label="ชำระรวม">'+fmt(totPay)+'</td>'+
+     '<td data-label="A คงเหลือ">0.00</td><td data-label="B คงเหลือ">0.00</td></tr></tbody>';
+  tbl.innerHTML=h;
+  note.innerHTML=(mode==='annuity'
+    ? '• (ข) ยอดรวมเท่ากัน = ยอด A แบบ annuity (คงที่/เดือน) + ต้น B เท่ากัน/เดือน → รวมคงที่ในแต่ละปี'
+    : '• (ก) ต้น A + ต้น B เท่ากันทุกเดือน (เต็มบาท ทดเศษเดือนสุดท้ายของปี) + ดอก A ลดลง')
+    + '<br>• กระจายต่อปี (reset ทุกครบกำหนด) · ดอก A รายวัน ÷365 บนต้น A คงเหลือ'
+    + (G>0? '<br>• <b style="color:var(--amber)">ปลอด '+G+' ปี</b>: ไม่แสดงงวด (จ่าย 0) · ดอกสะสม '+fmt(deferred)+' บาท รวมในงวดแรก' : '')
+    /* ใช้หมายเหตุตัวเดียวกับเงินกู้ปกติ — ปปน ก็ใช้ annuity เหมือนกัน อาการจึงเกิดได้เหมือนกัน
+     * แก้ที่เดียวแล้วเหลืออีกที่ = บั๊กย้ายบ้าน (บทเรียน 20-07) · ไม่มีแถวติดลบ = ไม่โผล่ */
+    + negPrincipalNote(rows);
+}
+function showRTab(t){
+  document.querySelectorAll('#mode-restruct .tab').forEach(x=>x.classList.toggle('active',x.dataset.rtab===t));
+  document.querySelectorAll('.rpane').forEach(x=>x.classList.remove('active'));
+  document.getElementById('rpane-'+t).classList.add('active');
+}
+
+// ---------- UI ----------
+function refreshTheme(){
+  const inRestruct = document.getElementById('mode-restruct').style.display!=='none';
+  const medium = document.getElementById('loanType').value==='medium';
+  document.body.classList.toggle('mode-violet', inRestruct);           // ปปน = ม่วง
+  document.body.classList.toggle('mode-blue', !inRestruct && medium);  // ปานกลาง = น้ำเงิน (สั้น = เขียว)
+}
+function setMode(m){
+  document.querySelectorAll('.modebtn').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+  document.getElementById('mode-normal').style.display   = m==='normal'  ? '' : 'none';
+  document.getElementById('mode-restruct').style.display = m==='restruct'? '' : 'none';
+  refreshTheme();
+  if(m==='restruct') calcRestructure();
+}
+function showTab(t){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));
+  document.querySelectorAll('.pane').forEach(x=>x.classList.remove('active'));
+  document.getElementById('pane-'+t).classList.add('active');
+}
+function calcAll(){
+  validate();
+  document.getElementById('results').style.display='block';
+  renderCoop(); calcMonthly(); calcPayoff();
+  // วงเงินเปลี่ยน → รีเช็คเพดานบุคคลค้ำ (ระเบียบ ข้อ 8(2))
+  if(typeof updateSecurityUI==='function') updateSecurityUI();
+}
+function liveUpdate(){ if(document.getElementById('results').style.display!=='none') calcAll(); }
+/*<<CORE-TEST-SLICE-END>>*/
+
+/* 🖨️ ปุ่มพิมพ์ — คำนวณให้ก่อนเสมอ
+ * บั๊กเดิม: ปุ่มนี้เรียก window.print() ตรง ๆ แต่ตัวปุ่มอยู่ในการ์ด .no-print
+ * และกล่องผลลัพธ์ยังถูกซ่อน (display:none) จนกว่าจะกดคำนวณ
+ * → กดพิมพ์ก่อนคำนวณ = กระดาษมีแต่หัวเอกสาร (ยืนยันจากเครื่องผู้จัดการ 21-07-2569)
+ * ต้อง sync ล้วน — window.print() ต้องอยู่ในจังหวะที่นิ้วแตะ ห้ามมี await คั่น */
+function printReport(){
+  var restruct = document.getElementById('mode-restruct');
+  var isRestruct = restruct && restruct.style.display !== 'none';
+  var tableId = isRestruct ? 'rTable' : 'coopTable';
+  try{
+    if(isRestruct) calcRestructure(); else calcAll();
+  }catch(e){
+    alert('คำนวณไม่สำเร็จ จึงยังพิมพ์ไม่ได้\n\n' + (e && e.message ? e.message : e));
+    return;
+  }
+  var tbl = document.getElementById(tableId);
+  var rows = tbl ? tbl.querySelectorAll('tbody tr').length : 0;
+  if(!rows){
+    alert(isRestruct
+      ? 'ยังพิมพ์ไม่ได้ — กรุณากรอกยอด A (ต้นเงินรวม) และวันอนุมัติ ให้ครบก่อน'
+      : 'ยังพิมพ์ไม่ได้ — กรุณากรอกเงินต้น วันรับเงินกู้ และจำนวนปี ให้ครบก่อน');
+    return;
+  }
+  window.print();
+}
+
+document.querySelectorAll('.chips .chip').forEach(c=>{
+  c.onclick=()=>{ document.getElementById('rate').value=c.dataset.rate; syncChips(); liveUpdate(); };
+});
+function syncChips(){
+  const v=document.getElementById('rate').value;
+  document.querySelectorAll('.chips .chip').forEach(c=>c.classList.toggle('active',c.dataset.rate===v));
+}
+document.getElementById('rate').addEventListener('input',()=>{syncChips();liveUpdate();});
+document.getElementById('loanType').addEventListener('change',function(){
+  const y=document.getElementById('years');
+  if(this.value==='short'){ y.value=1; y.min=1; y.max=1; }
+  else if(this.value==='medium'){ y.min=2; y.max=10; if(y.value<2||y.value>10) y.value=5; }
+  else { y.min=1; y.max=15; if(y.value>15) y.value=15; }
+  refreshTheme();
+  liveUpdate();
+});
+['principal','startDate','years'].forEach(id=>document.getElementById(id).addEventListener('input',liveUpdate));
+document.getElementById('asofDate').addEventListener('input',calcPayoff);
+['penPrincipal','penDue','penPaid','penFine'].forEach(id=>document.getElementById(id).addEventListener('input',calcPenalty));
+['rA','rB','rStart','rYears','rGrace','rRate'].forEach(id=>document.getElementById(id).addEventListener('input',calcRestructure));
+// วันที่แบบ พ.ศ. ใต้ทุกช่องวันที่ (input[type=date] ของเบราว์เซอร์บังคับโชว์ ค.ศ. แก้ตรงๆ ไม่ได้ — ใช้ readout เสริมแทน)
+const DATE_FIELDS=['startDate','asofDate','penDue','penPaid','rStart'];
+function updateDateHint(id){
+  const hint=document.getElementById(id+'-th'); if(!hint) return;
+  const v=document.getElementById(id).value;
+  const d=v?parseDate(v):null;
+  hint.textContent = d ? thDate(d) : '';
+}
+DATE_FIELDS.forEach(id=>{
+  document.getElementById(id).addEventListener('input',()=>updateDateHint(id));
+});
+// init
+(function(){
+  const t=new Date();
+  const iso=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+  document.getElementById('startDate').value=iso;
+  document.getElementById('asofDate').value=iso;
+  document.getElementById('penPaid').value=iso;
+  document.getElementById('rStart').value=iso;
+  DATE_FIELDS.forEach(updateDateHint);
+  syncChips();
+})();
+</script>
+
+<!-- ===== Phase 4: พิมพ์สัญญากู้ ส.-งก.14 (PDF client-side) ===== -->
+<div id="contractPanel" class="card no-print" style="display:none">
+  <h2><span class="n">✎</span> ข้อมูลผู้กู้ — พิมพ์สัญญา ส.-งก.14</h2>
+  <div class="note" style="margin-bottom:10px">ตัวเลขการเงิน (วงเงิน + ตาราง 10 งวด) ดึงจากผลคำนวณอัตโนมัติ — กรอกเฉพาะข้อมูลตัวตนผู้กู้</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div class="field" style="grid-column:1/-1"><label>วันที่ประชุมอนุมัติ <span style="color:#c00">*</span> <span class="note" style="font-weight:400">(= วันที่ในสัญญา · ปกติวันที่ 9 หรือ 25)</span></label><div class="date-wrap"><input type="date" id="ct_meetdate"><div class="date-hint" id="ct_meetdate_th"></div></div></div>
+    <div class="field"><label>ชื่อ-สกุล ผู้กู้</label><div class="inp"><input id="ct_name" placeholder="นาย / นาง / นางสาว ..."></div></div>
+    <div class="field"><label>เลขทะเบียนสมาชิก</label><div class="inp"><input id="ct_reg"></div></div>
+    <div class="field"><label>สมาชิกกลุ่มที่</label><div class="inp"><input id="ct_group"></div></div>
+    <div class="field"><label>บ้านเลขที่</label><div class="inp"><input id="ct_house"></div></div>
+    <div class="field"><label>หมู่ที่</label><div class="inp"><input id="ct_moo"></div></div>
+    <div class="field"><label>ตำบล</label><div class="inp"><select id="ct_tambon"></select></div></div>
+    <div class="field"><label>วัตถุประสงค์</label><div class="inp"><select id="ct_purpose"></select></div></div>
+    <div class="field" id="ct_other_field" style="display:none"><label>ระบุวัตถุประสงค์เอง</label><div class="inp"><input id="ct_purpose_other"></div></div>
+  </div>
+
+  <!-- ===== หลักค้ำประกัน (ระเบียบว่าด้วยการให้เงินกู้ฯ ข้อ 8) ===== -->
+  <div style="margin-top:14px;border-top:1px solid #e5e7eb;padding-top:12px">
+    <label style="font-weight:700;display:block;margin-bottom:6px">หลักค้ำประกัน
+      <span class="note" style="font-weight:400">— ระเบียบเงินกู้ ข้อ 8 (เลือก 1 อย่าง)</span></label>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <label class="secopt"><input type="radio" name="ct_security" value="share"> หุ้นตนเอง <span class="note">(กู้ ≤60% ของหุ้น)</span></label>
+      <label class="secopt"><input type="radio" name="ct_security" value="mortgage"> จำนองอสังหาฯ <span class="note">[ข้อ 8(1)]</span></label>
+      <label class="secopt"><input type="radio" name="ct_security" value="person" checked> <b>บุคคลค้ำ 2 คน</b> <span class="note">[ข้อ 8(2)]</span></label>
+      <label class="secopt"><input type="radio" name="ct_security" value="deposit"> เงินฝากค้ำ <span class="note">[ข้อ 8(3)]</span></label>
+    </div>
+    <!-- หุ้นที่ถืออยู่ — ต้องใช้ 2 ทาง: คำนวณเพดาน (ข้อ 8) + กรอกข้อ 2 ของหนังสือหุ้นค้ำ -->
+    <div id="ct_share_field" style="display:none;margin-top:10px">
+      <label style="font-weight:700">จำนวนหุ้นที่ถืออยู่ <span style="color:#c00">*</span>
+        <span class="note" style="font-weight:400">(ดูจากทะเบียนหุ้น/สมุดคู่บัญชี · หุ้นละ 10 บาท ตามข้อบังคับ ข้อ 5)</span></label>
+      <div class="inp" style="max-width:260px">
+        <input id="ct_shares" type="number" min="0" step="1" placeholder="เช่น 1500" oninput="updateSecurityUI()">
+        <span class="suffix">หุ้น</span>
+      </div>
+      <div class="note" id="ct_shares_baht" style="margin-top:4px">—</div>
+    </div>
+    <div id="ct_sec_warn" style="display:none;margin-top:8px;font-weight:700"></div>
+  </div>
+
+  <!-- ===== ผู้ค้ำประกัน 2 คน (โผล่เฉพาะเมื่อเลือก "บุคคลค้ำ") ===== -->
+  <div id="ct_guar_panel" style="display:none;margin-top:12px">
+    <div class="note" style="margin-bottom:8px">
+      ผู้ค้ำต้องเป็น<b>สมาชิกสหกรณ์</b> · ระเบียบ ข้อ 8(2) บังคับ <b>อย่างน้อย 2 คน</b> · 1 คนค้ำได้ไม่เกิน 2 สัญญาพร้อมกัน<br>
+      อำเภอนครชัยศรี · จังหวัดนครปฐม · รหัสไปรษณีย์ <b id="ct_pc_show">—</b> (เติมอัตโนมัติ ทุกตำบลในอำเภอใช้รหัสเดียวกัน)
+    </div>
+    <div id="ct_guar_fields"></div>
+  </div>
+
+  <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" onclick="genContractPDF()">📄 สร้าง PDF สัญญา</button>
+    <button class="btn ghost" id="ct_guar_btn" onclick="genGuaranteePDF()" disabled>📄 สร้าง PDF หนังสือค้ำประกัน (2 แผ่น)</button>
+    <button class="btn ghost" id="ct_share_btn" onclick="genSharePDF()" disabled>📄 สร้าง PDF หนังสือหุ้นค้ำประกัน</button>
+    <button class="btn ghost" onclick="toggleSngk13()">📝 คำขอกู้ ส.-งก.13</button>
+    <button class="btn ghost" onclick="toggleJanong()">📝 หนังสือแสดงความจำนง</button>
+  </div>
+  <div id="ct_status" class="note" style="margin-top:10px"></div>
+  <div id="ct_guar_status" class="note" style="margin-top:6px"></div>
+
+  <!-- ===== คำขอกู้ ส.-งก.13 (เติมหน้า 1-3) — input สร้างโดย sngk13_ui.js ===== -->
+  <div id="sngk13Panel" style="display:none;margin-top:14px;border-top:2px solid #e5e7eb;padding-top:12px">
+    <div style="font-weight:800;font-size:16px;margin-bottom:4px">📝 คำขอกู้เงิน ส.-งก.13</div>
+    <div class="note" style="margin-bottom:8px">ผู้กู้ / วงเงิน / วัตถุประสงค์ / ระยะ + งวดชำระคืน ดึงจากด้านบนอัตโนมัติ — กรอกเฉพาะตาราง ข้อ 2-5 · หน้า 4 (ผู้สอบสวน) เจ้าหน้าที่ติ๊กเอง</div>
+    <div id="sngk13_body"></div>
+    <div style="margin-top:14px">
+      <button class="btn" onclick="genLoanRequestPDF()">📄 สร้าง PDF คำขอกู้ ส.-งก.13</button>
+    </div>
+    <div id="sngk13_status" class="note" style="margin-top:10px"></div>
+  </div>
+
+  <!-- ===== หนังสือแสดงความจำนงขอกู้เงิน (1 หน้า) — input สร้างโดย janong_ui.js ===== -->
+  <div id="janongPanel" style="display:none;margin-top:14px;border-top:2px solid #e5e7eb;padding-top:12px">
+    <div style="font-weight:800;font-size:16px;margin-bottom:4px">📝 หนังสือแสดงความจำนงขอกู้เงิน</div>
+    <div class="note" style="margin-bottom:8px">ผู้กู้ / วงเงิน / วัตถุประสงค์ / วันที่ ดึงจากด้านบนอัตโนมัติ · หนี้เดิม + หลักค้ำ เติมจาก ส.-งก.13 · ช่องติ๊กระบบติ๊กให้ (แก้ได้)</div>
+    <div id="janong_body"></div>
+    <div style="margin-top:14px">
+      <button class="btn" onclick="genJanongPDF()">📄 สร้าง PDF หนังสือแสดงความจำนง</button>
+    </div>
+    <div id="janong_status" class="note" style="margin-top:10px"></div>
+  </div>
+</div>
+
+<script>window.CONTRACT_ASSET_BASE = "contract_print/";</script>
+<script src="contract_print/vendor/pdf-lib.min.js"></script>
+<script src="contract_print/vendor/fontkit.umd.min.js"></script>
+<script>
+/* cache-bust: Python http.server ไม่ส่ง Cache-Control → เบราว์เซอร์จด JS เก่า (heuristic cache)
+ * → โหลด engine files ที่แก้บ่อยด้วย ?v=timestamp ทุกครั้ง เห็นผลแก้ทันที ไม่ต้อง hard-reload
+ * (vendor คงที่ ปล่อย cache ได้) · order สำคัญ: config→fieldmap→fill_engine (document.write = ต่อเนื่อง) */
+(function(){var v="?v="+Date.now();["config.js","fieldmap.js","guarantee_fieldmap.js","share_fieldmap.js","sngk13_fieldmap.js","janong_fieldmap.js","doc_gate.js","fill_engine.js","sngk13_ui.js","janong_ui.js"].forEach(function(f){document.write('<scr'+'ipt src="contract_print/'+f+v+'"></scr'+'ipt>');});})();
+</script>
+<script>
+/* ===== หลักค้ำประกัน (ระเบียบเงินกู้ ข้อ 8) =====
+ * 🔁 GUAR_CEILING · SHARE_PAR · ceilingFor() ย้ายไป loan_core.js แล้ว (20-07-2569)
+ *    loan_core.js โหลดเป็น <script src> ตัวแรกสุดของหน้า และผูกชื่อไว้บน window
+ *    → ไม่มี TDZ ข้าม block อีก (กับดักเดิม 14-07: const ประกาศทีหลัง IIFE
+ *      = block ตายกลางคัน = ทั้งหน้าพังเงียบ) ค่าพร้อมใช้ก่อน block นี้เริ่มรันเสมอ
+ *    เพดานบุคคลค้ำยังคง 80,000 (ข้อ 8(2) · ผู้จัดการยืนยัน 14-07-2569) — ค่าไม่เปลี่ยน */
+
+// dropdown: ตำบล + วัตถุประสงค์ (ผูกกับ loanType)
+(function(){
+  const CFG = window.CONTRACT_CONFIG;
+  const tb = document.getElementById('ct_tambon');
+  // 🔒 option ว่างนำหน้าเสมอ — ถ้าไม่มี เบราว์เซอร์เลือกตัวแรกให้เอง แล้วเอกสารพิมพ์
+  //    "ตำบลนครชัยศรี"/"ค่าใช้จ่ายในการทำนา" ทั้งที่ไม่มีใครเลือก และไม่มีอะไรเตือน (บั๊ก 20-07)
+  tb.appendChild(new Option('— เลือกตำบล —', ''));
+  CFG.tambon.forEach(t=>{ const o=document.createElement('option'); o.value=o.textContent=t; tb.appendChild(o); });
+  function fillPurpose(){
+    const lt = document.getElementById('loanType').value;
+    const sel = document.getElementById('ct_purpose'); sel.innerHTML='';
+    sel.appendChild(new Option('— เลือกวัตถุประสงค์ —', ''));
+    (CFG.purposes[lt]||[]).forEach(p=>{
+      const o=document.createElement('option');
+      if(p==='__OTHER__'){ o.value='__OTHER__'; o.textContent=CFG.otherLabel; }
+      else { o.value=o.textContent=p; }
+      sel.appendChild(o);
+    });
+    toggleOther();
+  }
+  function toggleOther(){
+    document.getElementById('ct_other_field').style.display =
+      document.getElementById('ct_purpose').value==='__OTHER__' ? 'block':'none';
+  }
+  document.getElementById('loanType').addEventListener('change', fillPurpose);
+  document.getElementById('ct_purpose').addEventListener('change', toggleOther);
+  fillPurpose();
+  // วันที่ประชุมอนุมัติ: แสดงวันไทย + เคลียร์กรอบแดงเมื่อเลือก
+  const md=document.getElementById('ct_meetdate');
+  md.addEventListener('input',()=>{ const d=parseDate(md.value); document.getElementById('ct_meetdate_th').textContent = d?thDate(d):''; if(md.value) md.style.outline=''; });
+
+  // ---- ผู้ค้ำประกัน 2 คน: สร้างช่องกรอกอัตโนมัติ (ไม่ซ้ำ HTML) ----
+  const wrap = document.getElementById('ct_guar_fields');
+  for(let i=1;i<=2;i++){
+    const box=document.createElement('div');
+    box.style.cssText='border:1px solid #e5e7eb;border-radius:8px;padding:10px;margin-bottom:10px';
+    box.innerHTML =
+      '<div style="font-weight:700;margin-bottom:8px">ผู้ค้ำประกันคนที่ '+i+'</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
+        '<div class="field"><label>ชื่อ-สกุล</label><div class="inp"><input id="g'+i+'_name" placeholder="นาย / นาง / นางสาว ..."></div></div>'+
+        '<div class="field"><label>เลขทะเบียนสมาชิก</label><div class="inp"><input id="g'+i+'_reg"></div></div>'+
+        '<div class="field"><label>สมาชิกกลุ่มที่</label><div class="inp"><input id="g'+i+'_group"></div></div>'+
+        '<div class="field"><label>เลขบัตรประชาชน (13 หลัก)</label><div class="inp"><input id="g'+i+'_id" inputmode="numeric" maxlength="13" placeholder="1234567890123"></div></div>'+
+        '<div class="field"><label>บ้านเลขที่</label><div class="inp"><input id="g'+i+'_house"></div></div>'+
+        '<div class="field"><label>หมู่ที่</label><div class="inp"><input id="g'+i+'_moo"></div></div>'+
+        '<div class="field"><label>ตำบล</label><div class="inp"><select id="g'+i+'_tambon"></select></div></div>'+
+        '<div class="field"><label>โทรศัพท์</label><div class="inp"><input id="g'+i+'_tel" inputmode="tel"></div></div>'+
+      '</div>';
+    wrap.appendChild(box);
+    const sel=box.querySelector('#g'+i+'_tambon');
+    // 🔒 option ว่างนำหน้าเสมอ — กฎเดียวกับ ct_tambon ด้านบน (บรรทัด ~1090)
+    //    เดิมช่องนี้ไม่มี → เบราว์เซอร์เลือก "นครชัยศรี" ให้เอง แล้วหนังสือค้ำพิมพ์ตำบลผิด
+    //    ทั้งที่อยู่ผู้ค้ำและที่อยู่บอกกล่าวข้อ 4 โดยไม่มีอะไรเตือน (บั๊ก 20-07)
+    sel.appendChild(new Option('— เลือกตำบล —', ''));
+    CFG.tambon.forEach(t=>{ const o=document.createElement('option'); o.value=o.textContent=t; sel.appendChild(o); });
+  }
+  // เลือกหลักค้ำประกัน → กาง/ปิดแผงผู้ค้ำ + ปุ่มพิมพ์
+  document.querySelectorAll('input[name="ct_security"]').forEach(r=>r.addEventListener('change', updateSecurityUI));
+  updateSecurityUI();
+})();
+
+function getSecurity(){ const el=document.querySelector('input[name="ct_security"]:checked'); return el?el.value:'person'; }
+
+/* 🔒 ปัดที่จุดอ่าน เหมือน getPrincipal — หุ้นเป็นจำนวนหน่วย ไม่มีเศษหุ้น
+ * เดิมไม่ปัด → กรอก 100.5 จะพิมพ์ "101 หุ้น" คู่กับ "1,005 บาท" (ที่ถูกคือ 1,010)
+ * = สองช่องบนเอกสารเดียวกันคำนวณจากค่าคนละตัว (ตรวจเชิงลึก 20-07) */
+function getShares(){ const el=document.getElementById('ct_shares'); return el? Math.round(Number(el.value)||0) : 0; }
+
+function updateSecurityUI(){
+  const sec = getSecurity();
+  const isPerson = sec==='person';
+  const usesShares = (sec==='person' || sec==='share');
+  document.getElementById('ct_guar_panel').style.display = isPerson ? 'block':'none';
+  document.getElementById('ct_guar_btn').disabled = !isPerson;
+  document.getElementById('ct_share_btn').disabled = (sec!=='share');
+  document.getElementById('ct_share_field').style.display = usesShares ? 'block':'none';
+  const warn=document.getElementById('ct_sec_warn');
+  warn.style.display='none';
+  if(!isPerson) document.getElementById('ct_guar_status').textContent='';
+  if(isPerson){
+    // รหัสไปรษณีย์อัตโนมัติ (จาก coop_data.json → SSOT coop_constants)
+    fetch(window.CONTRACT_ASSET_BASE+'coop_data.json').then(x=>x.json())
+      .then(c=>{ document.getElementById('ct_pc_show').textContent=c.postcode||'—'; }).catch(()=>{});
+  }
+  if(!usesShares) return;   // จำนอง/เงินฝาก — เพดานอยู่ที่คณะกรรมการ ไม่ใช่ที่เว็บ
+
+  const shares = getShares(), shareBaht = shares*SHARE_PAR;
+  document.getElementById('ct_shares_baht').textContent =
+    shares>0 ? ('= '+fmt0(shareBaht)+' บาท (ข้อ 2 ของหนังสือหุ้นค้ำ)') : '—';
+
+  let P=0; try{ const r=calcCoop(); P = r? r.P : 0; }catch(e){}
+  if(!P) return;
+  /* 🔒 บังคับกรอกหุ้นเฉพาะหุ้นค้ำ — ให้ตรงกับ DocGate.ceiling เป๊ะ ๆ
+   * เดิม bail ทุกชนิดเมื่อหุ้น = 0 → บุคคลค้ำ + ยังไม่กรอกหุ้น จอบอก
+   * "คำนวณเพดานไม่ได้" ขณะที่กดปุ่มแล้วด่านบอก "เกินเพดาน 50,000"
+   * สองข้อความอ้างระเบียบข้อเดียวกันแต่ขัดกัน และจอเป็นฝ่ายผิด
+   * เพราะ ข้อ 8(2) ก. ให้พื้น 50,000 อยู่แล้ว ไม่ต้องรู้หุ้น (ตรวจเชิงลึก 21-07-2569) */
+  if(sec==='share' && !shares){
+    warn.style.display='block'; warn.style.color='#b26a00';
+    warn.innerHTML='⚠️ ยังไม่ได้กรอกจำนวนหุ้น — หุ้นค้ำประกันคิดเพดานจาก 60% ของมูลค่าหุ้น (ระเบียบ ข้อ 8 วรรคแรก)';
+    return;
+  }
+  const cap = ceilingFor(sec, shares);
+  /* อธิบายที่มาของเพดาน เพื่อให้เจ้าหน้าที่เถียงกับตัวเลขได้ ไม่ใช่แค่เชื่อ
+   * 🔒 ข้อความต้องอธิบายค่าที่ ceilingFor คืนมาจริง ไม่ใช่คำนวณเกณฑ์ใหม่เอง
+   *    เดิมไล่เงื่อนไขซ้ำ (2 เท่า / 80,000 / 50,000 / 60%) วันที่ใครแก้สูตร
+   *    ตัวเลขบนจอจะขยับ แต่คำอธิบายจะยังพูดสูตรเดิม = จอขัดกับตัวเอง */
+  const why = !isPerson
+    ? 'หุ้น '+fmt0(shareBaht)+' บาท → 60% = '+fmt0(cap)+' บาท'
+    : (cap === 2*shareBaht
+        ? 'หุ้น '+fmt0(shareBaht)+' บาท → เกณฑ์ ข. 2 เท่า = '+fmt0(cap)+' บาท'
+        : (2*shareBaht > cap
+            ? 'หุ้น '+fmt0(shareBaht)+' บาท → 2 เท่า = '+fmt0(2*shareBaht)+' บาท แต่ระเบียบตัดที่เพดาน '+fmt0(cap)
+            : (shares
+                ? 'หุ้น '+fmt0(shareBaht)+' บาท → 2 เท่า = '+fmt0(2*shareBaht)+' บาท ซึ่งต่ำกว่าเกณฑ์ ก. จึงได้ '+fmt0(cap)+' บาท'
+                : 'ยังไม่ได้กรอกหุ้น → ใช้พื้นตามเกณฑ์ ก. = '+fmt0(cap)+' บาท (กรอกหุ้นเพื่อขยายเป็น 2 เท่าตามเกณฑ์ ข.)')));
+  const rule = isPerson ? 'ข้อ 8(2) ก./ข.' : 'ข้อ 8 วรรคแรก';
+  if(P > cap){
+    warn.style.display='block'; warn.style.color='#c00';
+    warn.innerHTML='🔴 วงเงิน '+fmt0(P)+' บาท <u>เกินเพดาน '+fmt0(cap)+' บาท</u> (ระเบียบเงินกู้ '+rule+')<br>'
+      +'<span style="font-weight:400">'+why+'</span><br>'
+      +'<span style="font-weight:400">→ ลดวงเงิน หรือใช้จำนองอสังหาฯ [8(1)] / เงินฝาก [8(3)] แทนหรือร่วม</span>';
+  } else {
+    warn.style.display='block'; warn.style.color='#0a7';
+    warn.innerHTML='✅ วงเงิน '+fmt0(P)+' บาท อยู่ในเพดาน '+fmt0(cap)+' บาท ('+rule+')<br>'
+      +'<span style="font-weight:400">'+why+'</span>';
+  }
+}
+
+/* ตรวจเลขบัตรประชาชนไทย 13 หลัก (checksum มาตรฐาน) */
+function thaiIdOK(id){
+  if(!/^\d{13}$/.test(id)) return false;
+  let s=0; for(let i=0;i<12;i++) s += parseInt(id[i],10)*(13-i);
+  return ((11-(s%11))%10) === parseInt(id[12],10);
+}
+
+function toggleContract(){
+  const p=document.getElementById('contractPanel');
+  // ย้าย panel มาไว้ใต้ปุ่ม (ก่อน warnbar) ให้เห็นทันทีตอนกด
+  const anchor=document.getElementById('warnbar');
+  if(anchor && p.nextElementSibling!==anchor){ anchor.parentNode.insertBefore(p, anchor); }
+  p.style.display = (p.style.display==='none') ? 'block':'none';
+  if(p.style.display==='block') p.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+async function genContractPDF(){
+  const st=document.getElementById('ct_status');
+  try{
+    const r = calcCoop();
+    if(!r){ st.textContent='⚠️ กรอกเงินต้น + วันรับเงินกู้ แล้วกด "คำนวณ" ก่อน'; return; }
+    // ต้องมีวันที่ประชุมอนุมัติก่อน (= วันที่ในสัญญา) — บังคับกรอก
+    const meetInp = document.getElementById('ct_meetdate');
+    if(!meetInp.value){
+      meetInp.style.outline='2px solid #c00';
+      meetInp.focus();
+      st.innerHTML='<span style="color:#c00;font-weight:700">⚠️ กรุณาเลือก “วันที่ประชุมอนุมัติ” ก่อนสร้างสัญญา</span>';
+      return;
+    }
+    meetInp.style.outline='';
+    const meetDate = parseDate(meetInp.value);
+
+    /* 🔒 ด่านร่วม (contract_print/doc_gate.js) — เงื่อนไขบล็อกทั้งหมดอยู่ที่นั่นที่เดียว
+     *    เดิมสัญญา (เอกสารผูกพันที่สุด) ไม่ตรวจเพดานวงเงินเลย ทั้งที่หนังสือค้ำคู่กันตรวจ
+     *    → พิมพ์สัญญาเกินเพดานได้พร้อม "✅ สำเร็จ" แต่พิมพ์หลักประกันคู่กันไม่ได้ (บั๊ก 20-07) */
+    const _bad = m => { st.innerHTML='<span style="color:#c00;font-weight:700">⚠️ '+m+'</span>'; };
+    const miss = DocGate.borrower('contract');
+    if(miss.length) return _bad('ยังขาดข้อมูลผู้กู้: '+miss.join(' · '));
+    const _capMsg = DocGate.ceiling(r.P);
+    if(_capMsg) return _bad(_capMsg);
+    const _totMsg = DocGate.totalCeiling(r.P);   // 🔒 เพดานรวมทุกสัญญา ข้อ 6 วรรคท้าย
+    if(_totMsg) return _bad(_totMsg);
+    const _prinCount = r.rows.filter(x=>x.isPrincipal).length;
+    const _ovf = DocGate.capacity('contract', _prinCount);
+    if(_ovf) return _bad(_ovf);
+
+    st.textContent='⏳ กำลังสร้าง PDF...';
+    const coop = await fetch(window.CONTRACT_ASSET_BASE+'coop_data.json').then(x=>x.json());
+    const CFG = window.CONTRACT_CONFIG;
+    const lt = document.getElementById('loanType').value;
+    const prin = r.rows.filter(x=>x.isPrincipal);
+    const rows = prin.map(x=>({
+      due: thDate(x.date), principal: fmt0(x.principalPaid), interestTo: thDate(x.date)
+    }));
+    const lastDate = prin.length ? prin[prin.length-1].date : null;   // งวดสุดท้าย
+    const committee = r.P <= 500000 ? 'เงินกู้' : 'ดำเนินการ';         // ≤5แสน=เงินกู้ / >5แสน=ดำเนินการ
+    let purpose = document.getElementById('ct_purpose').value;
+    if(purpose==='__OTHER__') purpose = document.getElementById('ct_purpose_other').value.trim();
+    const data = {
+      loanRange: CFG.loanTypeLabel[lt]||'',
+      writtenAt: coop.writtenAt,
+      contractDate: ContractFill.thaiDate(meetDate),   // วันที่ในสัญญา = วันประชุมอนุมัติ
+      name: document.getElementById('ct_name').value.trim(),
+      group: document.getElementById('ct_group').value.trim(),
+      regNo: document.getElementById('ct_reg').value.trim(),
+      houseNo: document.getElementById('ct_house').value.trim(),
+      moo: document.getElementById('ct_moo').value.trim(),
+      tambon: document.getElementById('ct_tambon').value,
+      amphoe: coop.amphoe, changwat: coop.changwat,
+      amount: fmt0(r.P), amountText: ContractFill.bahtText(r.P),
+      purpose: purpose, rows: rows,
+      // ---- กล่องบันทึกการอนุมัติเงินกู้ ----
+      approveCommittee: committee,
+      approveMeetDate: thDate(meetDate),                 // อ้างอิงวันประชุม → ย่อ "9 ก.ค. 2569"
+      approveAmount: fmt0(r.P),
+      approveRepayBy: lastDate ? thDate(lastDate) : '',  // อ้างอิงงวดสุดท้าย → ย่อ ปี 4 หลัก "30 มิ.ย. 2570"
+    };
+    /* 🚦 กันบั๊ก "ช่องว่างเงียบ" — เดิมด่านนี้มีแค่หนังสือหุ้นค้ำ/หนังสือค้ำ
+     *    สัญญาซึ่งผูกพันที่สุดกลับไม่มี → เพิ่มช่องใน fieldmap วันไหน ช่องนั้นว่างเงียบทันที */
+    const _mk = DocGate.missKeys(window.FIELD_MAP, data);
+    if(_mk.length) return _bad('ระบบผิดพลาด: โปรแกรมไม่ได้สร้างข้อมูลช่อง → '+_mk.join(', ')+' (แจ้งผู้พัฒนา)');
+
+    const bytes = await ContractFill.generateContract(data, {});
+    const url = URL.createObjectURL(new Blob([bytes], {type:'application/pdf'}));
+    window.open(url, '_blank');
+    st.innerHTML='✅ สร้างสำเร็จ ('+rows.length+' งวด) — เปิดแท็บใหม่แล้ว &nbsp;<a href="'+url+'" download="สัญญากู้_'+((data.name||'ผู้กู้').replace(/\s+/g,'_'))+'.pdf">⬇ ดาวน์โหลด</a>';
+  }catch(e){ st.textContent='❌ '+(e && e.message || e); console.error(e); }
+}
+
+/* ===== หนังสือค้ำประกันเงินกู้ (เงินหุ้นค้ำประกัน) — 1 แผ่น =====
+ * ผู้กู้เอาหุ้นตัวเองค้ำ → ไม่มีผู้ค้ำ → ข้อมูลทั้งหมดมาจากแผงผู้กู้ + ช่องจำนวนหุ้น
+ * ⚠️ กลไกจริงตามที่ผู้จัดการอธิบาย 15-07: หนังสือนี้ = ความยินยอมล่วงหน้า
+ *    เวลาผิดนัดจริง ต้องให้ "คณะกรรมการมีมติให้พ้นสมาชิกภาพ" ก่อน หุ้นถึงจะหักกลบได้ (พ.ร.บ.สหกรณ์ ม.42)
+ *    ไม่ใช่หักได้ทันทีอย่างที่ข้อ 4 ในฟอร์มเขียนไว้ */
+async function genSharePDF(){
+  const st=document.getElementById('ct_guar_status');
+  const bad=(m)=>{ st.innerHTML='<span style="color:#c00;font-weight:700">⚠️ '+m+'</span>'; };
+  try{
+    if(getSecurity()!=='share') return bad('เลือก "หุ้นตนเอง" ก่อน');
+    const r = calcCoop();
+    if(!r) return bad('กรอกเงินต้น + วันรับเงินกู้ แล้วกด "คำนวณ" ก่อน');
+    const shares = getShares();
+    const _capMsg = DocGate.ceiling(r.P);      // 🔒 ด่านร่วม — เพดานตาม ข้อ 8 + กันกรณียังไม่กรอกหุ้น (ดู doc_gate.js)
+    if(_capMsg) return bad(_capMsg);
+    const _totMsg = DocGate.totalCeiling(r.P);   // 🔒 เพดานรวมทุกสัญญา ข้อ 6 วรรคท้าย
+    if(_totMsg) return bad(_totMsg);
+    const meetInp=document.getElementById('ct_meetdate');
+    if(!meetInp.value){ meetInp.style.outline='2px solid #c00'; meetInp.focus(); return bad('เลือก "วันที่ประชุมอนุมัติ" ก่อน'); }
+    meetInp.style.outline='';
+    const meetDate=parseDate(meetInp.value);
+
+    const V=id=>(document.getElementById(id).value||'').trim();
+    const miss = DocGate.borrower('share');   // 🔒 ด่านร่วม (เดิมใบนี้ไม่ตรวจตำบล ทั้งที่พิมพ์ตำบล)
+    if(miss.length) return bad('ยังขาดข้อมูลผู้กู้: '+miss.join(' · '));
+
+    const coop = await fetch(window.CONTRACT_ASSET_BASE+'coop_data.json').then(x=>x.json());
+    const lt = document.getElementById('loanType').value;
+    const shareBaht = shares*SHARE_PAR;
+
+    /* 🔑 ชื่อ key ต้องตรงกับ share_fieldmap.js เป๊ะ — ไม่ตรง = ช่องนั้นว่างเงียบ (บั๊ก 14-07 ทำ 16 ช่องหาย) */
+    const data = {
+      docDate: ContractFill.thaiDate(meetDate),     // ⭐ วันที่ของหนังสือฉบับนี้เอง (นิติกรรมเกิด) → เต็ม
+      name: V('ct_name'), nameParen: V('ct_name'),  // ชื่อในวงเล็บใต้เส้นลงชื่อ = คนเดียวกัน
+      reg: V('ct_reg'), group: V('ct_group'),
+      house: V('ct_house'), moo: V('ct_moo'), tambon: V('ct_tambon'),
+      postcode: coop.postcode,                      // อำเภอ/จังหวัด พิมพ์ไว้ในฟอร์มแล้ว
+      tel: '',                                      // เว็บยังไม่มีช่องเบอร์ผู้กู้ → เว้นให้เขียนด้วยปากกา
+      loanRange: (window.CONTRACT_CONFIG.loanTypeLabel[lt]||''),
+      loanDate: thDate(meetDate),                   // อ้างอิงสัญญากู้ฉบับอื่น → ย่อ
+      amount: fmt0(r.P), amountText: ContractFill.bahtText(r.P),
+      shares: fmt0(shares),
+      shareBaht: fmt0(shareBaht), shareBahtText: ContractFill.bahtText(shareBaht),
+    };
+
+    /* 🚦 กันบั๊ก "ช่องว่างเงียบ" — ตรวจเฉพาะ key ที่ไม่ถูกสร้างเลย (undefined = บั๊กโปรแกรม)
+     *    ค่าว่าง '' = ตั้งใจเว้น (เช่น tel) → ผ่านได้ */
+    const missKeys = DocGate.missKeys(window.SHARE_MAP, data);
+    if(missKeys.length) return bad('ระบบผิดพลาด: โปรแกรมไม่ได้สร้างข้อมูลช่อง → '+missKeys.join(', ')+' (แจ้งผู้พัฒนา)');
+
+    st.textContent='⏳ กำลังสร้าง...';
+    const bytes = await ContractFill.generateShare(data, {});
+    const url = URL.createObjectURL(new Blob([bytes], {type:'application/pdf'}));
+    window.open(url, '_blank');
+    st.innerHTML='✅ สร้างหนังสือหุ้นค้ำประกันสำเร็จ — เปิดแท็บใหม่แล้ว &nbsp;<a href="'+url+'" download="หนังสือหุ้นค้ำ_'+((data.name||'ผู้กู้').replace(/\s+/g,'_'))+'.pdf">⬇ ดาวน์โหลด</a>';
+  }catch(e){ st.innerHTML='<span style="color:#c00">❌ '+(e && e.message || e)+'</span>'; console.error(e); }
+}
+
+/* ===== หนังสือค้ำประกันเงินกู้ (บุคคลค้ำ) — ออก 2 แผ่น/2 ผู้ค้ำ =====
+ * ข้อ 1+ข้อ 3 ดึงจากผลคำนวณ (เหมือนสัญญากู้) · เขียนที่/วันที่ = วันประชุมอนุมัติ (ct_meetdate) */
+async function genGuaranteePDF(){
+  const st=document.getElementById('ct_guar_status');
+  const bad=(m)=>{ st.innerHTML='<span style="color:#c00;font-weight:700">⚠️ '+m+'</span>'; };
+  try{
+    if(getSecurity()!=='person') return bad('เลือก "บุคคลค้ำ 2 คน" ก่อน');
+    const r = calcCoop();
+    if(!r) return bad('กรอกเงินต้น + วันรับเงินกู้ แล้วกด "คำนวณ" ก่อน');
+    const _capMsg = DocGate.ceiling(r.P);      // 🔒 ด่านร่วม — เพดานตาม ข้อ 8 (ดู doc_gate.js)
+    if(_capMsg) return bad(_capMsg);
+    const _totMsg = DocGate.totalCeiling(r.P);   // 🔒 เพดานรวมทุกสัญญา ข้อ 6 วรรคท้าย
+    if(_totMsg) return bad(_totMsg);
+    const _missB = DocGate.borrower('guarantee');   // หนังสือค้ำพิมพ์ชื่อผู้กู้ + วัตถุประสงค์ด้วย
+    if(_missB.length) return bad('ยังขาดข้อมูลผู้กู้ (แผงด้านบน): '+_missB.join(' · '));
+    const meetInp=document.getElementById('ct_meetdate');
+    if(!meetInp.value){ meetInp.style.outline='2px solid #c00'; meetInp.focus(); return bad('เลือก "วันที่ประชุมอนุมัติ" ก่อน'); }
+    meetInp.style.outline='';
+    const meetDate=parseDate(meetInp.value);
+
+    // ---- เก็บ + ตรวจข้อมูลผู้ค้ำ 2 คน ----
+    const V=id=>(document.getElementById(id).value||'').trim();
+    const guars=[]; const warns=[];
+    for(let i=1;i<=2;i++){
+      /* 🔑 ชื่อ key ต้องตรงกับ guarantee_fieldmap.js เป๊ะ — ไม่ตรง = ช่องนั้นว่างเงียบ (บั๊ก 14-07: ใช้ name/reg/… แทน gName/gReg/…) */
+      const g={
+        gName: V('g'+i+'_name'), gNameParen: V('g'+i+'_name'),      // หน้า 2 ชื่อในวงเล็บ = ชื่อเดียวกัน
+        gReg: V('g'+i+'_reg'), gGroup: V('g'+i+'_group'),           // ผจก เปลี่ยนฟอร์ม "อายุ" → "กลุ่มที่" (14-07)
+        idcard: V('g'+i+'_id').replace(/\D/g,''),
+        gHouse: V('g'+i+'_house'), gMoo: V('g'+i+'_moo'), gTambon: V('g'+i+'_tambon'), gTel: V('g'+i+'_tel'),
+        house4: V('g'+i+'_house'), moo4: V('g'+i+'_moo'), tambon4: V('g'+i+'_tambon'), // ข้อ 4 = ที่อยู่บอกกล่าว (ที่อยู่เดียวกัน)
+      };
+      /* 🔒 ด่านร่วม — รวม "ตำบล" ที่เดิมไม่ถูกตรวจ เพราะดรอปดาวน์ไม่มีตัวเลือกว่าง
+       *    จึงไม่เคยว่าง แล้วพิมพ์ "นครชัยศรี" ให้เองทั้งที่ไม่มีใครเลือก — ผิดทั้งที่อยู่ผู้ค้ำ
+       *    และที่อยู่สำหรับบอกกล่าวตามข้อ 4 ที่ใช้ส่งหนังสือทวงถามตามกฎหมาย (บั๊ก 20-07) */
+      const miss = DocGate.guarantor(i);
+      if(miss.length) return bad('ผู้ค้ำคนที่ '+i+' ยังขาด: '+miss.join(' · '));
+      if(!thaiIdOK(g.idcard)) warns.push('เลขบัตรผู้ค้ำคนที่ '+i+' ไม่ผ่าน checksum — ตรวจอีกครั้ง');
+      guars.push(g);
+    }
+    if(guars[0].idcard===guars[1].idcard) return bad('ผู้ค้ำ 2 คนใช้เลขบัตรเดียวกัน — ต้องเป็นคนละคน');
+
+    const coop = await fetch(window.CONTRACT_ASSET_BASE+'coop_data.json').then(x=>x.json());
+    const prin = r.rows.filter(x=>x.isPrincipal);
+    const lastDate = prin.length ? prin[prin.length-1].date : null;
+    const lt = document.getElementById('loanType').value;
+    let purpose = document.getElementById('ct_purpose').value;
+    if(purpose==='__OTHER__') purpose = document.getElementById('ct_purpose_other').value.trim();
+
+    // ข้อมูลร่วมทุกแผ่น (ข้อ 1 + ข้อ 3 จากผลคำนวณ)
+    const shared = {
+      writtenAt: coop.writtenAt,
+      docDate: ContractFill.thaiDate(meetDate),          // ⭐ วันที่ของหนังสือค้ำฉบับนี้ (นิติกรรมเกิด) → เต็ม
+      borrower: document.getElementById('ct_name').value.trim(),
+      purpose: purpose,
+      loanRange: (window.CONTRACT_CONFIG.loanTypeLabel[lt]||''),
+      loanDate: thDate(meetDate),                        // อ้างอิง "หนังสือกู้ฉบับลงวันที่" → ย่อ (ช่องแคบ 62pt ด้วย)
+      amount: fmt0(r.P), amountText: ContractFill.bahtText(r.P),
+      amount3: fmt0(r.P), amountText3: ContractFill.bahtText(r.P),   // ข้อ 3 รับผิดเท่าวงเงินกู้ (ข้อ 1)
+      repayBy: lastDate ? thDate(lastDate) : '',
+      postcode: coop.postcode,                            // อำเภอ/จังหวัด พิมพ์ไว้ในฟอร์มแล้ว ไม่ต้องเติม
+    };
+    const sheets = guars.map(g=>Object.assign({}, shared, g));
+
+    /* 🚦 กันบั๊ก "ช่องว่างเงียบ" (บั๊ก 14-07: key ฝั่งผลิต ≠ key ใน fieldmap → 16 ช่องว่างเงียบ)
+     * ⚠️ ตรวจเฉพาะ key ที่ "ไม่ถูกสร้างเลย" (undefined = บั๊กโปรแกรม)
+     *    ค่าว่าง '' = คนไม่ได้กรอกช่องที่ไม่บังคับ (เช่น โทรศัพท์) → ปล่อยผ่านปกติ */
+    const missKeys = DocGate.missKeys(window.GUARANTEE_MAP, sheets[0]);
+    if(missKeys.length) return bad('ระบบผิดพลาด: โปรแกรมไม่ได้สร้างข้อมูลช่อง → '+missKeys.join(', ')+' (แจ้งผู้พัฒนา)');
+
+    if(warns.length) st.innerHTML='<span style="color:#b26a00">⚠️ '+warns.join('<br>⚠️ ')+'</span><br>';
+    else st.innerHTML='';
+
+    // ---- เฟส 2: ต่อ engine (รอ guarantee_base.pdf + guarantee_fieldmap.js) ----
+    if(!window.ContractFill || typeof ContractFill.generateGuarantee!=='function'){
+      st.innerHTML += '<span style="color:#0a7;font-weight:700">✅ ข้อมูลครบถ้วน ผ่านการตรวจทุกข้อ ('+sheets.length+' แผ่น)</span>'+
+        '<br><span class="note">⏳ เฟส 2 — รอ <code>guarantee_base.pdf</code> + <code>guarantee_fieldmap.js</code> (ต้องแก้ฟอร์ม .doc 2 จุดให้เสร็จก่อน) แล้วปุ่มนี้จะออก PDF ได้ทันที</span>';
+      console.log('[หนังสือค้ำประกัน] ข้อมูลพร้อมส่ง engine:', sheets);
+      return;
+    }
+    const bytes = await ContractFill.generateGuarantee(sheets, {});
+    const url = URL.createObjectURL(new Blob([bytes], {type:'application/pdf'}));
+    window.open(url,'_blank');
+    st.innerHTML += '✅ สร้างสำเร็จ ('+sheets.length+' แผ่น) &nbsp;<a href="'+url+'" download="หนังสือค้ำประกัน_'+((shared.borrower||'ผู้กู้').replace(/\s+/g,'_'))+'.pdf">⬇ ดาวน์โหลด</a>';
+  }catch(e){ st.textContent='❌ '+(e && e.message || e); console.error(e); }
+}
+</script>
+
+<!-- ===== แผงทดสอบวิธีพิมพ์ (หน้านี้ใช้ทดสอบเท่านั้น ไม่ใช่เว็บใช้งานจริง) ===== -->
+<style>
+#ptbar{position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#fff;
+  border-top:3px solid #16a34a;padding:10px 12px 14px;box-shadow:0 -4px 18px rgba(0,0,0,.18);
+  font-family:inherit;max-height:52vh;overflow:auto}
+#ptbar h3{margin:0 0 4px;font-size:15px;color:#166534}
+#ptbar p{margin:0 0 8px;font-size:12px;color:#555;line-height:1.5}
+#ptbar button{display:block;width:100%;margin:6px 0;padding:13px 10px;font-size:15px;
+  font-weight:700;border:2px solid #16a34a;border-radius:11px;background:#f0fdf4;color:#14532d}
+#ptbar button b{display:block;font-size:12px;font-weight:600;color:#555;margin-top:2px}
+#ptbar .cur{font-size:12px;color:#166534;font-weight:700;margin-top:6px}
+@media print{#ptbar{display:none!important}}
+</style>
+<div id="ptbar" class="no-print">
+  <h3>🧪 หน้าทดสอบการพิมพ์ — เลือกทีละแบบ</h3>
+  <p>กดปุ่มใดปุ่มหนึ่ง → หน้าต่างพิมพ์จะเปิด → <b>ดูว่าตารางอ่านออกไหม</b> → ปิดแล้วลองแบบถัดไป<br>
+     จำให้ได้ว่าแบบไหนอ่านออก แล้วแจ้งกลับ</p>
+  <button onclick="ptRun('A')">แบบ A — ตัวเทียบ (เหมือนเว็บจริงตอนนี้)<b>คาดว่าตารางจะเละ — ใช้เทียบว่าแบบอื่นดีขึ้นจริงไหม</b></button>
+  <button onclick="ptRun('B')">แบบ B — บังคับความกว้างกระดาษ<b>ล็อกกรอบเนื้อหาไว้ที่ 194 มม.</b></button>
+  <button onclick="ptRun('C')">แบบ C — ขยายมุมมองก่อนพิมพ์<b>สลับ viewport เป็น 760 จุดชั่วคราว แล้วคืนค่า</b></button>
+  <button onclick="ptRun('D')">แบบ D — ขยายมุมมอง + แนวนอน<b>เหมือน C แต่พิมพ์เป็นกระดาษแนวนอน</b></button>
+  <button onclick="ptRun('E')">แบบ E — ขยายมุมมอง + บังคับความกว้าง<b>รวม B กับ C เข้าด้วยกัน</b></button>
+  <div class="cur" id="ptcur">ยังไม่ได้ทดสอบ</div>
+</div>
+<script>
+(function(){
+  var vp = document.querySelector('meta[name=viewport]');
+  var vpOrig = vp ? vp.getAttribute('content') : null;
+  var st = document.createElement('style'); st.id='ptstyle'; document.head.appendChild(st);
+
+  var CSS = {
+    A: '',
+    B: '@media print{.wrap{width:194mm!important;max-width:194mm!important;margin:0!important}}',
+    C: '',
+    D: '@media print{@page{size:A4 landscape;margin:8mm}}',
+    E: '@media print{.wrap{width:194mm!important;max-width:194mm!important;margin:0!important}}'
+  };
+  var WIDEN = { A:false, B:false, C:true, D:true, E:true };
+
+  window.ptRun = function(k){
+    st.textContent = CSS[k] || '';
+    if(WIDEN[k] && vp) vp.setAttribute('content','width=760');
+    document.getElementById('ptcur').textContent = 'กำลังทดสอบ: แบบ ' + k;
+    // ให้เบราว์เซอร์จัดหน้าใหม่ก่อน แล้วค่อยสั่งพิมพ์
+    // หมายเหตุ: ที่นี่ยอมให้มีดีเลย์ได้ เพราะเป็นหน้าทดสอบ ไม่ใช่เว็บใช้งานจริง
+    setTimeout(function(){
+      try{ printReport(); }catch(e){ alert('เกิดข้อผิดพลาด: '+(e&&e.message||e)); }
+      setTimeout(function(){
+        if(vp && vpOrig!==null) vp.setAttribute('content', vpOrig);
+        st.textContent='';
+        document.getElementById('ptcur').textContent = 'ทดสอบแบบ ' + k + ' แล้ว — ลองแบบถัดไปได้';
+      }, 1200);
+    }, 350);
+  };
+})();
+</script>
