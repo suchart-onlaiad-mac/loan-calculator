@@ -73,8 +73,26 @@ async function runCase(c) {
   await t.setField('years', ctx.years);
   await t.setField('rate', ctx.rate);
   await sleep(250);
+
+  /* ตรวจช่องอินพุตทันทีหลังกรอก — ก่อนกดคำนวณ
+   * (พฤติกรรม snap ต้องเกิดตอนออกจากช่อง ไม่ใช่ตอนกดปุ่ม) */
+  const preFail = [];
+  if (c.checkBefore) {
+    const got = await t.evaluate(`(()=>{const e=document.getElementById(${JSON.stringify(c.checkBefore.field)});
+      return e ? e.value : '<<ไม่พบช่อง>>'})()`);
+    if (String(got) !== String(c.checkBefore.want)) {
+      preFail.push(`${c.checkBefore.msg} — ได้ "${got}" ต้องการ "${c.checkBefore.want}"`);
+    }
+  }
+
   await t.clickButtonText('คำนวณ');
   await sleep(600);
+
+  if (c.checkWarn) {
+    const warn = await t.evaluate(`(()=>{const e=document.getElementById('warnbar');
+      return e ? e.textContent.trim() : ''})()`);
+    if (!c.checkWarn.match.test(warn)) preFail.push(`${c.checkWarn.msg} — warnbar: "${warn || '(ว่าง)'}"`);
+  }
 
   // 2. เปิดฟอร์ม ส.-งก.14 + ข้อมูลตัวตน + หลักประกัน
   await t.clickButtonText('พิมพ์สัญญากู้ ส.-งก.14');
@@ -105,7 +123,7 @@ async function runCase(c) {
   const status = await t.evaluate(STATUS);
 
   const blocked = /⚠️/.test(status);
-  const fails = [];
+  const fails = preFail.slice();
 
   if (c.expect === 'block') {
     if (!blocked) fails.push('ควรบล็อก แต่ผ่านไปได้ — สถานะ: ' + (status || '(ว่าง)'));
