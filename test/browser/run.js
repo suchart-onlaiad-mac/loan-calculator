@@ -119,8 +119,18 @@ async function runCase(c) {
   // 4. กดปุ่มสร้างเอกสาร
   await t.evaluate(`document.getElementById('sngk13_status').innerHTML='';`);
   await t.clickButtonText('สร้าง PDF คำขอกู้ ส.-งก.13');
-  await sleep(useLive ? 3000 : 2200);
-  const status = await t.evaluate(STATUS);
+
+  /* 🔒 รอจน "สถานะนิ่ง" ไม่ใช่หน่วงเวลาตายตัว
+   * เดิมหน่วง 3 วิ แล้วอ่าน — บนเว็บจริงยังค้างที่ "⏳ กำลังสร้าง PDF..."
+   * เทสต์เลยแดงทั้งที่เว็บไม่ได้พัง = เทสต์กะพริบ ซึ่งอันตรายพอ ๆ กับเทสต์ที่ผ่านเสมอ
+   * (คนจะเริ่มเชื่อว่า "แดงแปลว่าเน็ตช้า" แล้ววันหนึ่งจะมองข้ามของจริง) */
+  let status = '';
+  for (let i = 0; i < 40; i++) {          // สูงสุด 20 วินาที
+    status = await t.evaluate(STATUS);
+    if (/✅|⚠️|❌/.test(status)) break;   // นิ่งแล้ว — สำเร็จ หรือ ด่านบล็อก
+    await sleep(500);
+  }
+  if (/⏳/.test(status)) status = 'ค้างที่ "' + status + '" เกิน 20 วินาที';
 
   const blocked = /⚠️/.test(status);
   const fails = preFail.slice();

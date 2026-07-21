@@ -3,13 +3,37 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const PORT = 9333;
-const PROFILE = '/tmp/cdp-profile-loan';   // โปรไฟล์แยก — ไม่แตะ Chrome ที่ผู้จัดการใช้
+/* โปรไฟล์ + พอร์ต แยกต่อรอบ (ผูกกับ pid)
+ * เดิมใช้ชื่อคงที่ → รันสองรอบติดกัน รอบหลังพัง ENOTEMPTY
+ * เพราะ Chrome รอบก่อนยังปล่อยโฟลเดอร์ไม่หมดตอนรอบใหม่ลบทิ้ง
+ * ⚠️ ไม่แตะ Chrome ที่ผู้จัดการใช้อยู่ — คนละโปรไฟล์คนละพอร์ตเสมอ */
+const PORT = 9300 + (process.pid % 600);
+const PROFILE = '/tmp/cdp-profile-loan-' + process.pid;
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+/* เก็บกวาดโปรไฟล์เก่าตอน "เริ่ม" ไม่ใช่ตอนจบ
+ * ตอนจบเก็บไม่ได้จริง — Chrome ยังปล่อยไฟล์ไม่หมดตอน process ปิด (ลองแล้ว เหลือค้าง 2/3 รอบ)
+ * ตอนเริ่มเก็บได้แน่นอนเพราะ Chrome รอบก่อนตายไปแล้ว → ขยะไม่มีวันสะสม */
+function sweepOld() {
+  let n = 0;
+  for (const d of fs.readdirSync('/tmp')) {
+    if (!d.startsWith('cdp-profile-loan-')) continue;
+    const pid = Number(d.split('-').pop());
+    if (pid === process.pid) continue;
+    try { process.kill(pid, 0); continue; } catch (e) { /* ไม่มี process นี้แล้ว = ลบได้ */ }
+    try { fs.rmSync('/tmp/' + d, { recursive: true, force: true }); n++; } catch (e) { }
+  }
+  return n;
+}
+
 async function launch() {
+  sweepOld();
   fs.rmSync(PROFILE, { recursive: true, force: true });
+  const sweep = () => { try { fs.rmSync(PROFILE, { recursive: true, force: true }); } catch (e) { } };
+  process.on('exit', sweep);
+  process.on('SIGINT', () => { sweep(); process.exit(130); });
+
   const p = spawn(CHROME, [
     '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
     '--remote-debugging-port=' + PORT, '--user-data-dir=' + PROFILE,
