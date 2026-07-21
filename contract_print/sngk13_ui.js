@@ -17,6 +17,18 @@
   const DEBTT = ['ระยะสั้น', 'ระยะปานกลาง', 'ระยะยาว'];
   const PRODT = ['ทำนา', 'ทำสวน', 'ทำไร่', 'เลี้ยงกุ้ง', 'เลี้ยงปลา', 'เลี้ยงสัตว์'];
 
+  /* จำนวนแถวที่แบบฟอร์มพิมพ์ได้จริง = จำนวนแถวที่ fieldmap มีพิกัดให้
+   * 🔑 ห้ามฝังตัวเลขในหน้าจอกรอก — ถ้าฝังแล้วมันน้อยกว่า fieldmap
+   *    เจ้าหน้าที่จะกรอกแถวที่เหลือไม่ได้ ทั้งที่กระดาษมีที่ว่างรออยู่
+   *    (ตรวจ 21-07-2569: ตารางจำนอง fieldmap มี 3 แถว แต่หน้าจอฝัง 2
+   *     → สมาชิกจำนอง 3 แปลง กรอกได้แค่ 2 โดยไม่มีอะไรบอก)
+   * แพตเทิร์นเดียวกับ rowsOf() ฝั่งรวมยอด และ DocGate.slots() */
+  const fmRows = (pre, suf) => {
+    let n = 0; const M = window.SNGK13_MAP || {};
+    while (M[pre + (n + 1) + suf]) n++;
+    return n;
+  };
+
   const box = 'box-sizing:border-box;padding:5px 7px;border:1px solid #d1d5db;border-radius:6px;font-size:13px';
   const cell = (id, ph, w) => '<input id="' + id + '"' + (ph ? ' placeholder="' + ph + '"' : '') + ' style="width:' + (w || '100%') + ';' + box + '">';
   const ro = (id, w) => '<input id="' + id + '" readonly title="คำนวณอัตโนมัติ" style="width:' + (w || '100%') + ';' + box + ';background:#f3f4f6;color:#374151">';
@@ -86,14 +98,14 @@
   H += secH('ข้อ 5 ก · บุคคลค้ำประกัน');
   H += '<div class="note" style="margin-bottom:6px">เติมอัตโนมัติจากช่อง “ผู้ค้ำประกัน” ด้านบน (ถ้าเลือกบุคคลค้ำ) — แก้ได้</div>';
   H += '<table style="border-collapse:collapse;width:100%"><tr>' + th('ชื่อ') + th('กลุ่มที่/เลขทะเบียน') + th('ค้ำประกันผู้ใดอยู่') + '</tr>';
-  for (let i = 1; i <= 2; i++) H += '<tr>' + td(cell('s13_g' + i + '_name')) + td(cell('s13_g' + i + '_group')) + td(cell('s13_g' + i + '_guar')) + '</tr>';
+  for (let i = 1, n = fmRows('g', '_name'); i <= n; i++) H += '<tr>' + td(cell('s13_g' + i + '_name')) + td(cell('s13_g' + i + '_group')) + td(cell('s13_g' + i + '_guar')) + '</tr>';
   H += '</table>';
 
   // ── ข้อ 5 ข · จำนอง ──
   H += secH('ข้อ 5 ข · จำนองอสังหาริมทรัพย์ (ถ้ามี)');
   H += '<div style="margin-bottom:6px"><label style="font-size:13px">ทะเบียนจำนองลำดับที่ </label>' + cell('s13_mortRegNo', '', '160px') + '</div>';
   H += '<table style="border-collapse:collapse;width:100%"><tr>' + th('ประเภทที่ดิน') + th('หนังสือแสดงสิทธิ') + th('เนื้อที่') + th('วงเงินจำนอง') + th('หนังสือกู้ระยะ/ที่') + th('ต้นเงินคงเหลือ') + '</tr>';
-  for (let i = 1; i <= 2; i++) H += '<tr>' + td(dl('s13_mort' + i + '_landtype', 'dl_land', '')) + td(cell('s13_mort' + i + '_deed')) + td(cell('s13_mort' + i + '_area')) + td(cell('s13_mort' + i + '_value')) + td(cell('s13_mort' + i + '_book')) + td(cell('s13_mort' + i + '_remain')) + '</tr>';
+  for (let i = 1, n = fmRows('mort', '_landtype'); i <= n; i++) H += '<tr>' + td(dl('s13_mort' + i + '_landtype', 'dl_land', '')) + td(cell('s13_mort' + i + '_deed')) + td(cell('s13_mort' + i + '_area')) + td(cell('s13_mort' + i + '_value')) + td(cell('s13_mort' + i + '_book')) + td(cell('s13_mort' + i + '_remain')) + '</tr>';
   H += '</table>';
 
   mount.innerHTML = H;
