@@ -275,7 +275,17 @@
     .pane{display:none!important}.pane.active{display:block!important}
     .rpane{display:none!important}.rpane.active{display:block!important}
     .card{box-shadow:none;border-color:#ccc}
-    header{background:linear-gradient(135deg,var(--brand-d),var(--brand))!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    /* 🖨️ หัวเอกสารแบบประหยัดหมึก — เดิมเป็นพื้นเขียวเข้มเต็มความกว้าง
+     * เลเซอร์: เปลืองผงหมึก + กระดาษม้วน · อิงค์เจ็ต: หมึกเปียกจนกระดาษย่น
+     * ผู้จัดการใช้ทั้ง 2 ชนิด (แจ้ง 21-07-2569) -> คุ้มทั้งคู่
+     * ⚠️ โลโก้เป็น PNG ขาวล้วน (โปร่งใส) ต้อง invert เป็นดำ ไม่งั้นหายบนพื้นขาว */
+    header{background:#fff!important;color:#000!important;box-shadow:none!important;
+      border:0!important;border-bottom:1.5pt solid #000!important;border-radius:0!important;
+      padding:0 0 3mm!important;margin-bottom:4mm!important}
+    header .logo{filter:invert(1)!important}
+    header p{opacity:1!important}
+    header .meta span{background:transparent!important;color:#000!important;
+      border:.75pt solid #777!important;padding:1px 7px!important}
     *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
     /* ===== ตารางงวดชำระ: บังคับให้พอดีหน้ากระดาษ ไม่ตัดคอลัมน์ (บั๊ก print เดิม) ===== */
     .tbl-scroll{overflow:visible!important;border:1px solid #ccc;border-radius:0}
