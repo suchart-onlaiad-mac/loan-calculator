@@ -266,6 +266,11 @@
      * วัดจากเครื่องผู้จัดการ 21-07-2569: เนื้อหาจบ 663px แต่เอกสารสูง 1180px */
     html,body{min-height:0!important;height:auto!important}
     .wrap{padding-bottom:6mm!important}
+    /* ⚪ ตัดวงกลมตกแต่งมุมขวาบนของหัวเอกสาร (header::after บรรทัด ~79)
+     * บนจอ = แสงเงาจาง ๆ บนพื้นเขียว · บนเครื่องพิมพ์ขาวดำ = วงขาวชัดเจน
+     * ดูเหมือนหมึกหมด/เครื่องเสีย ทั้งที่เป็นของประดับ
+     * ผู้จัดการชี้จุดนี้เอง 21-07-2569 */
+    header::after{display:none!important}
     body{background:#fff}.no-print{display:none!important}
     .pane{display:none!important}.pane.active{display:block!important}
     .rpane{display:none!important}.rpane.active{display:block!important}
