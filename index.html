@@ -342,7 +342,7 @@
     </div>
     <div class="actions">
       <button class="btn" onclick="calcAll()">คำนวณ</button>
-      <button class="btn ghost" onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button>
+      <button class="btn ghost" onclick="printReport()">🖨️ พิมพ์ / บันทึก PDF</button>
       <button class="btn ghost" onclick="toggleContract()">📄 พิมพ์สัญญากู้ ส.-งก.14</button>
     </div>
   </div>
@@ -426,7 +426,7 @@
       </div>
       <div class="actions">
         <button class="btn" onclick="calcRestructure()">คำนวณ</button>
-        <button class="btn ghost" onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button>
+        <button class="btn ghost" onclick="printReport()">🖨️ พิมพ์ / บันทึก PDF</button>
       </div>
     </div>
     <div class="tabs no-print">
@@ -819,6 +819,32 @@ function calcAll(){
 }
 function liveUpdate(){ if(document.getElementById('results').style.display!=='none') calcAll(); }
 /*<<CORE-TEST-SLICE-END>>*/
+
+/* 🖨️ ปุ่มพิมพ์ — คำนวณให้ก่อนเสมอ
+ * บั๊กเดิม: ปุ่มนี้เรียก window.print() ตรง ๆ แต่ตัวปุ่มอยู่ในการ์ด .no-print
+ * และกล่องผลลัพธ์ยังถูกซ่อน (display:none) จนกว่าจะกดคำนวณ
+ * → กดพิมพ์ก่อนคำนวณ = กระดาษมีแต่หัวเอกสาร (ยืนยันจากเครื่องผู้จัดการ 21-07-2569)
+ * ต้อง sync ล้วน — window.print() ต้องอยู่ในจังหวะที่นิ้วแตะ ห้ามมี await คั่น */
+function printReport(){
+  var restruct = document.getElementById('mode-restruct');
+  var isRestruct = restruct && restruct.style.display !== 'none';
+  var tableId = isRestruct ? 'rTable' : 'coopTable';
+  try{
+    if(isRestruct) calcRestructure(); else calcAll();
+  }catch(e){
+    alert('คำนวณไม่สำเร็จ จึงยังพิมพ์ไม่ได้\n\n' + (e && e.message ? e.message : e));
+    return;
+  }
+  var tbl = document.getElementById(tableId);
+  var rows = tbl ? tbl.querySelectorAll('tbody tr').length : 0;
+  if(!rows){
+    alert(isRestruct
+      ? 'ยังพิมพ์ไม่ได้ — กรุณากรอกยอด A (ต้นเงินรวม) และวันอนุมัติ ให้ครบก่อน'
+      : 'ยังพิมพ์ไม่ได้ — กรุณากรอกเงินต้น วันรับเงินกู้ และจำนวนปี ให้ครบก่อน');
+    return;
+  }
+  window.print();
+}
 
 document.querySelectorAll('.chips .chip').forEach(c=>{
   c.onclick=()=>{ document.getElementById('rate').value=c.dataset.rate; syncChips(); liveUpdate(); };
