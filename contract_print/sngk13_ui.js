@@ -493,7 +493,29 @@ async function genLoanRequestPDF() {
     /* 🔒 ปัดทีละแถวก่อนบวก — ต้องตรงกับที่แต่ละแถวถูกพิมพ์ (fmtA ปัดทีละแถวเช่นกัน)
      * เดิมบวกค่าดิบแล้วปัดตอนท้าย → กรอก 100.40 สามแถว กระดาษพิมพ์ 100+100+100
      * แต่ช่องรวมพิมพ์ 301 = ตารางบวกไม่ลงในหน้าเดียวกัน โดยไม่มีอะไรเตือน (ตรวจเชิงลึก 20-07) */
-    const sumKeys = (pre, suf) => { let s = 0, any = false; for (let i = 1; i <= 7; i++) { const el = document.getElementById('s13_' + pre + i + suf); if (el) { const n = num(el.value); if (n != null) { s += Math.round(n); any = true; } } } return any ? fmt0(s) : ''; };
+    /* 🔒 นับจำนวนแถวจาก fieldmap ไม่ฮาร์ดโค้ด — แพตเทิร์นเดียวกับ DocGate.slots()
+     * เดิมเขียน `i <= 7` ซึ่ง "บังเอิญ" เท่ากับกลุ่มที่ใหญ่สุด (exp/inc = 7 แถว)
+     * วันที่ใครเพิ่มแถวที่ 8 ในฟอร์ม ยอดรวมจะตกหล่นเงียบ ๆ โดยไม่มีอะไรเตือน
+     * (ตรวจ 21-07-2569: fieldmap มี exp 7 · inc 7 · prod 6 → 7 ยังพอดีอยู่ แต่เป็นความบังเอิญ) */
+    const rowsOf = (pre, suf) => { let n = 0; const M = window.SNGK13_MAP || {}; while (M[pre + (n + 1) + suf]) n++; return n; };
+    const sumKeys = (pre, suf) => {
+      const cap = rowsOf(pre, suf);
+      let s = 0, any = false;
+      for (let i = 1; i <= cap; i++) {
+        const el = document.getElementById('s13_' + pre + i + suf);
+        if (el) { const n = num(el.value); if (n != null) { s += Math.round(n); any = true; } }
+      }
+      /* 🔒 กันแถวที่กรอกแล้วแต่ฟอร์มพิมพ์ไม่ได้ — ยอดรวมจะไม่ตรงกับแถวที่เห็นบนกระดาษ
+       * (ตระกูลเดียวกับ DocGate.capacity ที่กันงวดเกินความจุตาราง) */
+      for (let i = cap + 1; i <= cap + 20; i++) {
+        const el = document.getElementById('s13_' + pre + i + suf);
+        if (el && num(el.value) != null) {
+          throw new Error('แถวที่ ' + i + ' ของตาราง "' + pre + '" มีข้อมูล แต่แบบฟอร์มพิมพ์ได้แค่ '
+            + cap + ' แถว — ยอดรวมจะไม่ตรงกับที่พิมพ์บนกระดาษ');
+        }
+      }
+      return any ? fmt0(s) : '';
+    };
     const pt = sumKeys('prod', '_amt'); if (pt) data.prodTotal = pt;
     const it = sumKeys('inc', '_value'); if (it) data.incTotal = it;
     const et = sumKeys('exp', '_amt'); if (et) data.expTotal = et;

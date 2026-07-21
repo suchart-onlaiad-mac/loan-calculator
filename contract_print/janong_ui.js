@@ -66,6 +66,44 @@ function toggleJanong() {
   p.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+/* 🔒 SSOT ของการรวมหนี้เดิม ส.-งก.13 → หนังสือแสดงความจำนง
+ * ทั้งฝั่งแสดงคำเตือนบนจอ และฝั่งด่านตอนพิมพ์ ต้องเรียกตัวนี้ตัวเดียว
+ * ห้ามคำนวณซ้ำที่อื่น — ไม่งั้นจอเตือนอย่าง ด่านเช็คอีกอย่าง แล้วเพี้ยนจากกันเงียบ ๆ
+ * (แพตเทิร์นเดียวกับ sngk13Alloc ที่เป็น SSOT ของตารางข้อ 2)
+ *
+ * unmapped = ประเภทหนี้ที่ ส.-งก.13 มี แต่ฟอร์มนี้ไม่มีแถวรองรับ (เช่น "ระยะยาว")
+ *            → ถ้าปล่อยผ่าน เอกสารจะบอกว่าผู้กู้มีหนี้น้อยกว่าความจริง */
+function janongAggDebt() {
+  const U = window.__JANONG_UI || { DEBT: [] };
+  const V = id => { const el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
+  const agg = {}, unmapped = [];
+  for (let i = 1; i <= 2; i++) {
+    const type = V('s13_debt' + i + '_type'), remain = V('s13_debt' + i + '_remain');
+    if (!type) continue;
+    const hit = U.DEBT.find(d => d[1] === type);
+    if (!hit) { unmapped.push(type + (remain ? ' (' + remain + ')' : '')); continue; }
+    const n = Number(String(remain).replace(/,/g, ''));
+    const a = agg[hit[0]] = agg[hit[0]] || { count: 0, sum: 0 };
+    a.count++; if (!isNaN(n)) a.sum += n;
+  }
+  return { agg, unmapped };
+}
+
+/* แถวที่เจ้าหน้าที่พิมพ์ยอดเองไว้ แต่ไม่มีหนี้ประเภทนั้นใน ส.-งก.13 แล้ว
+ * → เอกสารจะนับหนี้ก้อนเดิมซ้ำ (ผู้ตรวจรับจับได้ 20-07) */
+function janongOrphanDebt() {
+  const U = window.__JANONG_UI || { DEBT: [] };
+  const { agg } = janongAggDebt();
+  const out = [];
+  U.DEBT.forEach(d => {
+    if (agg[d[0]]) return;
+    const c = document.getElementById('jn_debt' + d[0] + 'Count');
+    const m = document.getElementById('jn_debt' + d[0] + 'Amount');
+    if ((c && c.value) || (m && m.value)) out.push(d[1]);
+  });
+  return out;
+}
+
 function janongAutofill() {
   const U = window.__JANONG_UI; if (!U) return;
   const V = id => { const el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
@@ -85,16 +123,7 @@ function janongAutofill() {
   /* หนี้เดิม ← ตาราง "ข้อ 3 หนี้เงินกู้เดิม" ของ ส.-งก.13 (รวมยอด+นับสัญญาตามประเภท)
    * ⚠️ ประเภทที่ ส.-งก.13 มีแต่ฟอร์มนี้ไม่มีแถวรองรับ (เช่น "ระยะยาว") จะ map ไม่ได้
    *    เดิมข้ามเงียบ → ตารางหนี้ว่างเปล่าเหมือนผู้กู้ไม่มีหนี้ · ตอนนี้แจ้งให้กรอกมือแทน */
-  const agg = {}, unmapped = [];
-  for (let i = 1; i <= 2; i++) {
-    const type = V('s13_debt' + i + '_type'), remain = V('s13_debt' + i + '_remain');
-    if (!type) continue;
-    const hit = U.DEBT.find(d => d[1] === type);
-    if (!hit) { unmapped.push(type + (remain ? ' (' + remain + ')' : '')); continue; }
-    const n = Number(String(remain).replace(/,/g, ''));
-    const a = agg[hit[0]] = agg[hit[0]] || { count: 0, sum: 0 };
-    a.count++; if (!isNaN(n)) a.sum += n;
-  }
+  const { agg, unmapped } = janongAggDebt();
   /* 🔒 sync ตามเสมอ + ล้างของที่ไม่มีแล้ว — หลักเดียวกับติ๊กหลักค้ำด้านบน
    * เดิม `if (!c.value)` เขียนเฉพาะตอนช่องว่าง และวนเฉพาะประเภทที่มีใน agg
    *   → แก้ประเภทหนี้ใน ส.-งก.13 แล้วยอดเก่าค้าง = หนี้ 1 ก้อน พิมพ์เป็น 2 ก้อน ยอดเบิ้ล
@@ -170,6 +199,21 @@ async function genJanongPDF() {
     if (miss.length) return bad('ยังขาดข้อมูลผู้กู้ (แผงด้านบน): ' + miss.join(' · '));
     const capMsg = DocGate.ceiling(r.P);
     if (capMsg) return bad(capMsg);
+
+    /* 🔒 หนี้เดิมที่ตกจากเอกสาร — เดิมเตือนบนจออย่างเดียว แล้วพิมพ์ให้อยู่ดี
+     * ถ้าเจ้าหน้าที่ไม่เห็นคำเตือน เอกสารจะบอกว่าผู้กู้มีหนี้น้อยกว่าความจริง
+     * หลักเดียวกับข้อความล้นช่อง (ผู้จัดการเคาะ 21-07): เอกสารจะออกมาผิด = ไม่พิมพ์ */
+    const _un = janongAggDebt().unmapped;
+    if (_un.length) {
+      return bad('หนี้เดิมประเภท “' + _un.join('”, “') + '” ไม่มีแถวรองรับในแบบฟอร์มนี้'
+        + '<br><span style="font-weight:400">ถ้าพิมพ์ไป เอกสารจะบอกว่าผู้กู้มีหนี้น้อยกว่าความจริง — '
+        + 'กรอกยอดลงแถวที่ใกล้เคียงในตารางหนี้เดิมก่อน แล้วสร้างใหม่</span>');
+    }
+    const _orph = janongOrphanDebt();
+    if (_orph.length) {
+      return bad('แถว “' + _orph.join('”, “') + '” มียอดค้างอยู่ แต่ไม่มีหนี้ประเภทนี้ใน ส.-งก.13 แล้ว'
+        + '<br><span style="font-weight:400">ถ้าพิมพ์ไป เอกสารจะนับหนี้ก้อนเดิมซ้ำ — ลบยอดในแถวนั้นก่อน</span>');
+    }
 
     let purpose = V('ct_purpose');
     if (purpose === '__OTHER__') purpose = V('ct_purpose_other');
