@@ -79,6 +79,34 @@ function parseDate(v){ if(!v) return null; const [y,m,d]=v.split('-').map(Number
 const GUAR_CEILING = 80000;
 const SHARE_PAR = 10;      // มูลค่าหุ้นละ 10 บาท — ข้อบังคับ ข้อ 5
 
+/* เพดานรวมทุกสัญญา — ระเบียบ 101 ข้อ 6 วรรคท้าย (ยกข้อความจริง):
+ *   "จำนวนขั้นสูงของเงินกู้ระยะสั้นและระยะปานกลางรวมทุกรายการของสมาชิกคนหนึ่ง
+ *    ในเวลาใดเวลาหนึ่ง จะเกิน 1,000,000 บาท ไม่ได้"
+ * 🔑 อ่านให้ครบ 3 จุด: "รวมทุกรายการ" (ไม่ใช่ต่อสัญญา) · "ระยะสั้นและระยะปานกลาง"
+ *    (ระยะยาวไม่นับ) · "ในเวลาใดเวลาหนึ่ง" (คือยอดคงเหลือ ณ ตอนนี้ ไม่ใช่ยอดกู้เดิม)
+ * มติผู้จัดการ 21-07-2569: นับหนี้เดิมที่กรอกไว้ด้วย · เกินแล้วบล็อก ไม่พิมพ์ */
+const TOTAL_CEILING = 1000000;
+const CAPPED_TYPES = ['ระยะสั้น', 'ระยะปานกลาง'];
+
+/* รวมยอดที่นับเข้าเพดาน — คืนรายละเอียดให้ผู้เรียกเอาไปเขียนข้อความเองได้
+ * debts = [{type, remain}] จากตารางหนี้เดิมใน ส.-งก.13
+ * ⚠️ ข้อจำกัดที่ต้องบอกผู้ใช้: เว็บรู้เฉพาะหนี้ที่เจ้าหน้าที่พิมพ์ลงตารางเท่านั้น
+ *    ผ่านด่านนี้ไม่ได้แปลว่ายอดรวมจริงไม่เกิน — ห้ามเขียนข้อความให้เข้าใจว่ารับประกัน */
+function loanTotalCounted(newP, debts){
+  const counted = [], skipped = [];
+  (debts || []).forEach(function(d){
+    const type = String(d && d.type || '').trim();
+    if(!type) return;
+    const n = Number(String(d.remain == null ? '' : d.remain).replace(/,/g, ''));
+    if(CAPPED_TYPES.indexOf(type) === -1){ skipped.push(type); return; }
+    if(isNaN(n) || n <= 0) return;
+    counted.push({ type: type, amount: n });
+  });
+  const debtSum = counted.reduce(function(s, c){ return s + c.amount; }, 0);
+  const P = Number(newP) || 0;
+  return { sum: P + debtSum, newLoan: P, debtSum: debtSum, counted: counted, skipped: skipped };
+}
+
 /* เพดานวงเงินตามเส้นทางหลักค้ำประกัน — SSOT จุดเดียว ทั้งข้อความเตือนและปุ่มบล็อกเรียกใช้ตัวนี้
  * ห้ามคำนวณเพดานซ้ำที่อื่น: สองสูตรที่ตั้งใจให้เหมือนกันจะเพี้ยนจากกันเงียบ ๆ วันที่แก้ทีละที่
  * คืน null = ระเบียบไม่ได้ผูกเพดานไว้กับตัวเลขที่เว็บรู้ → ห้ามบล็อก (คณะกรรมการเป็นคนพิจารณา)
@@ -292,7 +320,7 @@ function calcRestructMonthlyCore(inputs){
 }
 
 return {
-  TH_MONTH, GUAR_CEILING, SHARE_PAR,
+  TH_MONTH, GUAR_CEILING, SHARE_PAR, TOTAL_CEILING, CAPPED_TYPES, loanTotalCounted,
   round2, fmt, fmt0, thDate, daysBetween, lastDay, addMonthsClamp, monthsBetween,
   quarterInfo, firstDueDate, autoUnit, instAmounts, solveAnnuity, parseDate, ceilingFor,
   clampRestructN, clampRestructG,

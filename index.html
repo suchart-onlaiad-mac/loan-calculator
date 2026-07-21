@@ -1131,6 +1131,8 @@ async function genContractPDF(){
     if(miss.length) return _bad('ยังขาดข้อมูลผู้กู้: '+miss.join(' · '));
     const _capMsg = DocGate.ceiling(r.P);
     if(_capMsg) return _bad(_capMsg);
+    const _totMsg = DocGate.totalCeiling(r.P);   // 🔒 เพดานรวมทุกสัญญา ข้อ 6 วรรคท้าย
+    if(_totMsg) return _bad(_totMsg);
     const _prinCount = r.rows.filter(x=>x.isPrincipal).length;
     const _ovf = DocGate.capacity('contract', _prinCount);
     if(_ovf) return _bad(_ovf);
@@ -1193,6 +1195,8 @@ async function genSharePDF(){
     const shares = getShares();
     const _capMsg = DocGate.ceiling(r.P);      // 🔒 ด่านร่วม — เพดานตาม ข้อ 8 + กันกรณียังไม่กรอกหุ้น (ดู doc_gate.js)
     if(_capMsg) return bad(_capMsg);
+    const _totMsg = DocGate.totalCeiling(r.P);   // 🔒 เพดานรวมทุกสัญญา ข้อ 6 วรรคท้าย
+    if(_totMsg) return bad(_totMsg);
     const meetInp=document.getElementById('ct_meetdate');
     if(!meetInp.value){ meetInp.style.outline='2px solid #c00'; meetInp.focus(); return bad('เลือก "วันที่ประชุมอนุมัติ" ก่อน'); }
     meetInp.style.outline='';
@@ -1245,6 +1249,8 @@ async function genGuaranteePDF(){
     if(!r) return bad('กรอกเงินต้น + วันรับเงินกู้ แล้วกด "คำนวณ" ก่อน');
     const _capMsg = DocGate.ceiling(r.P);      // 🔒 ด่านร่วม — เพดานตาม ข้อ 8 (ดู doc_gate.js)
     if(_capMsg) return bad(_capMsg);
+    const _totMsg = DocGate.totalCeiling(r.P);   // 🔒 เพดานรวมทุกสัญญา ข้อ 6 วรรคท้าย
+    if(_totMsg) return bad(_totMsg);
     const _missB = DocGate.borrower('guarantee');   // หนังสือค้ำพิมพ์ชื่อผู้กู้ + วัตถุประสงค์ด้วย
     if(_missB.length) return bad('ยังขาดข้อมูลผู้กู้ (แผงด้านบน): '+_missB.join(' · '));
     const meetInp=document.getElementById('ct_meetdate');

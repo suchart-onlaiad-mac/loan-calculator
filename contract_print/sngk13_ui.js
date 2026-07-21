@@ -347,6 +347,8 @@ async function genLoanRequestPDF() {
     if (miss.length) return bad('ยังขาดข้อมูลผู้กู้ (แผงด้านบน): ' + miss.join(' · '));
     const capMsg = DocGate.ceiling(r.P);
     if (capMsg) return bad(capMsg);
+    const totMsg = DocGate.totalCeiling(r.P);   // 🔒 เพดานรวมทุกสัญญา ข้อ 6 วรรคท้าย
+    if (totMsg) return bad(totMsg);
     const ovf = DocGate.capacity('sngk13', r.rows.filter(x => x.isPrincipal).length);
     if (ovf) return bad(ovf);
 

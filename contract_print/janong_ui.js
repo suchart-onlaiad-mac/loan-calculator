@@ -205,6 +205,8 @@ async function genJanongPDF() {
     if (miss.length) return bad('ยังขาดข้อมูลผู้กู้ (แผงด้านบน): ' + miss.join(' · '));
     const capMsg = DocGate.ceiling(r.P);
     if (capMsg) return bad(capMsg);
+    const totMsg = DocGate.totalCeiling(r.P);   // 🔒 เพดานรวมทุกสัญญา ข้อ 6 วรรคท้าย
+    if (totMsg) return bad(totMsg);
 
     /* 🔒 หนี้เดิมที่ตกจากเอกสาร — เดิมเตือนบนจออย่างเดียว แล้วพิมพ์ให้อยู่ดี
      * ถ้าเจ้าหน้าที่ไม่เห็นคำเตือน เอกสารจะบอกว่าผู้กู้มีหนี้น้อยกว่าความจริง

@@ -122,6 +122,37 @@
     return null;
   }
 
+  /* ---- เพดานรวมทุกสัญญา 1,000,000 บาท (ระเบียบ 101 ข้อ 6 วรรคท้าย) ----
+   * ต่างจาก ceiling() ที่ดูวงเงินใบเดียวเทียบหลักประกัน — ตัวนี้ดู "ยอดรวม"
+   * ของเงินกู้ระยะสั้น+ปานกลางทุกรายการที่สมาชิกมีอยู่ในเวลาเดียวกัน
+   * หนี้เดิมอ่านจากตารางใน ส.-งก.13 (ช่องอยู่ใน DOM เสมอ แม้ยังไม่เปิดแผง)
+   * fail-closed แบบเดียวกับด่านอื่น: อ่านสูตรไม่ได้ = ไม่ปล่อยผ่าน */
+  function totalCeiling(P) {
+    if (typeof loanTotalCounted !== 'function' || typeof TOTAL_CEILING !== 'number') {
+      return 'ระบบผิดพลาด: อ่านสูตรเพดานรวม (loan_core.js) ไม่ได้ — แจ้งผู้พัฒนา'
+           + '<br><span style="font-weight:400">ไม่พิมพ์ให้ เพราะตรวจเพดานรวม 1,000,000 บาท ตามระเบียบ ข้อ 6 ไม่ได้</span>';
+    }
+    var debts = [], i = 1;
+    while (document.getElementById('s13_debt' + i + '_type')) {
+      debts.push({ type: V('s13_debt' + i + '_type'), remain: V('s13_debt' + i + '_remain') });
+      i++;
+    }
+    var r = loanTotalCounted(P, debts);
+    if (r.sum <= TOTAL_CEILING) return null;
+
+    var detail = r.debtSum > 0
+      ? 'วงเงินใหม่ ' + fmt0(r.newLoan) + ' + หนี้เดิมที่กรอกไว้ ' + fmt0(r.debtSum)
+        + ' (' + r.counted.length + ' รายการ) = ' + fmt0(r.sum) + ' บาท'
+      : 'วงเงินใหม่ ' + fmt0(r.sum) + ' บาท';
+    var note = r.skipped.length
+      ? '<br><span style="font-weight:400">ไม่นับหนี้ประเภท ' + r.skipped.join(' · ')
+        + ' เพราะระเบียบข้อนี้ครอบเฉพาะระยะสั้นและระยะปานกลาง</span>'
+      : '';
+    return 'ยอดรวมเกินเพดาน 1,000,000 บาท (ระเบียบเงินกู้ ข้อ 6 วรรคท้าย)'
+         + '<br><span style="font-weight:400">' + detail + '</span>' + note
+         + '<br><span style="font-weight:400">→ ลดวงเงิน หรือชำระหนี้เดิมบางส่วนก่อน</span>';
+  }
+
   /* ---- ความจุตารางงวดในแบบฟอร์ม ----
    * นับช่องจริงจาก fieldmap ไม่ฝังเลข 10 ไว้ — เพิ่มแถวในฟอร์มแล้วด่านขยับตามเอง */
   function slots(doc) {
@@ -172,6 +203,7 @@
     borrower: borrower,
     guarantor: guarantor,
     ceiling: ceiling,
+    totalCeiling: totalCeiling,
     capacity: capacity,
     slots: slots,
     missKeys: missKeys,
