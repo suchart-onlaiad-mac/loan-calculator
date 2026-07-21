@@ -145,6 +145,8 @@ window.SNGK13_MAP = {
     "align": "left"
   },
   "use1_item": {
+    "_wrap_note": "แถวสูง 28.3pt (วัด 21-07-2569) รับ 2 บรรทัดที่ 12pt",
+    "wrap": true,
     "page": 1,
     "x": 92,
     "y": 485.5,
@@ -172,6 +174,8 @@ window.SNGK13_MAP = {
     "align": "center"
   },
   "use2_item": {
+    "_wrap_note": "แถวสูง 28.3pt (วัด 21-07-2569) รับ 2 บรรทัดที่ 12pt",
+    "wrap": true,
     "page": 1,
     "x": 92,
     "y": 513.8,
@@ -199,6 +203,8 @@ window.SNGK13_MAP = {
     "align": "center"
   },
   "use3_item": {
+    "_wrap_note": "แถวสูง 28.3pt (วัด 21-07-2569) รับ 2 บรรทัดที่ 12pt",
+    "wrap": true,
     "page": 1,
     "x": 92,
     "y": 542.4,
@@ -226,6 +232,8 @@ window.SNGK13_MAP = {
     "align": "center"
   },
   "use4_item": {
+    "_wrap_note": "แถวสูง 28.3pt (วัด 21-07-2569) รับ 2 บรรทัดที่ 12pt",
+    "wrap": true,
     "page": 1,
     "x": 92,
     "y": 570.7,

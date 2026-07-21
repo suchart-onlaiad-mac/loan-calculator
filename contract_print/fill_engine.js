@@ -84,10 +84,10 @@
       }
       // (ข) จัดกึ่งกลาง (cx) เช่น ชื่อในวงเล็บ
       if (spec.align === "center") {
-        push(spec.page, { cx: spec.cx, baselineTop, size: spec.size || 12, text: String(text), max: spec.max, align: "center" });
+        push(spec.page, { key, cx: spec.cx, baselineTop, size: spec.size || 12, text: String(text), max: spec.max, align: "center", wrap: spec.wrap === true });
         continue;
       }
-      push(spec.page, { x: spec.x, baselineTop, size: spec.size || 12, text: String(text), max: spec.max });
+      push(spec.page, { key, x: spec.x, baselineTop, size: spec.size || 12, text: String(text), max: spec.max, wrap: spec.wrap === true });
     }
     // ตาราง
     if (data.rows && FM.table) {
@@ -105,6 +105,73 @@
     return perPage;
   }
 
+  /* ── นโยบายข้อความยาวเกินช่อง (ผู้จัดการเคาะ 21-07-2569) ────────────────
+   *   1. ย่อฟอนต์ลง แต่ไม่ต่ำกว่า SHRINK_FLOOR (เดิม 8pt เล็กจนอ่านไม่ออก)
+   *   2. ยังไม่พอ → ขึ้นบรรทัดที่ 2 (เฉพาะช่องที่ fieldmap ระบุ wrap:true
+   *      เพราะรู้ว่ามีที่ว่างแนวตั้งจริง — ช่องอื่นขึ้นบรรทัดจะไปทับบรรทัดล่าง)
+   *   3. ยังไม่พอ + ตัดคำไม่ได้ (ข้อความต่อเนื่อง) → ยอมล้ำได้ไม่เกิน BLEED
+   *   4. ยังไม่พอ → 🔴 throw = ไม่พิมพ์เอกสารเลย
+   *
+   * 🔑 รากของบั๊ก 21-07-2569: เดิมย่อถึง 8pt แล้ว fillText วาดทับออกไปเงียบ ๆ
+   *    ไม่ throw ไม่เตือน → ทุกใบขึ้น "✅ สร้างสำเร็จ" เหมือนกันหมด
+   *    รวมใบที่ตัวหนังสือทะลุเส้นตาราง เจ้าหน้าที่ไม่มีทางรู้ว่าใบไหนยื่นไม่ได้
+   *
+   * BLEED=4 มาจากการวัดเส้นตารางจริงใน sngk13_base.pdf ที่ 300dpi
+   * (ช่อง use*_item: เริ่ม x=92 · เส้นจริงที่ 148.0 · max=52 → เหลือเผื่อ 4pt)
+   * ห้ามเดาค่านี้ — วัดใหม่ด้วย _scratch สคริปต์ measure_cells.py ถ้าเปลี่ยนแบบฟอร์ม */
+  const SHRINK_FLOOR = 12;
+  const BLEED = 4;
+  /* ระยะห่างบรรทัด = 0.85 เท่าของขนาดฟอนต์ — แคบกว่า 1.0 โดยตั้งใจ
+   * แถว use*_item สูง 28.3pt · 2 บรรทัดที่ 12pt × 0.85 = ห่างกัน 10.2pt
+   * ทำให้บรรทัดบนไม่ไปชนหางบรรทัดของแถวก่อนหน้า (วัดแล้วเหลือระยะ ~5pt) */
+  const LINE_RATIO = 0.85;
+
+  // อักขระไทยที่เกาะตัวหน้า (สระบน-ล่าง วรรณยุกต์) — ห้ามตัดบรรทัดหน้าตัวพวกนี้
+  const _COMBINING = /[ัิ-ฺ็-๎]/;
+
+  function _w(ctx, s) { return ctx.measureText(s).width / SCALE; }
+
+  /** หาจุดตัดที่ยาวที่สุดซึ่งบรรทัดแรกยังไม่เกิน max — คืน index หรือ -1 ถ้าตัดไม่ได้ */
+  function _breakAt(ctx, text, max) {
+    let best = -1;
+    for (let i = 1; i < text.length; i++) {
+      if (_COMBINING.test(text[i])) continue;          // ห้ามแยกสระออกจากพยัญชนะ
+      if (_w(ctx, text.slice(0, i)) > max) break;
+      best = i;
+    }
+    // มีช่องว่างในช่วงที่ตัดได้ → ตัดตรงช่องว่างสวยกว่า
+    const sp = text.lastIndexOf(" ", best);
+    return sp > 0 ? sp : best;
+  }
+
+  /** คืน {lines, size} ถ้าใส่ได้ · คืน null ถ้าใส่ไม่ลงตามนโยบาย */
+  function _fit(ctx, f) {
+    let size = f.size;
+    const setFont = () => { ctx.font = `${size * SCALE}px "${OVERLAY_FONT}"`; };
+    setFont();
+    if (!f.max) return { lines: [f.text], size };
+
+    // 1. ย่อ
+    while (size > SHRINK_FLOOR && _w(ctx, f.text) > f.max) { size -= 0.5; setFont(); }
+    if (_w(ctx, f.text) <= f.max) return { lines: [f.text], size };
+
+    // 2. ขึ้นบรรทัดที่ 2 (เฉพาะช่องที่รู้ว่ามีที่ว่าง)
+    if (f.wrap) {
+      const cut = _breakAt(ctx, f.text, f.max);
+      if (cut > 0) {
+        const a = f.text.slice(0, cut).trim(), b = f.text.slice(cut).trim();
+        if (_w(ctx, a) <= f.max && _w(ctx, b) <= f.max) return { lines: [a, b], size };
+      }
+    }
+
+    // 3. ตัดไม่ได้ (ข้อความต่อเนื่อง) แต่ล้ำแค่นิดเดียว → ยอม
+    const over = _w(ctx, f.text) - f.max;
+    if (over <= BLEED) return { lines: [f.text], size, bled: over };
+
+    // 4. ใส่ไม่ลงจริง
+    return null;
+  }
+
   // วาด overlay canvas สำหรับ 1 หน้า (โปร่งใส) — เบราว์เซอร์ shape ไทยเอง
   function _renderOverlayCanvas(Wpt, Hpt, fields, colorCss) {
     const cv = document.createElement("canvas");
@@ -113,19 +180,42 @@
     const ctx = cv.getContext("2d");
     ctx.textBaseline = "alphabetic";
     ctx.fillStyle = colorCss;
+    const tooLong = [];
     for (const f of fields) {
-      let size = f.size;
-      ctx.font = `${size * SCALE}px "${OVERLAY_FONT}"`;
-      if (f.max) {
-        while (size > 8 && ctx.measureText(f.text).width / SCALE > f.max) {
-          size -= 0.5; ctx.font = `${size * SCALE}px "${OVERLAY_FONT}"`;
-        }
+      const fit = _fit(ctx, f);
+      if (!fit) {
+        ctx.font = `${SHRINK_FLOOR * SCALE}px "${OVERLAY_FONT}"`;
+        tooLong.push({
+          key: f.key || "(ไม่ทราบชื่อช่อง)",
+          text: f.text,
+          over: Math.ceil(_w(ctx, f.text) - f.max),
+        });
+        continue;   // ไม่วาดช่องนี้ — เดี๋ยว throw ทิ้งทั้งใบอยู่แล้ว
       }
-      // align:center → ยึด cx เป็นกึ่งกลาง (เลขบัตรรายกล่อง / ชื่อในวงเล็บ)
-      const x = (f.align === "center")
-        ? (f.cx * SCALE - ctx.measureText(f.text).width / 2)
-        : (f.x * SCALE);
-      ctx.fillText(f.text, x, f.baselineTop * SCALE);
+      ctx.font = `${fit.size * SCALE}px "${OVERLAY_FONT}"`;
+      /* 🔑 ที่ว่างของแถวอยู่ "เหนือ" baseline ไม่ใช่ใต้ — baseline เดิมชิดขอบล่างช่องอยู่แล้ว
+       * เดิมวางบรรทัด 2 ไว้ใต้บรรทัดแรก → ตกไปทับเส้นล่างของแถว (เห็นในภาพ 21-07-2569)
+       * ถูกคือ: บรรทัดสุดท้ายอยู่ที่ baseline เดิม แล้วไล่บรรทัดก่อนหน้าขึ้นไปด้านบน */
+      const gap = fit.size * LINE_RATIO;
+      const top = f.baselineTop - (fit.lines.length - 1) * gap;
+      fit.lines.forEach((ln, i) => {
+        // align:center → ยึด cx เป็นกึ่งกลาง (เลขบัตรรายกล่อง / ชื่อในวงเล็บ)
+        const x = (f.align === "center")
+          ? (f.cx * SCALE - ctx.measureText(ln).width / 2)
+          : (f.x * SCALE);
+        ctx.fillText(ln, x, (top + i * gap) * SCALE);
+      });
+    }
+    if (tooLong.length) {
+      const detail = tooLong
+        .map(t => `• ${t.key}: "${t.text}" ยาวเกินช่อง ${t.over} pt`)
+        .join("\n");
+      const e = new Error(
+        `ข้อความยาวเกินช่อง ${tooLong.length} ช่อง — ไม่พิมพ์ให้ เพราะจะทะลุเส้นตาราง\n` +
+        detail + "\nแก้: พิมพ์ข้อความให้สั้นลง แล้วสร้างใหม่"
+      );
+      e.overflowFields = tooLong;
+      throw e;
     }
     return cv;
   }

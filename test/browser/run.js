@@ -132,7 +132,9 @@ async function runCase(c) {
   }
   if (/⏳/.test(status)) status = 'ค้างที่ "' + status + '" เกิน 20 วินาที';
 
-  const blocked = /⚠️/.test(status);
+  // ⚠️ = ด่านบล็อกก่อนสร้าง · ❌ = เอนจินโยน error ระหว่างวาด (เช่น ข้อความยาวเกินช่อง)
+  // ทั้งคู่ = "ไม่ได้เอกสาร" ซึ่งคือสิ่งที่เคสควบคุมต้องการพิสูจน์
+  const blocked = /⚠️|❌/.test(status);
   const fails = preFail.slice();
 
   if (c.expect === 'block') {
