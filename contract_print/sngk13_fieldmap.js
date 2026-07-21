@@ -481,7 +481,7 @@ window.SNGK13_MAP = {
     "x": 90,
     "y": 156.4,
     "size": 14,
-    "max": 44,
+    "max": 42,
     "dy": 7,
     "align": "left"
   },
@@ -508,7 +508,7 @@ window.SNGK13_MAP = {
     "x": 90,
     "y": 185,
     "size": 14,
-    "max": 44,
+    "max": 42,
     "dy": 7,
     "align": "left"
   },
@@ -535,7 +535,7 @@ window.SNGK13_MAP = {
     "x": 90,
     "y": 213.6,
     "size": 14,
-    "max": 44,
+    "max": 42,
     "dy": 7,
     "align": "left"
   },
@@ -562,7 +562,7 @@ window.SNGK13_MAP = {
     "x": 90,
     "y": 241.6,
     "size": 14,
-    "max": 44,
+    "max": 42,
     "dy": 7,
     "align": "left"
   },
@@ -589,7 +589,7 @@ window.SNGK13_MAP = {
     "x": 90,
     "y": 270.2,
     "size": 14,
-    "max": 44,
+    "max": 42,
     "dy": 7,
     "align": "left"
   },
@@ -616,7 +616,7 @@ window.SNGK13_MAP = {
     "x": 90,
     "y": 298.5,
     "size": 14,
-    "max": 44,
+    "max": 42,
     "dy": 7,
     "align": "left"
   },
@@ -652,7 +652,9 @@ window.SNGK13_MAP = {
     "x": 304,
     "y": 185,
     "size": 14,
-    "max": 36,
+    "_cell_note": "ช่อง 287.88-342.60 แต่มีเลขลำดับพิมพ์มากับฟอร์มถึง ~304 เหลือใช้ 38.6pt · max+BLEED(4) ต้อง <= 38.6 → 34 · แถวสูง 28.3pt รับ 2 บรรทัด",
+    "wrap": true,
+    "max": 34,
     "dy": 7,
     "align": "left"
   },
@@ -697,7 +699,8 @@ window.SNGK13_MAP = {
     "x": 304,
     "y": 213.6,
     "size": 14,
-    "max": 36,
+    "wrap": true,
+    "max": 34,
     "dy": 7,
     "align": "left"
   },
@@ -742,7 +745,8 @@ window.SNGK13_MAP = {
     "x": 304,
     "y": 241.6,
     "size": 14,
-    "max": 36,
+    "wrap": true,
+    "max": 34,
     "dy": 7,
     "align": "left"
   },
@@ -787,7 +791,8 @@ window.SNGK13_MAP = {
     "x": 304,
     "y": 270.2,
     "size": 14,
-    "max": 36,
+    "wrap": true,
+    "max": 34,
     "dy": 7,
     "align": "left"
   },
