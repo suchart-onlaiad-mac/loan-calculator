@@ -1054,18 +1054,30 @@ function updateSecurityUI(){
 
   let P=0; try{ const r=calcCoop(); P = r? r.P : 0; }catch(e){}
   if(!P) return;
-  if(!shares){
+  /* 🔒 บังคับกรอกหุ้นเฉพาะหุ้นค้ำ — ให้ตรงกับ DocGate.ceiling เป๊ะ ๆ
+   * เดิม bail ทุกชนิดเมื่อหุ้น = 0 → บุคคลค้ำ + ยังไม่กรอกหุ้น จอบอก
+   * "คำนวณเพดานไม่ได้" ขณะที่กดปุ่มแล้วด่านบอก "เกินเพดาน 50,000"
+   * สองข้อความอ้างระเบียบข้อเดียวกันแต่ขัดกัน และจอเป็นฝ่ายผิด
+   * เพราะ ข้อ 8(2) ก. ให้พื้น 50,000 อยู่แล้ว ไม่ต้องรู้หุ้น (ตรวจเชิงลึก 21-07-2569) */
+  if(sec==='share' && !shares){
     warn.style.display='block'; warn.style.color='#b26a00';
-    warn.innerHTML='⚠️ ยังไม่ได้กรอกจำนวนหุ้น — คำนวณเพดานตามระเบียบ ข้อ 8 ไม่ได้';
+    warn.innerHTML='⚠️ ยังไม่ได้กรอกจำนวนหุ้น — หุ้นค้ำประกันคิดเพดานจาก 60% ของมูลค่าหุ้น (ระเบียบ ข้อ 8 วรรคแรก)';
     return;
   }
   const cap = ceilingFor(sec, shares);
-  // อธิบายที่มาของเพดาน เพื่อให้เจ้าหน้าที่เถียงกับตัวเลขได้ ไม่ใช่แค่เชื่อ
-  const why = isPerson
-    ? (2*shareBaht >= GUAR_CEILING ? 'หุ้น '+fmt0(shareBaht)+' บาท → 2 เท่า = '+fmt0(2*shareBaht)+' บาท แต่ระเบียบตัดที่เพดาน 80,000'
-      : (2*shareBaht > 50000 ? 'หุ้น '+fmt0(shareBaht)+' บาท → เกณฑ์ ข. 2 เท่า = '+fmt0(2*shareBaht)+' บาท'
-        : 'หุ้น '+fmt0(shareBaht)+' บาท → เกณฑ์ ข. 2 เท่า = '+fmt0(2*shareBaht)+' บาท ซึ่งต่ำกว่าเกณฑ์ ก. จึงได้ '+fmt0(50000)+' บาท'))
-    : 'หุ้น '+fmt0(shareBaht)+' บาท → 60% = '+fmt0(cap)+' บาท';
+  /* อธิบายที่มาของเพดาน เพื่อให้เจ้าหน้าที่เถียงกับตัวเลขได้ ไม่ใช่แค่เชื่อ
+   * 🔒 ข้อความต้องอธิบายค่าที่ ceilingFor คืนมาจริง ไม่ใช่คำนวณเกณฑ์ใหม่เอง
+   *    เดิมไล่เงื่อนไขซ้ำ (2 เท่า / 80,000 / 50,000 / 60%) วันที่ใครแก้สูตร
+   *    ตัวเลขบนจอจะขยับ แต่คำอธิบายจะยังพูดสูตรเดิม = จอขัดกับตัวเอง */
+  const why = !isPerson
+    ? 'หุ้น '+fmt0(shareBaht)+' บาท → 60% = '+fmt0(cap)+' บาท'
+    : (cap === 2*shareBaht
+        ? 'หุ้น '+fmt0(shareBaht)+' บาท → เกณฑ์ ข. 2 เท่า = '+fmt0(cap)+' บาท'
+        : (2*shareBaht > cap
+            ? 'หุ้น '+fmt0(shareBaht)+' บาท → 2 เท่า = '+fmt0(2*shareBaht)+' บาท แต่ระเบียบตัดที่เพดาน '+fmt0(cap)
+            : (shares
+                ? 'หุ้น '+fmt0(shareBaht)+' บาท → 2 เท่า = '+fmt0(2*shareBaht)+' บาท ซึ่งต่ำกว่าเกณฑ์ ก. จึงได้ '+fmt0(cap)+' บาท'
+                : 'ยังไม่ได้กรอกหุ้น → ใช้พื้นตามเกณฑ์ ก. = '+fmt0(cap)+' บาท (กรอกหุ้นเพื่อขยายเป็น 2 เท่าตามเกณฑ์ ข.)')));
   const rule = isPerson ? 'ข้อ 8(2) ก./ข.' : 'ข้อ 8 วรรคแรก';
   if(P > cap){
     warn.style.display='block'; warn.style.color='#c00';
@@ -1211,9 +1223,8 @@ async function genSharePDF(){
 
     /* 🚦 กันบั๊ก "ช่องว่างเงียบ" — ตรวจเฉพาะ key ที่ไม่ถูกสร้างเลย (undefined = บั๊กโปรแกรม)
      *    ค่าว่าง '' = ตั้งใจเว้น (เช่น tel) → ผ่านได้ */
-    const needed = Object.keys(window.SHARE_MAP).filter(k=>k!=='baseDY');
-    const missKeys = needed.filter(k => data[k] === undefined);
-    if(missKeys.length) return bad('บั๊ก: fieldmap มี key ที่ฝั่งผลิตไม่ได้สร้าง → '+missKeys.join(', '));
+    const missKeys = DocGate.missKeys(window.SHARE_MAP, data);
+    if(missKeys.length) return bad('ระบบผิดพลาด: โปรแกรมไม่ได้สร้างข้อมูลช่อง → '+missKeys.join(', ')+' (แจ้งผู้พัฒนา)');
 
     st.textContent='⏳ กำลังสร้าง...';
     const bytes = await ContractFill.generateShare(data, {});
@@ -1288,8 +1299,7 @@ async function genGuaranteePDF(){
     /* 🚦 กันบั๊ก "ช่องว่างเงียบ" (บั๊ก 14-07: key ฝั่งผลิต ≠ key ใน fieldmap → 16 ช่องว่างเงียบ)
      * ⚠️ ตรวจเฉพาะ key ที่ "ไม่ถูกสร้างเลย" (undefined = บั๊กโปรแกรม)
      *    ค่าว่าง '' = คนไม่ได้กรอกช่องที่ไม่บังคับ (เช่น โทรศัพท์) → ปล่อยผ่านปกติ */
-    const needed = Object.keys(window.GUARANTEE_MAP).filter(k=>k!=='baseDY');
-    const missKeys = needed.filter(k => sheets[0][k] === undefined);
+    const missKeys = DocGate.missKeys(window.GUARANTEE_MAP, sheets[0]);
     if(missKeys.length) return bad('ระบบผิดพลาด: โปรแกรมไม่ได้สร้างข้อมูลช่อง → '+missKeys.join(', ')+' (แจ้งผู้พัฒนา)');
 
     if(warns.length) st.innerHTML='<span style="color:#b26a00">⚠️ '+warns.join('<br>⚠️ ')+'</span><br>';
