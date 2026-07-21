@@ -75,18 +75,18 @@
   // ── ข้อ 3 · ประวัติการผลิต + หนี้เงินกู้ ──
   H += secH('ข้อ 3 · การผลิตในฤดูที่ล่วงมา');
   H += '<table style="border-collapse:collapse;width:100%"><tr>' + th('ประเภท') + th('เนื้อที่/จำนวน') + th('จำนวน (บาท)') + '</tr>';
-  for (let i = 1; i <= 3; i++) H += '<tr>' + td(dl('s13_prod' + i + '_type', 'dl_prod', i === 1 ? 'เช่น เลี้ยงกุ้ง' : '')) + td(cell('s13_prod' + i + '_area', i === 1 ? '10 ไร่' : '')) + td(cell('s13_prod' + i + '_amt')) + '</tr>';
+  for (let i = 1, n = fmRows('prod', '_type'); i <= n; i++) H += '<tr>' + td(dl('s13_prod' + i + '_type', 'dl_prod', i === 1 ? 'เช่น เลี้ยงกุ้ง' : '')) + td(cell('s13_prod' + i + '_area', i === 1 ? '10 ไร่' : '')) + td(cell('s13_prod' + i + '_amt')) + '</tr>';
   H += '</table>';
   H += secH('ข้อ 3 · หนี้เงินกู้เดิม (ถ้ามี)');
   H += '<table style="border-collapse:collapse;width:100%"><tr>' + th('ประเภท') + th('หนังสือกู้ที่') + th('ต้นเงินคงเหลือ') + th('ค้าง-ต้นเงิน') + th('ค้าง-ดอกเบี้ย') + '</tr>';
-  for (let i = 1; i <= 2; i++) H += '<tr>' + td(sel('s13_debt' + i + '_type', DEBTT)) + td(cell('s13_debt' + i + '_book')) + td(cell('s13_debt' + i + '_remain')) + td(cell('s13_debt' + i + '_owePrin')) + td(cell('s13_debt' + i + '_oweInt')) + '</tr>';
+  for (let i = 1, n = fmRows('debt', '_type'); i <= n; i++) H += '<tr>' + td(sel('s13_debt' + i + '_type', DEBTT)) + td(cell('s13_debt' + i + '_book')) + td(cell('s13_debt' + i + '_remain')) + td(cell('s13_debt' + i + '_owePrin')) + td(cell('s13_debt' + i + '_oweInt')) + '</tr>';
   H += '</table>';
   H += '<div style="margin-top:8px"><label style="font-size:13px">สาเหตุที่ค้างชำระ </label>' + cell('s13_debtReason', '', '60%') + '</div>';
 
   // ── ข้อ 4 · รายรับ-รายจ่าย ──
   H += secH('ข้อ 4 · รายรับ');
   H += '<table style="border-collapse:collapse;width:100%"><tr>' + th('ประเภท') + th('เนื้อที่/จำนวน') + th('ส่วนเพื่อขาย') + th('มูลค่า (บาท)') + '</tr>';
-  for (let i = 1; i <= 3; i++) H += '<tr>' + td(dl('s13_inc' + i + '_type', 'dl_prod', '')) + td(cell('s13_inc' + i + '_area')) + td(cell('s13_inc' + i + '_forsale')) + td(cell('s13_inc' + i + '_value')) + '</tr>';
+  for (let i = 1, n = fmRows('inc', '_type'); i <= n; i++) H += '<tr>' + td(dl('s13_inc' + i + '_type', 'dl_prod', '')) + td(cell('s13_inc' + i + '_area')) + td(cell('s13_inc' + i + '_forsale')) + td(cell('s13_inc' + i + '_value')) + '</tr>';
   H += '</table>';
   const EXP = ['ชำระคืนเงินกู้ระยะสั้นเพื่อผลผลิตหลัก', 'ชำระคืนเงินกู้ระยะสั้นเพื่อการอื่น', 'ชำระคืนเงินกู้ระยะปานกลาง', 'ชำระคืนเงินกู้อื่นๆ', 'ค่าใช้จ่ายในการเกษตร (เฉพาะปานกลาง)', 'ค่าใช้จ่ายของครัวเรือน', 'ค่าใช้จ่ายอื่นๆ'];
   H += secH('ข้อ 4 · รายจ่าย');

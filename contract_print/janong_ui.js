@@ -77,7 +77,13 @@ function janongAggDebt() {
   const U = window.__JANONG_UI || { DEBT: [] };
   const V = id => { const el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
   const agg = {}, unmapped = [];
-  for (let i = 1; i <= 2; i++) {
+  /* 🔑 นับแถวหนี้จาก SNGK13_MAP ไม่ฝังเลข — ตารางหนี้เดิมใน ส.-งก.13 มี 4 แถว
+   * เดิมฝัง 2 ไว้ที่นี่ ถ้าเจ้าหน้าที่กรอกหนี้แถว 3-4 หนังสือฉบับนี้จะบอกว่า
+   * ผู้กู้มีหนี้น้อยกว่าความจริง และด่าน unmapped ก็มองไม่เห็นเพราะไม่เคยอ่านถึง
+   * (ตรวจเชิงลึก 21-07-2569) */
+  const M = window.SNGK13_MAP || {};
+  let rows = 0; while (M['debt' + (rows + 1) + '_type']) rows++;
+  for (let i = 1; i <= rows; i++) {
     const type = V('s13_debt' + i + '_type'), remain = V('s13_debt' + i + '_remain');
     if (!type) continue;
     const hit = U.DEBT.find(d => d[1] === type);
