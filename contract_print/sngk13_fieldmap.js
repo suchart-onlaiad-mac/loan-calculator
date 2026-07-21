@@ -1237,7 +1237,8 @@ window.SNGK13_MAP = {
     "cx": 121,
     "y": 200.6,
     "size": 14,
-    "max": 60,
+    "_max_note": "ช่องกว้างจริง 55.92pt (เส้น 93.24-149.16 · วัด 300dpi 21-07-2569) · max+BLEED(4) ต้องไม่เกินความกว้างช่อง → 51",
+    "max": 51,
     "dy": 7,
     "align": "center"
   },
@@ -1291,7 +1292,7 @@ window.SNGK13_MAP = {
     "cx": 121,
     "y": 222.7,
     "size": 14,
-    "max": 60,
+    "max": 51,
     "dy": 7,
     "align": "center"
   },
@@ -1345,7 +1346,7 @@ window.SNGK13_MAP = {
     "cx": 121,
     "y": 243.4,
     "size": 14,
-    "max": 60,
+    "max": 51,
     "dy": 7,
     "align": "center"
   },
