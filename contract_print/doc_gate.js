@@ -89,9 +89,21 @@
    *    ต้องเช็ก null "ก่อน" เปรียบเทียบเสมอ — ถ้าปล่อยไปเทียบ null จะกลายเป็น 0 แล้วบล็อกทุกวงเงิน
    *    (กับดักนี้ยังไม่เคยระเบิด เพราะผู้เรียกเดิมกันไว้ก่อนทุกจุด — ด่านนี้กันให้ถาวร) */
   function ceiling(P) {
-    if (typeof ceilingFor !== 'function') return null;
-    var sec    = (typeof getSecurity === 'function') ? getSecurity() : 'person';
-    var shares = (typeof getShares === 'function') ? getShares() : 0;
+    /* 🔒 fail-closed เหมือน capacity() ด้านล่าง — อ่านสูตร/หลักประกัน/หุ้นไม่ได้ = ห้ามปล่อยผ่าน
+     * เดิม 3 บรรทัดนี้เป็น fail-open: ไม่มี ceilingFor → คืน null (ผ่าน) และเดาว่าหลักประกัน
+     * เป็น 'person' ถ้าอ่านไม่ได้ ถ้า loan_core.js โหลดไม่ทัน เพดานจะหายเงียบพร้อมกันทั้ง 5 ใบ
+     * โดยไม่มีอะไรบอก — สวนทางกับหลักที่ไฟล์นี้เขียนไว้เอง (ตรวจเชิงลึก 21-07-2569)
+     * และ "เดาหลักประกัน" อันตรายเป็นพิเศษ เพราะเพดานของแต่ละชนิดต่างกันคนละเรื่อง */
+    var missing = [];
+    if (typeof ceilingFor  !== 'function') missing.push('สูตรเพดาน (loan_core.js)');
+    if (typeof getSecurity !== 'function') missing.push('ชนิดหลักประกัน');
+    if (typeof getShares   !== 'function') missing.push('จำนวนหุ้น');
+    if (missing.length) {
+      return 'ระบบผิดพลาด: อ่าน ' + missing.join(' · ') + ' ไม่ได้ — แจ้งผู้พัฒนา'
+           + '<br><span style="font-weight:400">ไม่พิมพ์ให้ เพราะตรวจเพดานวงเงินตามระเบียบ ข้อ 8 ไม่ได้</span>';
+    }
+    var sec    = getSecurity();
+    var shares = getShares();
     var cap    = ceilingFor(sec, shares);
     if (cap === null || cap === undefined) return null;    // คณะกรรมการเป็นผู้พิจารณา ไม่ใช่เว็บ
     /* จำนวนหุ้นบังคับเฉพาะเส้นทางที่เพดานผูกกับหุ้นโดยตรง = หุ้นค้ำ (60% ของมูลค่าหุ้น)

@@ -172,6 +172,21 @@
     return null;
   }
 
+  /* 🔒 fail-closed: fieldmap อ้างหน้าที่แบบฟอร์มไม่มี = หยุด ไม่ใช่ข้ามเงียบ
+   * perPage มีเฉพาะหน้าที่มีข้อมูลจริงอยู่แล้ว → หาไม่เจอ = ผิดเสมอ ไม่มีเคสที่ถูก
+   * เดิมเขียน `if (!pg) continue` ทั้ง 5 ใบ → ถ้าผู้จัดการ export Word ใหม่แล้วหน้าหด
+   * ช่องทุกช่องของหน้านั้นจะหายไปพร้อมข้อความ "✅ สร้างสำเร็จ" และด่านข้อความล้น
+   * ก็ไม่ได้รันกับหน้านั้นด้วย เพราะถูกข้ามไปก่อน (ตรวจเชิงลึก 21-07-2569)
+   * แพตเทิร์นเดียวกับ DocGate.capacity — ด่านที่ fail แบบเงียบ = ด่านที่ไม่มีอยู่จริง */
+  function _pageOrThrow(pages, pageNo, docLabel, fields) {
+    const pg = pages[pageNo - 1];
+    if (pg) return pg;
+    throw new Error(
+      `แบบฟอร์ม "${docLabel}" ไม่มีหน้า ${pageNo} (มี ${pages.length} หน้า) ` +
+      `แต่มีข้อมูลรออยู่ ${fields.length} ช่อง — ไม่พิมพ์ให้ เพราะช่องเหล่านั้นจะหายทั้งหน้า` +
+      `<br><span style="font-weight:400">แบบฟอร์มกับพิกัดไม่ตรงกัน — แจ้งผู้พัฒนา</span>`);
+  }
+
   // วาด overlay canvas สำหรับ 1 หน้า (โปร่งใส) — เบราว์เซอร์ shape ไทยเอง
   function _renderOverlayCanvas(Wpt, Hpt, fields, colorCss) {
     const cv = document.createElement("canvas");
@@ -239,8 +254,7 @@
 
     for (const pageNoStr of Object.keys(perPage)) {
       const pageNo = +pageNoStr;
-      const pg = pages[pageNo - 1];
-      if (!pg) continue;
+      const pg = _pageOrThrow(pages, pageNo, 'สัญญาเงินกู้ ส.-งก.14', perPage[pageNo]);
       const Wpt = pg.getWidth(), Hpt = pg.getHeight();
       const cv = _renderOverlayCanvas(Wpt, Hpt, perPage[pageNo], colorCss);
       const png = await pdf.embedPng(_canvasToPngBytes(cv));
@@ -277,8 +291,7 @@
       const srcPages = src.getPages();
       const perPage = _collectFields(sheet, FM);
       for (const pageNoStr of Object.keys(perPage)) {
-        const pg = srcPages[+pageNoStr - 1];
-        if (!pg) continue;
+        const pg = _pageOrThrow(srcPages, +pageNoStr, 'หนังสือค้ำประกัน', perPage[pageNoStr]);
         const Wpt = pg.getWidth(), Hpt = pg.getHeight();
         const cv = _renderOverlayCanvas(Wpt, Hpt, perPage[pageNoStr], colorCss);
         const png = await src.embedPng(_canvasToPngBytes(cv));
@@ -311,8 +324,7 @@
     const perPage = _collectFields(data, global.SHARE_MAP);
     const srcPages = src.getPages();
     for (const pageNoStr of Object.keys(perPage)) {
-      const pg = srcPages[+pageNoStr - 1];
-      if (!pg) continue;
+      const pg = _pageOrThrow(srcPages, +pageNoStr, 'หนังสือหุ้นค้ำประกัน', perPage[pageNoStr]);
       const Wpt = pg.getWidth(), Hpt = pg.getHeight();
       const cv = _renderOverlayCanvas(Wpt, Hpt, perPage[pageNoStr], opts.calibrate ? "#0d19b3" : "#000000");
       const png = await src.embedPng(_canvasToPngBytes(cv));
@@ -341,8 +353,7 @@
     const perPage = _collectFields(data, global.SNGK13_MAP);
     const srcPages = src.getPages();
     for (const pageNoStr of Object.keys(perPage)) {
-      const pg = srcPages[+pageNoStr - 1];
-      if (!pg) continue;
+      const pg = _pageOrThrow(srcPages, +pageNoStr, 'คำขอกู้ ส.-งก.13', perPage[pageNoStr]);
       const Wpt = pg.getWidth(), Hpt = pg.getHeight();
       const cv = _renderOverlayCanvas(Wpt, Hpt, perPage[pageNoStr], opts.calibrate ? "#0d19b3" : "#000000");
       const png = await src.embedPng(_canvasToPngBytes(cv));
@@ -392,8 +403,7 @@
     const perPage = _collectFields(data, global.JANONG_MAP);
     const srcPages = src.getPages();
     for (const pageNoStr of Object.keys(perPage)) {
-      const pg = srcPages[+pageNoStr - 1];
-      if (!pg) continue;
+      const pg = _pageOrThrow(srcPages, +pageNoStr, 'หนังสือแสดงความจำนง', perPage[pageNoStr]);
       const Wpt = pg.getWidth(), Hpt = pg.getHeight();
       const cv = _renderOverlayCanvas(Wpt, Hpt, perPage[pageNoStr], opts.calibrate ? "#0d19b3" : "#000000");
       const png = await src.embedPng(_canvasToPngBytes(cv));
