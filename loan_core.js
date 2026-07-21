@@ -79,6 +79,25 @@ function parseDate(v){ if(!v) return null; const [y,m,d]=v.split('-').map(Number
 const GUAR_CEILING = 80000;
 const SHARE_PAR = 10;      // มูลค่าหุ้นละ 10 บาท — ข้อบังคับ ข้อ 5
 
+/* ค่าหุ้นที่ต้องถือเมื่อกู้ — ข้อบังคับ ข้อ 6(2) (ยกข้อความจริง):
+ *   "ถือหุ้นตามส่วนแห่งเงินกู้ ในอัตราห้าหุ้นต่อจำนวนเงินกู้ทุก ๆ หนึ่งพันบาท
+ *    เศษของหนึ่งพันบาทให้ถือเป็นห้าหุ้น"
+ * มูลค่าหุ้นละ 10 บาท (ข้อ 5) → 5 หุ้น/พัน = 50 บาท/พัน
+ *
+ * 🔑 "เศษของหนึ่งพันบาทให้ถือเป็นห้าหุ้น" = ปัดเศษพัน "ขึ้น" เต็มขั้น
+ *    ไม่ใช่คิดสัดส่วน 5% แล้วปัดตามปกติ — สองวิธีนี้เท่ากันเฉพาะเมื่อวงเงิน
+ *    ลงตัวพันบาท ถ้าไม่ลงตัวจะเก็บค่าหุ้นขาด (10,001 บาท → 5% ได้ 500 แต่
+ *    ข้อบังคับต้องได้ 550)
+ *
+ * 📌 มติผู้จัดการ 21-07-2569: ใช้ตามข้อบังคับ — ยกเลิกกติกา "5% ตายตัว"
+ *    ที่เคยตกลงไว้ 20-07 (เกิดจากตัวอย่างจริงที่วงเงินลงตัวพันพอดี จึงดูเท่ากัน) */
+function shareRequired(P){
+  const amt = Number(P) || 0;
+  if(amt <= 0) return { units: 0, baht: 0 };
+  const units = Math.ceil(amt / 1000) * 5;
+  return { units: units, baht: units * SHARE_PAR };
+}
+
 /* เพดานรวมทุกสัญญา — ระเบียบ 101 ข้อ 6 วรรคท้าย (ยกข้อความจริง):
  *   "จำนวนขั้นสูงของเงินกู้ระยะสั้นและระยะปานกลางรวมทุกรายการของสมาชิกคนหนึ่ง
  *    ในเวลาใดเวลาหนึ่ง จะเกิน 1,000,000 บาท ไม่ได้"
@@ -320,7 +339,7 @@ function calcRestructMonthlyCore(inputs){
 }
 
 return {
-  TH_MONTH, GUAR_CEILING, SHARE_PAR, TOTAL_CEILING, CAPPED_TYPES, loanTotalCounted,
+  TH_MONTH, GUAR_CEILING, SHARE_PAR, TOTAL_CEILING, CAPPED_TYPES, loanTotalCounted, shareRequired,
   round2, fmt, fmt0, thDate, daysBetween, lastDay, addMonthsClamp, monthsBetween,
   quarterInfo, firstDueDate, autoUnit, instAmounts, solveAnnuity, parseDate, ceilingFor,
   clampRestructN, clampRestructG,

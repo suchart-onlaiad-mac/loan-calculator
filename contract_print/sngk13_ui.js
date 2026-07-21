@@ -1,7 +1,7 @@
 /* sngk13_ui.js — แผงกรอก + ปุ่มพิมพ์ คำขอกู้ ส.-งก.13 (เติมหน้า 1-3)
  * self-contained: ใช้ global เดิม (calcCoop, getShares, fmt0, thDate, parseDate, CONTRACT_CONFIG, ContractFill, ct_*, g{i}_*)
  * 🎯 หลักการ: ลดการพิมพ์สุด — dropdown ได้ทำ · auto-fill ได้เติม (ผู้จัดการ 17-07)
- *   - ค่าหุ้น = 5% ของวงเงิน · เงินสด = 95% → auto read-only (ยืนยันกฎ 5% โดยผู้จัดการ + ตัวอย่างจริง 2 ใบ)
+ *   - ค่าหุ้น = 5 หุ้นต่อทุกพันบาท เศษปัดขึ้น (ข้อบังคับ ข้อ 6(2)) · เงินสด = ส่วนที่เหลือ → auto read-only
  *   - reuse: ผู้กู้/วงเงิน/วัตถุประสงค์/ระยะ + งวดชำระคืน(auto) + ผู้ค้ำ
  *   - dropdown: เดือน · ประเภทที่ดิน · ประเภทหนี้ · ประเภทผลิต/รายรับ
  *   - ระยะสั้น: ซ่อนช่องที่ไม่เกี่ยว (แผนงานปานกลาง + แถวใช้เงินสำรอง)
@@ -64,7 +64,7 @@
 
   // ── ข้อ 2 · รายละเอียดการใช้เงินกู้ (เงินสด/ค่าหุ้น = auto · งวดชำระ = auto) ──
   H += secH('ข้อ 2 · รายละเอียดการใช้เงินกู้');
-  H += '<div class="note" style="margin-bottom:6px">เงินสด (95%) · ชำระค่าหุ้น (5%) · งวดชำระคืน · รวมเงินกู้ = คำนวณอัตโนมัติจากวงเงิน</div>';
+  H += '<div class="note" style="margin-bottom:6px">เงินสด · ชำระค่าหุ้น (5 หุ้นต่อทุกพันบาท เศษปัดขึ้น — ข้อบังคับ ข้อ 6(2)) · งวดชำระคืน · รวมเงินกู้ = คำนวณอัตโนมัติจากวงเงิน</div>';
   H += '<table style="border-collapse:collapse;width:100%"><tr>' + th('รายการ') + th('เดือน') + th('จำนวน (บาท)') + '</tr>';
   H += '<tr>' + td('<span style="font-size:12px;padding-left:4px">1.</span> ' + dl('s13_use1_item', 'dl_item', 'เงินสด')) + td(sel('s13_use1_month', MONTHS)) + td(ro('s13_use1_amt')) + '</tr>';
   for (let i = 2; i <= 4; i++) H += '<tr class="s13_userow_extra">' + td('<span style="font-size:12px;padding-left:4px">' + i + '.</span> ' + cell('s13_use' + i + '_item')) + td(sel('s13_use' + i + '_month', MONTHS)) + td(cell('s13_use' + i + '_amt')) + '</tr>';
@@ -143,7 +143,7 @@
  *   หุ้น 5% (คงที่) · รถตักดิน ≈15% ของวงเงิน → ชั่วโมง (×1,000) · ที่เหลือแบ่งตามลักษณะ
  *   สัตว์น้ำ: พันธุ์ 30% + อาหาร 70% ของที่เหลือ · พืช: พันธุ์ 30% + ปุ๋ย 45% + ยา 25%
  * force=true → เขียนทับแม้ผู้ใช้แก้แล้ว (ปุ่ม 🔄) · force=false → ไม่ทับถ้า dirty */
-const SNGK13_ALLOC = { sharePct: 0.05, excavPct: 0.15, excavRate: 1000,
+const SNGK13_ALLOC = { excavPct: 0.15, excavRate: 1000,
   water: { seed: 0.30, feed: 0.70 }, crop: { seed: 0.30, fert: 0.45, chem: 0.25 } };
 function composeMediumPlan(force) {
   const ta = document.getElementById('s13_planDetail'); if (!ta) return;
@@ -154,7 +154,7 @@ function composeMediumPlan(force) {
   let r = null; try { r = calcCoop(); } catch (e) { }
   const P = r ? r.P : 0; if (!P) { if (force) ta.value = ''; return; }
   const A = SNGK13_ALLOC;
-  const share = Math.round(P * A.sharePct);
+  const share = shareRequired(P).baht;   // ข้อบังคับ ข้อ 6(2) — ไม่ใช่ 5% ตรง ๆ
   const hrs = Math.max(1, Math.round(P * A.excavPct / A.excavRate));
   const excav = hrs * A.excavRate;
   const rest = P - share - excav;
@@ -178,7 +178,8 @@ function composeMediumPlan(force) {
 }
 
 /* 🔒 SSOT ของการจัดสรรตาราง "ข้อ 2" — ทั้งจอและกระดาษต้องเรียกตัวนี้ตัวเดียว
- * กติกา (ผู้จัดการ 20-07-2569): ค่าหุ้น 5% ตายตัว · แถว 1-4 รวมกันได้ 95%
+ * กติกา: ค่าหุ้นตามข้อบังคับ ข้อ 6(2) · แถว 1-4 รวมกันได้ส่วนที่เหลือจากวงเงิน
+ * (มติ ผจก 21-07-2569 เปลี่ยนจาก "5% ตายตัว" ของ 20-07 มาใช้ข้อบังคับ)
  * คืน null เมื่อยังไม่มีวงเงิน · cashLeft < 0 = กรอกแถว 2-4 เกินส่วนที่จัดสรรได้
  * ⚠️ ห้ามคำนวณสูตรนี้ซ้ำที่อื่น — เดิมจอคิดแบบหนึ่ง (แถว 1 = 95% เสมอ) กระดาษคิดอีกแบบ
  *    ก็จะได้ "เห็น 95,000 บนจอ แต่พิมพ์ 75,000 บนกระดาษ" โดยไม่มีอะไรเตือน */
@@ -201,11 +202,13 @@ function sngk13Alloc(P) {
     }
     if (!hidden) extra += num2(el.value);
   }
-  const sh = Math.round(P * 0.05), cash95 = P - sh;
-  return { share: sh, cash95: cash95, extra: extra, cashLeft: cash95 - extra };
+  /* ค่าหุ้นตามข้อบังคับ ข้อ 6(2) — 5 หุ้นต่อทุกพันบาท เศษของพันปัดขึ้นเป็น 5 หุ้น
+   * 🔒 สูตรอยู่ที่ loan_core.shareRequired ที่เดียว ห้ามคิด P*0.05 ที่ไหนอีก */
+  const sh = shareRequired(P).baht, cashRest = P - sh;
+  return { share: sh, cash95: cashRest, cashRest: cashRest, extra: extra, cashLeft: cashRest - extra };
 }
 
-/* auto: ค่าหุ้น = 5% ของวงเงิน · เงินสด = ส่วนที่เหลือหลังหักแถว 2-4 · ฤดูกาลผลิต (ระยะสั้น) — read-only */
+/* auto: ค่าหุ้นตามข้อบังคับ ข้อ 6(2) · เงินสด = ส่วนที่เหลือหลังหักแถว 2-4 · ฤดูกาลผลิต (ระยะสั้น) — read-only */
 function updateSngk13Auto() {
   let r = null; try { r = calcCoop(); } catch (e) { }
   const P = r ? r.P : 0;
