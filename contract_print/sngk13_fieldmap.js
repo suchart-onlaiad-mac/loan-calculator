@@ -1276,7 +1276,7 @@ window.SNGK13_MAP = {
   },
   "mort1_book": {
     "page": 3,
-    "cx": 435,
+    "cx": 440,
     "y": 200.6,
     "size": 14,
     "max": 40,
@@ -1285,7 +1285,7 @@ window.SNGK13_MAP = {
   },
   "mort1_remain": {
     "page": 3,
-    "cx": 505,
+    "cx": 522,
     "y": 200.6,
     "size": 14,
     "max": 62,
@@ -1330,7 +1330,7 @@ window.SNGK13_MAP = {
   },
   "mort2_book": {
     "page": 3,
-    "cx": 435,
+    "cx": 440,
     "y": 222.7,
     "size": 14,
     "max": 40,
@@ -1339,7 +1339,7 @@ window.SNGK13_MAP = {
   },
   "mort2_remain": {
     "page": 3,
-    "cx": 505,
+    "cx": 522,
     "y": 222.7,
     "size": 14,
     "max": 62,
@@ -1384,7 +1384,7 @@ window.SNGK13_MAP = {
   },
   "mort3_book": {
     "page": 3,
-    "cx": 435,
+    "cx": 440,
     "y": 243.4,
     "size": 14,
     "max": 40,
@@ -1393,7 +1393,7 @@ window.SNGK13_MAP = {
   },
   "mort3_remain": {
     "page": 3,
-    "cx": 505,
+    "cx": 522,
     "y": 243.4,
     "size": 14,
     "max": 62,
