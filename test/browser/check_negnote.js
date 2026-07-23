@@ -38,9 +38,11 @@ const CASES = [
     await sleep(2500);
     await t.setField('principal', c.p);
     await t.setField('rate', c.r);
+    /* ⚠️ ต้องเลือกประเภทก่อนกรอกปี — snapYears (23-07) clamp ปีตามประเภทปัจจุบัน
+     * เดิมกรอกปีก่อน → โดน clamp เหลือ 1 (default ระยะสั้น) แล้ว handler medium ตั้งเป็น 5 */
+    await t.setField('loanType', 'medium');
     await t.setField('years', c.y);
     await t.setField('startDate', c.d);
-    await t.setField('loanType', 'medium');
     await sleep(250);
     await t.clickButtonText('คำนวณ');
     await sleep(600);

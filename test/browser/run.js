@@ -112,6 +112,11 @@ async function runCase(c) {
   for (const [id, v] of Object.entries(ctx.use)) await t.setField(id, v);
   await sleep(700);
 
+  /* rawSet: ยัดค่าลงช่องตรง ๆ ไม่ยิง event — ไว้ทดสอบด่านชั้นใน (doc_gate)
+   * โดยข้าม clamp ฝั่ง UI (snapYears 23-07) — ด่านต้องยังแดงได้แม้ค่าหลุดมาทางอื่น */
+  if (c.rawSet) for (const [id, v] of Object.entries(c.rawSet))
+    await t.evaluate(`(()=>{const e=document.getElementById(${JSON.stringify(id)}); if(e) e.value=${JSON.stringify(v)};})()`);
+
   const vals = await t.evaluate(`(()=>{const o={};
     ${JSON.stringify(FIELDS)}.forEach(id=>{const e=document.getElementById(id); if(e) o[id]=e.value;});
     return o})()`);

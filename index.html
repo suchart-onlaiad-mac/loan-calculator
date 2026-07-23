@@ -350,7 +350,8 @@
       </div>
       <div class="field">
         <label>จำนวนปี (งวดต้น ปีละครั้ง)</label>
-        <div class="inp"><input id="years" type="number" min="1" max="15" step="1" value="1"><span class="suffix">ปี</span></div>
+        <div class="inp"><input id="years" type="number" min="1" max="1" step="1" value="1" onchange="snapYears()" onblur="snapYears()"><span class="suffix">ปี</span></div>
+        <div id="years_note" style="font-size:12px;color:#b06000;margin-top:4px"></div>
       </div>
       <div class="field wide">
         <label>อัตราดอกเบี้ยต่อปี — เลือกตามชั้นสมาชิก หรือพิมพ์เอง</label>
@@ -366,6 +367,7 @@
       <button class="btn" onclick="calcAll()">คำนวณ</button>
       <button class="btn ghost" onclick="printReport()">🖨️ พิมพ์ / บันทึก PDF</button>
       <button class="btn ghost" onclick="toggleContract()">📄 พิมพ์สัญญากู้ ส.-งก.14</button>
+      <button class="btn ghost" onclick="resetAll()">🧹 ล้างค่าทั้งหมด</button>
     </div>
   </div>
 
@@ -449,6 +451,7 @@
       <div class="actions">
         <button class="btn" onclick="calcRestructure()">คำนวณ</button>
         <button class="btn ghost" onclick="printReport()">🖨️ พิมพ์ / บันทึก PDF</button>
+        <button class="btn ghost" onclick="resetAll()">🧹 ล้างค่าทั้งหมด</button>
       </div>
     </div>
     <div class="tabs no-print">
@@ -524,6 +527,27 @@ function snapPrincipal(){
   if (typeof validate === 'function') validate();
 }
 function getYears(){ return Math.max(1,Math.round(parseFloat(document.getElementById('years').value)||1)); }
+
+/* 🔒 clamp ปีตามประเภทสัญญา (backlog ข้อ 2 — 23-07-2569)
+ * ขอบเขต = min/max ของช่อง (SSOT เดียว — ตั้งโดย handler loanType ด้านล่าง) ไม่ฝังเลขซ้ำที่สอง
+ * snap เฉพาะ change/blur — ห้ามผูก 'input' (จะสู้กับการพิมพ์ เช่น medium พิมพ์ "10" ผ่าน "1" ก่อน)
+ * ⚠️ จงใจไม่ clamp ใน getYears(): ด่าน capacity ใน doc_gate ต้องยังถูกกระตุ้นได้จริง
+ *   (เทสต์ควบคุม "30 ปีต้องบล็อก" คือตัวเดียวที่พิสูจน์ด่านนั้นแดงได้ — อย่าทำให้ unreachable) */
+function snapYears(){
+  const y=document.getElementById('years'), note=document.getElementById('years_note');
+  const lo=parseInt(y.min||'1',10), hi=parseInt(y.max||'15',10);
+  if(note) note.textContent='';
+  const raw=(y.value||'').trim();
+  if(raw==='') return;
+  const n=Math.round(parseFloat(raw));
+  if(isNaN(n)) return;
+  const c=Math.min(hi,Math.max(lo,n));
+  if(c===n){ if(String(y.value)!==String(n)) y.value=String(n); return; }
+  y.value=String(c);
+  if(note) note.textContent='ประเภทนี้กำหนด '+lo+(hi>lo?'–'+hi:'')+' ปี — ปรับจาก '+n+' เป็น '+c+' ปี';
+  if(typeof validate==='function') validate();
+  if(typeof liveUpdate==='function') liveUpdate();
+}
 function getStart(){
   const v=document.getElementById('startDate').value;
   if(!v) return null;
@@ -842,6 +866,13 @@ function calcAll(){
 function liveUpdate(){ if(document.getElementById('results').style.display!=='none') calcAll(); }
 /*<<CORE-TEST-SLICE-END>>*/
 
+/* 🧹 ล้างค่าทั้งหมด — reload หน้า (ไม่มี storage → ทุกช่องกลับ default รวมฟอร์มสัญญา/คำขอกู้)
+ * จงใจไม่ไล่ reset ทีละช่อง: derived UI เยอะ (chips/แถวตาราง/ด่าน/ฟอร์มย่อย)
+ * การ reset มือคือชนิดบั๊ก "Claude สร้างเองระหว่างแก้" ที่เคยพลาด 5 ครั้ง (20-07) */
+function resetAll(){
+  if(confirm('ล้างค่าทั้งหมดและเริ่มใหม่?')) location.reload();
+}
+
 /* 🖨️ ปุ่มพิมพ์ — คำนวณให้ก่อนเสมอ
  * บั๊กเดิม: ปุ่มนี้เรียก window.print() ตรง ๆ แต่ตัวปุ่มอยู่ในการ์ด .no-print
  * และกล่องผลลัพธ์ยังถูกซ่อน (display:none) จนกว่าจะกดคำนวณ
@@ -878,9 +909,13 @@ function syncChips(){
 document.getElementById('rate').addEventListener('input',()=>{syncChips();liveUpdate();});
 document.getElementById('loanType').addEventListener('change',function(){
   const y=document.getElementById('years');
+  const before=y.value;
   if(this.value==='short'){ y.value=1; y.min=1; y.max=1; }
   else if(this.value==='medium'){ y.min=2; y.max=10; if(y.value<2||y.value>10) y.value=5; }
   else { y.min=1; y.max=15; if(y.value>15) y.value=15; }
+  const note=document.getElementById('years_note');
+  if(note) note.textContent = (y.value!==before)
+    ? 'เปลี่ยนประเภทสัญญา — ปรับจำนวนปีจาก '+before+' เป็น '+y.value+' ปี (ขอบเขต '+y.min+(y.max>y.min?'–'+y.max:'')+' ปี)' : '';
   refreshTheme();
   liveUpdate();
 });
