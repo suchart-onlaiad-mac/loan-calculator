@@ -144,6 +144,23 @@
     return sp > 0 ? sp : best;
   }
 
+  /* ✂️ ตัดที่ขอบคำไทย (backlog ข้อ 5 — 23-07-2569): เดิมตัดกลางคำ
+   * "ค่าปุ๋ยเคมีและสา / รปรับปรุงดิน" — อ่านสะดุดแม้ไม่ผิด
+   * ใช้ Intl.Segmenter th — ขอบคำใหญ่สุดที่บรรทัดแรกยังไม่เกิน max
+   * ไม่มี Segmenter (เบราว์เซอร์เก่า) หรือหาขอบไม่ได้ → คืน -1 ให้ผู้เรียก fallback */
+  function _breakAtWord(ctx, text, max) {
+    if (typeof Intl === "undefined" || !Intl.Segmenter) return -1;
+    let best = -1;
+    try {
+      for (const s of new Intl.Segmenter("th", { granularity: "word" }).segment(text)) {
+        if (s.index <= 0) continue;
+        if (_w(ctx, text.slice(0, s.index)) > max) break;
+        best = s.index;
+      }
+    } catch (e) { return -1; }
+    return best;
+  }
+
   /** คืน {lines, size} ถ้าใส่ได้ · คืน null ถ้าใส่ไม่ลงตามนโยบาย */
   function _fit(ctx, f) {
     let size = f.size;
@@ -156,11 +173,14 @@
     if (_w(ctx, f.text) <= f.max) return { lines: [f.text], size };
 
     // 2. ขึ้นบรรทัดที่ 2 (เฉพาะช่องที่รู้ว่ามีที่ว่าง)
+    // ลองตัดขอบคำก่อน (อ่านสวย) — สองบรรทัดไม่ลงค่อยถอยไปตัดกลางคำแบบเดิม
+    // 🔒 ห้ามให้ทางขอบคำทำเอกสารที่เคยพิมพ์ได้กลายเป็นถูกบล็อก — fallback ต้องคงอยู่เสมอ
     if (f.wrap) {
-      const cut = _breakAt(ctx, f.text, f.max);
-      if (cut > 0) {
-        const a = f.text.slice(0, cut).trim(), b = f.text.slice(cut).trim();
-        if (_w(ctx, a) <= f.max && _w(ctx, b) <= f.max) return { lines: [a, b], size };
+      for (const cut of [_breakAtWord(ctx, f.text, f.max), _breakAt(ctx, f.text, f.max)]) {
+        if (cut > 0) {
+          const a = f.text.slice(0, cut).trim(), b = f.text.slice(cut).trim();
+          if (_w(ctx, a) <= f.max && _w(ctx, b) <= f.max) return { lines: [a, b], size };
+        }
       }
     }
 
@@ -412,5 +432,18 @@
     return await src.save();
   }
 
-  global.ContractFill = { generateContract, generateGuarantee, generateShare, generateLoanRequest, generateJanong, bahtText, thaiDate, fmtNum, debugOverlayCanvas, debugOverlayCanvasFM, _SCALE: SCALE };
+  /* debug hook สำหรับเทสต์นโยบายตัดบรรทัด (แบบแผนเดียวกับ debugOverlayCanvas)
+   * ⚠️ ต้องโหลดฟอนต์ overlay ก่อนวัด — fallback font กว้าง ~1.5 เท่า ทำผลเพี้ยนเงียบ */
+  async function _fitDebug(text, max, size, wrap) {
+    if (!_fontLoaded) {
+      const ff = new FontFace(OVERLAY_FONT, `url(${_ab()}assets/THSarabunNew.ttf)`);
+      await ff.load(); document.fonts.add(ff); _fontLoaded = true;
+    }
+    const cv = document.createElement("canvas");
+    cv.width = cv.height = 8;
+    const ctx = cv.getContext("2d");
+    return _fit(ctx, { text: String(text), max, size: size || 14, wrap: wrap !== false });
+  }
+
+  global.ContractFill = { generateContract, generateGuarantee, generateShare, generateLoanRequest, generateJanong, bahtText, thaiDate, fmtNum, debugOverlayCanvas, debugOverlayCanvasFM, _fitDebug, _SCALE: SCALE };
 })(window);
