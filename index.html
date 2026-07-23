@@ -257,8 +257,15 @@
 
   footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:8px}
 
+  /* 🖨️ หัวกระดาษพิมพ์ (backlog ข้อ 3) — ช่องกรอกโปร่งบนพื้นเขียว header · บรรทัด print-only โผล่เฉพาะตอนพิมพ์ */
+  .print-id{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .print-id input{flex:1;min-width:150px;padding:7px 10px;border-radius:9px;font-size:13px;
+    border:1px solid rgba(255,255,255,.45);background:rgba(255,255,255,.14);color:#fff}
+  .print-id input::placeholder{color:rgba(255,255,255,.75)}
+  .print-only{display:none}
   @media print{
     @page{size:A4 portrait;margin:8mm}
+    .print-only{display:block!important;font-size:12.5px;color:#000;margin-top:2mm}
     /* 🚫 กันหน้าเปล่าท้ายเอกสาร
      * body มี min-height:100vh (บรรทัด ~70) -> ตอนพิมพ์ ความสูงเอกสาร = ความสูงจอ
      * ไม่ใช่ความสูงเนื้อหา · จอ iPad แนวตั้งสูงกว่าพื้นที่พิมพ์ A4 (1062px)
@@ -319,6 +326,12 @@
       <span>🧮 ดอกรายวัน ÷365</span>
       <span>🔒 ไม่เก็บข้อมูล</span>
     </div>
+    <!-- 🖨️ หัวกระดาษพิมพ์ (backlog ข้อ 3 — 23-07-2569): กรอกได้ ไม่กรอกก็ได้ (พิมพ์เป็นจุดไข่ปลาให้เขียนมือ) -->
+    <div class="print-id no-print">
+      <input id="pr_name" type="text" placeholder="ชื่อผู้กู้ (ขึ้นหัวกระดาษตอนพิมพ์ — เว้นได้)">
+      <input id="pr_contract" type="text" placeholder="เลขที่สัญญา (เว้นได้)">
+    </div>
+    <div class="print-only" id="printIdLine"></div>
   </header>
 
   <!-- MODE SWITCH -->
@@ -895,6 +908,17 @@ function printReport(){
       ? 'ยังพิมพ์ไม่ได้ — กรุณากรอกยอด A (ต้นเงินรวม) และวันอนุมัติ ให้ครบก่อน'
       : 'ยังพิมพ์ไม่ได้ — กรุณากรอกเงินต้น วันรับเงินกู้ และจำนวนปี ให้ครบก่อน');
     return;
+  }
+  /* หัวกระดาษ: ผู้กู้ / เลขที่สัญญา / วันที่พิมพ์ (backlog ข้อ 3)
+   * ไม่กรอก = จุดไข่ปลาให้เขียนมือ · ชื่อว่างแต่ฟอร์มสัญญากรอกแล้ว → ยืมจาก ct_name (ลดพิมพ์ซ้ำ)
+   * ใช้ textContent ล้วน — ห้ามประกอบ HTML จากค่าที่คนกรอก */
+  var idLine = document.getElementById('printIdLine');
+  if(idLine){
+    var pv = function(id){ var e=document.getElementById(id); return e && e.value ? e.value.trim() : ''; };
+    var dots = '…………………………';
+    idLine.textContent = 'ผู้กู้ ' + (pv('pr_name') || pv('ct_name') || dots) +
+      '   ·   เลขที่สัญญา ' + (pv('pr_contract') || dots) +
+      '   ·   พิมพ์เมื่อ ' + thDate(new Date());
   }
   window.print();
 }
