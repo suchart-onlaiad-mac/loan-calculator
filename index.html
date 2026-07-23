@@ -390,6 +390,7 @@
     <div class="tabs no-print">
       <div class="tab active" data-tab="coop" onclick="showTab('coop')">📋 รายปี</div>
       <div class="tab" data-tab="monthly" onclick="showTab('monthly')">📅 รายเดือน</div>
+      <div class="tab" data-tab="compare" onclick="showTab('compare')">⚖️ เปรียบเทียบ</div>
       <div class="tab" data-tab="payoff" onclick="showTab('payoff')">💰 ยอดปิด</div>
       <div class="tab" data-tab="penalty" onclick="showTab('penalty')">⚠️ เบี้ยปรับ</div>
     </div>
@@ -416,6 +417,15 @@
         <div class="summary" id="mSummary"></div>
         <div class="tbl-scroll"><table id="mTable"></table></div>
         <div class="note" id="mNote"></div>
+      </div>
+    </div>
+
+    <!-- COMPARE (เปรียบเทียบ 3 ทาง — backlog ข้อ 4 · มติ ผจก 23-07: วงเงินเดียว 3 วิธีชำระ) -->
+    <div class="pane" id="pane-compare">
+      <div class="card">
+        <h2><span class="n">2</span> เปรียบเทียบ 3 วิธีชำระ <span style="font-size:12px;font-weight:600;color:var(--muted)">— วงเงินเดียวกัน เงื่อนไขเดียวกัน</span></h2>
+        <div class="tbl-scroll"><table id="cmpTable"></table></div>
+        <div class="note" id="cmpNote"></div>
       </div>
     </div>
 
@@ -672,6 +682,39 @@ function calcMonthly(){
     + negPrincipalNote(rows);
 }
 
+/* ⚖️ เปรียบเทียบ 3 วิธีชำระ (backlog ข้อ 4 — มติ ผจก 23-07: ทาง ก วงเงินเดียว 3 วิธี)
+ * ตัวเลขมาจาก core เดิม 3 ตัวเท่านั้น (calcCoopCore / calcMonthlyCore fixed / annuity)
+ * ห้ามคำนวณเองในตารางนี้ — SSOT อยู่ loan_core.js */
+function calcCompare(){
+  const P=getPrincipal(), d0=getStart(), rate=getRate(), N=getYears();
+  const tbl=document.getElementById('cmpTable'), note=document.getElementById('cmpNote');
+  const co=calcCoopCore({P,d0,rate,N});
+  const mf=calcMonthlyCore({P,d0,rate,N,mode:'fixed'});
+  const ma=calcMonthlyCore({P,d0,rate,N,mode:'annuity'});
+  if(!co||!mf||!ma){ tbl.innerHTML=''; note.innerHTML='กรอกเงินต้นและวันรับเงินกู้ก่อน แล้วกดคำนวณ'; return; }
+  const ways=[
+    {name:'📋 รายปี (แบบสหกรณ์)',        sub:'งวดต้นปีละครั้ง + ตัดดอก 30 ก.ย.', nGov:co.N+' งวดต้น ('+co.rows.length+' ครั้งรวมตัดดอก)', first:co.rows[0].pay, totI:co.totI, totPay:co.totPay, end:co.finalP},
+    {name:'📅 รายเดือน ต้นเท่ากัน',       sub:'ต้นเท่ากันทุกเดือน + ดอกลดลง',    nGov:mf.rows.length+' งวด',  first:mf.rows[0].pay, totI:mf.totI, totPay:mf.totPay, end:mf.rows[mf.rows.length-1].date},
+    {name:'📅 รายเดือน ยอดรวมเท่ากัน',   sub:'annuity ต่อปี',                    nGov:ma.rows.length+' งวด',  first:ma.rows[0].pay, totI:ma.totI, totPay:ma.totPay, end:ma.rows[ma.rows.length-1].date}
+  ];
+  const minI=Math.min(...ways.map(w=>round2(w.totI)));
+  const cell=(v,hl)=>'<td'+(hl?' class="tcol"':'')+'>'+v+'</td>';
+  let h='<thead><tr><th class="tl">หัวข้อ</th>'+ways.map(w=>'<th>'+w.name+'<br><span style="font-weight:600;font-size:10.5px;opacity:.75">'+w.sub+'</span></th>').join('')+'</tr></thead><tbody>';
+  h+='<tr><td class="tl">จำนวนงวด</td>'+ways.map(w=>cell(w.nGov)).join('')+'</tr>';
+  h+='<tr><td class="tl">งวดแรกโดยประมาณ</td>'+ways.map(w=>cell(fmt(round2(w.first))+' ฿')).join('')+'</tr>';
+  h+='<tr><td class="tl">ดอกเบี้ยรวม</td>'+ways.map(w=>cell(fmt(round2(w.totI))+' ฿'+(round2(w.totI)===minI?' <span class="badge-due">ถูกสุด</span>':''),true)).join('')+'</tr>';
+  h+='<tr><td class="tl">ต่างจากรายปี</td>'+ways.map((w,i)=>{
+    if(i===0) return cell('—');
+    const d=round2(w.totI-ways[0].totI);
+    return cell((d>0?'+':'')+fmt(d)+' ฿');
+  }).join('')+'</tr>';
+  h+='<tr class="total"><td class="tl total-lead">ชำระรวมทั้งสิ้น</td>'+ways.map(w=>cell(fmt(round2(w.totPay))+' ฿',true)).join('')+'</tr>';
+  h+='<tr><td class="tl">งวดสุดท้าย</td>'+ways.map(w=>cell(thDate(w.end))).join('')+'</tr>';
+  tbl.innerHTML=h+'</tbody>';
+  note.innerHTML='• เงินต้น '+fmt0(P)+' บาท · '+rate+'%/ปี · '+N+' ปี — ทุกทางคิดดอกรายวัน ÷365 จากต้นคงเหลือจริง'
+    +'<br>• ตัวเลขชุดเดียวกับแท็บ รายปี/รายเดือน ทุกประการ (มาจากแกนคำนวณเดียวกัน) · รายละเอียดรายงวดดูแท็บนั้น ๆ';
+}
+
 /* ── หมายเหตุแถวเงินต้นติดลบ — "ทาง ง" (ผู้จัดการเคาะ 21-07-2569) ────────────
  * มติ: ไม่แก้สูตร แต่ต้องไม่ปล่อยให้แถวติดลบโผล่โดยไม่มีคำอธิบาย
  *      สมาชิกอ่านแล้วเหมือนหนี้งอกขึ้นเดือนนั้น ทั้งที่ยอดรวมทั้งตารางถูกต้อง
@@ -872,7 +915,7 @@ function showTab(t){
 function calcAll(){
   validate();
   document.getElementById('results').style.display='block';
-  renderCoop(); calcMonthly(); calcPayoff();
+  renderCoop(); calcMonthly(); calcCompare(); calcPayoff();
   // วงเงินเปลี่ยน → รีเช็คเพดานบุคคลค้ำ (ระเบียบ ข้อ 8(2))
   if(typeof updateSecurityUI==='function') updateSecurityUI();
 }
