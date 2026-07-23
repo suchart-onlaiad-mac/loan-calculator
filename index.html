@@ -1173,6 +1173,25 @@ DATE_FIELDS.forEach(id=>{
   updateSecurityUI();
 })();
 
+/* 🔁 ชื่อผู้กู้ = ค่าเดียว 2 มุมมอง: หัวกระดาษ (pr_name) ↔ ฟอร์มสัญญา (ct_name) — มติ ผจก 23-07 ทาง 1
+ * mirror ตรง ๆ: พิมพ์ช่องไหน อีกช่องเท่ากันทันที — สองช่องนี้คือคน ๆ เดียวกันเสมอ
+ * จงใจไม่มีโหมด "หยุดตาม": ชื่อบนหัวกระดาษต่างจากในสัญญาเงียบ ๆ = เอกสารผิดโดยไม่มีใครรู้
+ * (แบบ "กันทับ" ที่ลองก่อนหน้า ไปถึงสถานะต่างกันไม่ได้อยู่ดี เพราะทุกการพิมพ์ mirror ทันที)
+ * กัน loop: เท่ากันแล้วไม่เขียนซ้ำไม่ dispatch · ในกรอบ D1 "ไม่เก็บข้อมูล" — reload แล้วหาย */
+(function(){
+  function mirror(srcId, dstId){
+    const s=document.getElementById(srcId), d=document.getElementById(dstId);
+    if(!s||!d || d.value===s.value) return;
+    d.value=s.value;
+    d.dispatchEvent(new Event('input',{bubbles:true}));        // ให้ UI ที่พึ่งช่องปลายทางอัปเดตต่อ
+  }
+  const pn=document.getElementById('pr_name'), cn=document.getElementById('ct_name');
+  if(pn&&cn){
+    pn.addEventListener('input',()=>mirror('pr_name','ct_name'));
+    cn.addEventListener('input',()=>mirror('ct_name','pr_name'));
+  }
+})();
+
 function getSecurity(){ const el=document.querySelector('input[name="ct_security"]:checked'); return el?el.value:'person'; }
 
 /* 🔒 ปัดที่จุดอ่าน เหมือน getPrincipal — หุ้นเป็นจำนวนหน่วย ไม่มีเศษหุ้น
