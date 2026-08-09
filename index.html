@@ -3,6 +3,10 @@
 <title>เครื่องคิดเงินกู้ — สหกรณ์การเกษตรนครชัยศรี จำกัด</title>
 <style>
   :root{
+    /* 🌗 บอกเบราว์เซอร์ว่าหน้านี้มีทั้ง 2 โหมด — ของที่ "เบราว์เซอร์วาดเอง" จะได้ตามโหมดด้วย
+     * (รายการในดรอปดาวน์ · ปฏิทินเลือกวันที่ · แถบเลื่อน · กล่องเติมอัตโนมัติ)
+     * ไม่ประกาศ = ตอนโหมดมืด ดรอปดาวน์เป็นตัวเทาอ่อนบนพื้นขาว 1.23:1 อ่านไม่ออก (วัดจริง 09-08-2569) */
+    color-scheme:light dark;
     --brand:#16a34a; --brand-d:#15803d; --brand-dd:#14532d;
     --brand-soft:#dcfce7; --brand-tint:#f0fdf5;
     --hl:#bbf7d0; --hl2:#86efac;
@@ -19,6 +23,15 @@
      * 🔒 กฎต่อจากนี้: วางตัวหนังสือบนพื้น --brand* ให้ใช้โทเคนพวกนี้ ห้ามเขียน #fff ตรง */
     --on-brand:#fff; --on-brand-dd:#fff; --on-amber:#fff;
     --divider-on-dd:rgba(255,255,255,.5);
+    /* 🎨 ชุดสีพาสเทล (มติผู้จัดการ 09-08-2569) — "พื้นอ่อน + ตัวหนังสือเข้ม"
+     * เหตุผล: อาการเรืองแสงตอนกลางคืนมีต้นเหตุจาก "ความอิ่มสีสูง × พื้นที่กว้าง"
+     * การเอาเงาสีออกแก้แค่อาการ · ลดความอิ่มสีคือแก้ที่ราก และคอนทราสต์ยังดีขึ้นด้วย
+     * (วัดจริง: สว่าง 5.02→7.52 · มืด 7.83→8.38)
+     * 🔑 --fill/--on-fill = คู่หูสำหรับ "พื้นที่ระบายสี" · --brand ยังเป็นสีเส้นขอบ/ตัวเน้นเหมือนเดิม
+     *    ห้ามเอา --brand ไประบายพื้นอีก ไม่งั้นกลับไปเป็นแบบเดิม
+     * ⚠️ ต้องประกาศซ้ำในทุกธีม (ม่วง/น้ำเงิน/แดง) เพราะ custom property คิดค่าตั้งแต่จุดที่ประกาศ
+     *    ประกาศที่ :root ที่เดียวแล้วธีมอื่นจะไม่พลิกตาม */
+    --fill:var(--hl); --fill2:var(--brand-soft); --on-fill:var(--brand-dd);
   }
   @media (prefers-color-scheme:dark){
     :root{
@@ -35,6 +48,8 @@
        * บนพื้น --brand-dd ที่อ่อนกว่า ได้ 12.3–14.7 */
       --on-brand:#0f172a; --on-brand-dd:#0f172a; --on-amber:#0f172a;
       --divider-on-dd:rgba(15,23,42,.28);
+      /* 🎨 พาสเทลโหมดมืด = กลับด้าน — พื้นเป็นโทนเข้มของธีม ตัวหนังสือเป็นเฉดอ่อน */
+      --fill:var(--brand-soft); --fill2:var(--brand-tint); --on-fill:var(--brand-dd);
     }
   }
   /* โหมดปรับโครงสร้างหนี้ = ธีมม่วง (แยกจากเงินกู้ปกติสีเขียว/ปานกลางน้ำเงิน/เบี้ยปรับแดง กันสับสน) */
@@ -42,12 +57,14 @@
     --brand:#7e22ce; --brand-d:#6b21a8; --brand-dd:#581c87;
     --brand-soft:#f3e8ff; --brand-tint:#faf5ff;
     --hl:#e9d5ff; --hl2:#d8b4fe;
+    --fill:var(--hl); --fill2:var(--brand-soft); --on-fill:var(--brand-dd);
   }
   @media (prefers-color-scheme:dark){
     body.mode-violet{
       --brand:#a855f7; --brand-d:#c084fc; --brand-dd:#e9d5ff;
       --brand-soft:#3b1464; --brand-tint:#280f45;
       --hl:#4c1d75; --hl2:#5f2a90;
+      --fill:var(--brand-soft); --fill2:var(--brand-tint); --on-fill:var(--brand-dd);
     }
   }
   /* โหมดเงินกู้ปานกลาง = ธีมน้ำเงินฟ้า (แยกจากระยะสั้นสีเขียว) */
@@ -55,29 +72,36 @@
     --brand:#2563eb; --brand-d:#1d4ed8; --brand-dd:#1e3a8a;
     --brand-soft:#dbeafe; --brand-tint:#eff6ff;
     --hl:#bfdbfe; --hl2:#93c5fd;
+    --fill:var(--hl); --fill2:var(--brand-soft); --on-fill:var(--brand-dd);
   }
   @media (prefers-color-scheme:dark){
     body.mode-blue{
       --brand:#3b82f6; --brand-d:#60a5fa; --brand-dd:#bfdbfe;
       --brand-soft:#172554; --brand-tint:#0f1e3d;
       --hl:#1e3a5f; --hl2:#28507f;
+      --fill:var(--brand-soft); --fill2:var(--brand-tint); --on-fill:var(--brand-dd);
     }
   }
   /* แท็บเบี้ยปรับ = accent แดง (เตือน/ค่าปรับ จำง่าย) — เฉพาะการ์ดนี้ */
   #pane-penalty{
     --brand:#dc2626; --brand-d:#b91c1c; --brand-dd:#991b1b;
     --brand-soft:#fee2e2; --brand-tint:#fef2f2; --hl:#fecaca; --hl2:#fca5a5;
+    --fill:var(--hl); --fill2:var(--brand-soft); --on-fill:var(--brand-dd);
   }
   @media (prefers-color-scheme:dark){
     #pane-penalty{
       --brand:#ef4444; --brand-d:#f87171; --brand-dd:#fecaca;
       --brand-soft:#3a1414; --brand-tint:#2a0f0f; --hl:#4a1818; --hl2:#5c1f1f;
+      --fill:var(--brand-soft); --fill2:var(--brand-tint); --on-fill:var(--brand-dd);
     }
   }
-  .tabs .tab[data-tab=penalty]{color:#dc2626}
-  /* ⚠️ แท็บนี้พื้นเป็น #dc2626 ตรึงตายตัว (ไม่พลิกตามโหมด) → ตัวขาวถูกแล้ว 4.83:1
-   * ห้ามเปลี่ยนเป็น var(--on-brand) ตามที่อื่น — ตัวเข้มบนแดงนี้ได้แค่ 3.70:1 คือแย่ลง */
-  .tabs .tab[data-tab=penalty].active{background:#dc2626;color:#fff;box-shadow:0 4px 12px -4px #dc2626}
+  /* 🔴 ใช้โทเคน --red (โหมดมืดพลิกเป็น #f87171) — เขียน #dc2626 ตรงจะไม่พลิกตามโหมด
+   * แล้วได้แค่ 3.22:1 บนพื้นมืด (วัดจริง 09-08-2569) */
+  .tabs .tab[data-tab=penalty]{color:var(--red)}
+  /* ⚠️ เดิมตรึงพื้นแดงเข้ม #dc2626 ตัวขาว (4.83:1) เพราะตัวเข้มบนแดงนั้นได้แค่ 3.70:1
+   * ชุดพาสเทล (09-08-2569) เปลี่ยนโจทย์: พื้นเป็นแดงอ่อน --hl ของธีมเบี้ยปรับ ตัวเป็นแดงเข้ม
+   * ⇒ ไม่ใช่ "ตัวเข้มบนแดงเข้ม" อีกแล้ว จึงไม่ติดข้อจำกัดเดิม */
+  .tabs .tab[data-tab=penalty].active{background:#fecaca;color:#7f1d1d}
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
   body{margin:0;color:var(--ink);
@@ -87,11 +111,11 @@
   .wrap{max-width:900px;margin:0 auto;padding:clamp(12px,3vw,28px) clamp(12px,3vw,20px) 96px}
 
   /* header */
-  header{background:linear-gradient(135deg,var(--brand-d),var(--brand));color:var(--on-brand);
+  header{background:linear-gradient(135deg,var(--fill2),var(--fill));color:var(--on-fill);
     border-radius:var(--radius);padding:clamp(18px,4vw,28px);box-shadow:var(--shadow);
     text-align:center;margin-bottom:16px;position:relative;overflow:hidden}
   header::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;
-    background:radial-gradient(circle,rgba(255,255,255,.16),transparent 70%);pointer-events:none}
+    background:radial-gradient(circle,color-mix(in srgb,var(--on-fill) 9%,transparent),transparent 70%);pointer-events:none}
   header .badge{font-size:34px;line-height:1}
   header .head-row{display:flex;align-items:center;justify-content:center;gap:14px}
   header .logo{width:56px;height:auto;flex-shrink:0;filter:drop-shadow(0 2px 5px rgba(0,0,0,.28))}
@@ -104,7 +128,7 @@
   header h1{margin:6px 0 2px;font-size:clamp(19px,5vw,26px);font-weight:800;letter-spacing:-.3px}
   header p{margin:0;opacity:.9;font-size:clamp(12px,3.2vw,14px)}
   header .meta{display:inline-flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:10px}
-  header .meta span{background:rgba(255,255,255,.16);padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:600}
+  header .meta span{background:color-mix(in srgb,var(--on-fill) 12%,transparent);padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:600}
   /* 🌙 หัวเว็บโหมดมืด — แผ่นสีสว่างเต็มความกว้างคือแหล่งแสงแยงตาที่สุดบนจอตอนกลางคืน
    * เปลี่ยนเป็นโทนเข้มของธีมเดิม (--brand-soft/--brand-tint ซึ่งโหมดมืดนิยามไว้แล้วทุกธีม)
    * ใช้ var ตรงบน header เพื่อให้ body.mode-blue/violet ส่งค่าของตัวเองลงมาได้
@@ -119,7 +143,7 @@
   .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
     padding:clamp(14px,3.5vw,20px);margin-bottom:14px;box-shadow:var(--shadow)}
   .card h2{margin:0 0 14px;font-size:16px;color:var(--brand-dd);display:flex;align-items:center;gap:8px}
-  .card h2 .n{background:var(--brand);color:var(--on-brand);width:24px;height:24px;border-radius:50%;
+  .card h2 .n{background:var(--fill);color:var(--on-fill);width:24px;height:24px;border-radius:50%;
     display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:0 0 auto}
 
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -151,7 +175,7 @@
   .chip{padding:10px 16px;border:1.5px solid var(--line);border-radius:24px;background:var(--card2);
     cursor:pointer;font-weight:700;color:var(--ink);user-select:none;font-size:15px;transition:.12s}
   .chip:hover{border-color:var(--brand)}
-  .chip.active{background:var(--brand);color:var(--on-brand);border-color:var(--brand);box-shadow:0 4px 12px -4px var(--brand)}
+  .chip.active{background:var(--fill);color:var(--on-fill);border-color:var(--brand);box-shadow:0 4px 12px -4px var(--brand)}
   .chips input{width:110px}
 
   /* หลักค้ำประกัน (ระเบียบเงินกู้ ข้อ 8) — เลือกผิด = เอกสารผิดระเบียบ
@@ -162,24 +186,24 @@
     cursor:pointer;user-select:none;font-size:15px;font-weight:700;color:var(--ink);
     line-height:1.35;transition:.12s}
   .secopt:hover{border-color:var(--brand)}
-  .secopt:has(:checked){background:var(--brand);border-color:var(--brand);color:var(--on-brand);
+  .secopt:has(:checked){background:var(--fill);border-color:var(--brand);color:var(--on-fill);
     box-shadow:0 4px 12px -4px var(--brand)}
   .secopt .note{margin:0;line-height:1.35;font-size:12.5px}  /* .note เดิมมี margin-top:12px → ดันข้อความในวงเล็บลงต่ำ */
-  .secopt:has(:checked) .note{color:rgba(255,255,255,.85)}
+  .secopt:has(:checked) .note{color:var(--on-fill);opacity:.82}
   .secopt:has(:focus-visible){outline:3px solid var(--hl2);outline-offset:2px}
   /* ซ่อน radio ไว้ใต้ปุ่ม — ยังกด Tab/ลูกศรเลือกด้วยคีย์บอร์ดได้ปกติ */
   .secopt input{position:absolute;width:1px;height:1px;margin:0;padding:0;
     opacity:0;pointer-events:none}
 
-  .btn{background:var(--brand);color:var(--on-brand);border:none;border-radius:12px;padding:14px 22px;
+  .btn{background:var(--fill);color:var(--on-fill);border:none;border-radius:12px;padding:14px 22px;
     font:inherit;font-size:16px;font-weight:800;cursor:pointer;transition:.15s;box-shadow:0 6px 16px -6px var(--brand)}
-  .btn:hover{background:var(--brand-d)}
+  .btn:hover{background:var(--hl2)}
   .btn:active{transform:translateY(1px)}
   .btn.ghost{background:transparent;color:var(--brand-d);border:1.5px solid var(--brand);box-shadow:none}
   /* ปุ่มที่กดไม่ได้ต้องดูออกว่ากดไม่ได้ — พื้นเรากำหนดเอง เบราว์เซอร์เลยไม่ทำให้ซีดให้
    * (เช่น ปุ่มพิมพ์หนังสือค้ำ ตอนยังไม่เลือก "บุคคลค้ำ") */
   .btn:disabled{opacity:.4;filter:grayscale(.7);box-shadow:none;cursor:not-allowed}
-  .btn:disabled:hover{background:var(--brand)}
+  .btn:disabled:hover{background:var(--fill)}
   .btn.ghost:disabled:hover{background:transparent}
   .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
   .actions .btn{flex:1 1 auto}
@@ -194,7 +218,7 @@
     font:inherit;font-size:clamp(14px,3.6vw,16px);font-weight:800;color:var(--muted);cursor:pointer;
     transition:.15s;box-shadow:var(--shadow)}
   .modebtn:hover{border-color:var(--brand)}
-  .modebtn.active{background:linear-gradient(135deg,var(--brand-d),var(--brand));color:var(--on-brand);border-color:transparent;
+  .modebtn.active{background:linear-gradient(135deg,var(--fill2),var(--fill));color:var(--on-fill);border-color:transparent;
     box-shadow:0 6px 18px -6px var(--brand)}
   /* tabs */
   .tabs{display:flex;flex-wrap:wrap;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:14px;
@@ -202,7 +226,23 @@
   .tab{flex:1 1 auto;text-align:center;padding:11px 8px;border-radius:10px;cursor:pointer;font-weight:700;
     color:var(--muted);font-size:14.5px;transition:.15s;white-space:nowrap}
   @media (max-width:540px){.tab{flex:1 1 40%}}
-  .tab.active{background:var(--brand);color:var(--on-brand);box-shadow:0 4px 12px -4px var(--brand)}
+  .tab.active{background:var(--fill);color:var(--on-fill);box-shadow:0 4px 12px -4px var(--brand)}
+
+  /* ═══ 🌗 แก้สองโหมด (09-08-2569) — วางไว้ท้ายสุดของกฎพวกนี้เพื่อให้ทับของเดิมได้ ═══
+   * บทเรียน: ของที่พังกลางคืนกลับดีกลางวัน และกลับกัน ⇒ แก้สีทีไรต้องวัด 2 โหมดเสมอ */
+
+  /* 🌙 โหมดมืด — เงาต้องเป็นเงา ไม่ใช่แสง
+   * เดิมใช้สีแบรนด์เป็นสีเงา บนพื้นขาวคือเงานุ่ม แต่บนพื้นดำกลายเป็นวงแสงรอบปุ่ม
+   * (ผู้จัดการเห็นเป็นอาการ "เรืองแสง" 09-08-2569) · ปุ่มยังเด่นอยู่เพราะพื้นสว่างตัดกับฉากมืดแล้ว
+   * 🔒 ห้ามแตะ --shadow ของการ์ด (เป็นเงาดำอยู่แล้ว ถูกต้อง) และห้ามแตะวงโฟกัสของช่องกรอก */
+  @media (prefers-color-scheme:dark){
+    .chip.active,.secopt:has(:checked),.tab.active,
+    .tabs .tab[data-tab=penalty].active{box-shadow:0 4px 14px -6px rgba(0,0,0,.75)}
+    .btn,.modebtn.active{box-shadow:0 6px 18px -8px rgba(0,0,0,.8)}
+  }
+
+  /* ☀️ (เดิมมีบล็อกทำพื้นเขียวเข้มขึ้นเพื่อแก้ตัวขาวบนเขียว 3.30:1 — ถอดออกแล้ว
+   *  เพราะชุดพาสเทลแก้ปัญหาเดียวกันที่ราก และให้ค่าดีกว่า 7.52:1) */
   .pane{display:none}.pane.active{display:block;animation:fade .25s ease}
   .rpane{display:none}.rpane.active{display:block;animation:fade .25s ease}
   @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
@@ -222,7 +262,7 @@
   .tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;-webkit-overflow-scrolling:touch}
   table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:660px}
   th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
-  th{background:var(--brand);color:var(--on-brand);font-weight:700;font-size:12.5px;position:sticky;top:0}
+  th{background:var(--fill);color:var(--on-fill);font-weight:700;font-size:12.5px;position:sticky;top:0}
   td.tl,th.tl{text-align:left}
   td.head-cell{display:none}          /* หัวการ์ด — โชว์เฉพาะจอมือถือ */
   tbody tr:nth-child(even){background:var(--card2)}
@@ -235,7 +275,7 @@
   td.pcol{font-weight:800;font-size:14.5px;background:var(--hl)!important;color:var(--brand-dd)}
   td.tcol{font-weight:800;font-size:15.5px;color:var(--brand-dd);background:var(--hl2)!important;
     border-left:2px solid var(--brand)}
-  .badge-due{display:inline-block;font-size:10.5px;font-weight:800;color:var(--on-brand);background:var(--brand);
+  .badge-due{display:inline-block;font-size:10.5px;font-weight:800;color:var(--on-fill);background:var(--fill);
     padding:1px 7px;border-radius:20px;margin-left:6px;vertical-align:middle}
   .badge-close{display:inline-block;font-size:10.5px;font-weight:800;color:var(--on-amber);background:var(--amber);
     padding:1px 7px;border-radius:20px;margin-left:6px;vertical-align:middle}
@@ -299,8 +339,8 @@
   /* 🖨️ หัวกระดาษพิมพ์ (backlog ข้อ 3) — ช่องกรอกโปร่งบนพื้นเขียว header · บรรทัด print-only โผล่เฉพาะตอนพิมพ์ */
   .print-id{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
   .print-id input{flex:1;min-width:150px;padding:7px 10px;border-radius:9px;font-size:13px;
-    border:1px solid rgba(255,255,255,.45);background:rgba(255,255,255,.14);color:#fff}
-  .print-id input::placeholder{color:rgba(255,255,255,.75)}
+    border:1px solid color-mix(in srgb,var(--on-fill) 32%,transparent);background:color-mix(in srgb,var(--on-fill) 8%,transparent);color:var(--on-fill)}
+  .print-id input::placeholder{color:var(--on-fill);opacity:.62}
   .print-only{display:none}
   @media print{
     @page{size:A4 portrait;margin:8mm}
@@ -1058,7 +1098,7 @@ DATE_FIELDS.forEach(id=>{
   <h2><span class="n">✎</span> ข้อมูลผู้กู้ — พิมพ์สัญญา ส.-งก.14</h2>
   <div class="note" style="margin-bottom:10px">ตัวเลขการเงิน (วงเงิน + ตาราง 10 งวด) ดึงจากผลคำนวณอัตโนมัติ — กรอกเฉพาะข้อมูลตัวตนผู้กู้</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-    <div class="field" style="grid-column:1/-1"><label>วันที่ประชุมอนุมัติ <span style="color:#c00">*</span> <span class="note" style="font-weight:400">(= วันที่ในสัญญา · ปกติวันที่ 9 หรือ 25)</span></label><div class="date-wrap"><input type="date" id="ct_meetdate"><div class="date-hint" id="ct_meetdate_th"></div></div></div>
+    <div class="field" style="grid-column:1/-1"><label>วันที่ประชุมอนุมัติ <span style="color:var(--red)">*</span> <span class="note" style="font-weight:400">(= วันที่ในสัญญา · ปกติวันที่ 9 หรือ 25)</span></label><div class="date-wrap"><input type="date" id="ct_meetdate"><div class="date-hint" id="ct_meetdate_th"></div></div></div>
     <div class="field"><label>ชื่อ-สกุล ผู้กู้</label><div class="inp"><input id="ct_name" placeholder="นาย / นาง / นางสาว ..."></div></div>
     <div class="field"><label>เลขทะเบียนสมาชิก</label><div class="inp"><input id="ct_reg"></div></div>
     <div class="field"><label>สมาชิกกลุ่มที่</label><div class="inp"><input id="ct_group"></div></div>
@@ -1081,7 +1121,7 @@ DATE_FIELDS.forEach(id=>{
     </div>
     <!-- หุ้นที่ถืออยู่ — ต้องใช้ 2 ทาง: คำนวณเพดาน (ข้อ 8) + กรอกข้อ 2 ของหนังสือหุ้นค้ำ -->
     <div id="ct_share_field" style="display:none;margin-top:10px">
-      <label style="font-weight:700">จำนวนหุ้นที่ถืออยู่ <span style="color:#c00">*</span>
+      <label style="font-weight:700">จำนวนหุ้นที่ถืออยู่ <span style="color:var(--red)">*</span>
         <span class="note" style="font-weight:400">(ดูจากทะเบียนหุ้น/สมุดคู่บัญชี · หุ้นละ 10 บาท ตามข้อบังคับ ข้อ 5)</span></label>
       <div class="inp" style="max-width:260px">
         <input id="ct_shares" type="number" min="0" step="1" placeholder="เช่น 1500" oninput="updateSecurityUI()">
@@ -1288,7 +1328,7 @@ function updateSecurityUI(){
                 : 'ยังไม่ได้กรอกหุ้น → ใช้พื้นตามเกณฑ์ ก. = '+fmt0(cap)+' บาท (กรอกหุ้นเพื่อขยายเป็น 2 เท่าตามเกณฑ์ ข.)')));
   const rule = isPerson ? 'ข้อ 8(2) ก./ข.' : 'ข้อ 8 วรรคแรก';
   if(P > cap){
-    warn.style.display='block'; warn.style.color='#c00';
+    warn.style.display='block'; warn.style.color='var(--red)';
     warn.innerHTML='🔴 วงเงิน '+fmt0(P)+' บาท <u>เกินเพดาน '+fmt0(cap)+' บาท</u> (ระเบียบเงินกู้ '+rule+')<br>'
       +'<span style="font-weight:400">'+why+'</span><br>'
       +'<span style="font-weight:400">→ ลดวงเงิน หรือใช้จำนองอสังหาฯ [8(1)] / เงินฝาก [8(3)] แทนหรือร่วม</span>';
@@ -1323,9 +1363,9 @@ async function genContractPDF(){
     // ต้องมีวันที่ประชุมอนุมัติก่อน (= วันที่ในสัญญา) — บังคับกรอก
     const meetInp = document.getElementById('ct_meetdate');
     if(!meetInp.value){
-      meetInp.style.outline='2px solid #c00';
+      meetInp.style.outline='2px solid var(--red)';
       meetInp.focus();
-      st.innerHTML='<span style="color:#c00;font-weight:700">⚠️ กรุณาเลือก “วันที่ประชุมอนุมัติ” ก่อนสร้างสัญญา</span>';
+      st.innerHTML='<span style="color:var(--red);font-weight:700">⚠️ กรุณาเลือก “วันที่ประชุมอนุมัติ” ก่อนสร้างสัญญา</span>';
       return;
     }
     meetInp.style.outline='';
@@ -1334,7 +1374,7 @@ async function genContractPDF(){
     /* 🔒 ด่านร่วม (contract_print/doc_gate.js) — เงื่อนไขบล็อกทั้งหมดอยู่ที่นั่นที่เดียว
      *    เดิมสัญญา (เอกสารผูกพันที่สุด) ไม่ตรวจเพดานวงเงินเลย ทั้งที่หนังสือค้ำคู่กันตรวจ
      *    → พิมพ์สัญญาเกินเพดานได้พร้อม "✅ สำเร็จ" แต่พิมพ์หลักประกันคู่กันไม่ได้ (บั๊ก 20-07) */
-    const _bad = m => { st.innerHTML='<span style="color:#c00;font-weight:700">⚠️ '+m+'</span>'; };
+    const _bad = m => { st.innerHTML='<span style="color:var(--red);font-weight:700">⚠️ '+m+'</span>'; };
     const miss = DocGate.borrower('contract');
     if(miss.length) return _bad('ยังขาดข้อมูลผู้กู้: '+miss.join(' · '));
     const _capMsg = DocGate.ceiling(r.P);
@@ -1403,7 +1443,7 @@ async function genContractPDF(){
  *    ไม่ใช่หักได้ทันทีอย่างที่ข้อ 4 ในฟอร์มเขียนไว้ */
 async function genSharePDF(){
   const st=document.getElementById('ct_guar_status');
-  const bad=(m)=>{ st.innerHTML='<span style="color:#c00;font-weight:700">⚠️ '+m+'</span>'; };
+  const bad=(m)=>{ st.innerHTML='<span style="color:var(--red);font-weight:700">⚠️ '+m+'</span>'; };
   try{
     if(getSecurity()!=='share') return bad('เลือก "หุ้นตนเอง" ก่อน');
     const r = calcCoop();
@@ -1414,7 +1454,7 @@ async function genSharePDF(){
     const _totMsg = DocGate.totalCeiling(r.P);   // 🔒 เพดานรวมทุกสัญญา ข้อ 6 วรรคท้าย
     if(_totMsg) return bad(_totMsg);
     const meetInp=document.getElementById('ct_meetdate');
-    if(!meetInp.value){ meetInp.style.outline='2px solid #c00'; meetInp.focus(); return bad('เลือก "วันที่ประชุมอนุมัติ" ก่อน'); }
+    if(!meetInp.value){ meetInp.style.outline='2px solid var(--red)'; meetInp.focus(); return bad('เลือก "วันที่ประชุมอนุมัติ" ก่อน'); }
     meetInp.style.outline='';
     const meetDate=parseDate(meetInp.value);
 
@@ -1451,14 +1491,14 @@ async function genSharePDF(){
     const url = URL.createObjectURL(new Blob([bytes], {type:'application/pdf'}));
     window.open(url, '_blank');
     st.innerHTML='✅ สร้างหนังสือหุ้นค้ำประกันสำเร็จ — เปิดแท็บใหม่แล้ว &nbsp;<a href="'+url+'" download="หนังสือหุ้นค้ำ_'+((data.name||'ผู้กู้').replace(/\s+/g,'_'))+'.pdf">⬇ ดาวน์โหลด</a>';
-  }catch(e){ st.innerHTML='<span style="color:#c00">❌ '+(e && e.message || e)+'</span>'; console.error(e); }
+  }catch(e){ st.innerHTML='<span style="color:var(--red)">❌ '+(e && e.message || e)+'</span>'; console.error(e); }
 }
 
 /* ===== หนังสือค้ำประกันเงินกู้ (บุคคลค้ำ) — ออก 2 แผ่น/2 ผู้ค้ำ =====
  * ข้อ 1+ข้อ 3 ดึงจากผลคำนวณ (เหมือนสัญญากู้) · เขียนที่/วันที่ = วันประชุมอนุมัติ (ct_meetdate) */
 async function genGuaranteePDF(){
   const st=document.getElementById('ct_guar_status');
-  const bad=(m)=>{ st.innerHTML='<span style="color:#c00;font-weight:700">⚠️ '+m+'</span>'; };
+  const bad=(m)=>{ st.innerHTML='<span style="color:var(--red);font-weight:700">⚠️ '+m+'</span>'; };
   try{
     if(getSecurity()!=='person') return bad('เลือก "บุคคลค้ำ 2 คน" ก่อน');
     const r = calcCoop();
@@ -1470,7 +1510,7 @@ async function genGuaranteePDF(){
     const _missB = DocGate.borrower('guarantee');   // หนังสือค้ำพิมพ์ชื่อผู้กู้ + วัตถุประสงค์ด้วย
     if(_missB.length) return bad('ยังขาดข้อมูลผู้กู้ (แผงด้านบน): '+_missB.join(' · '));
     const meetInp=document.getElementById('ct_meetdate');
-    if(!meetInp.value){ meetInp.style.outline='2px solid #c00'; meetInp.focus(); return bad('เลือก "วันที่ประชุมอนุมัติ" ก่อน'); }
+    if(!meetInp.value){ meetInp.style.outline='2px solid var(--red)'; meetInp.focus(); return bad('เลือก "วันที่ประชุมอนุมัติ" ก่อน'); }
     meetInp.style.outline='';
     const meetDate=parseDate(meetInp.value);
 

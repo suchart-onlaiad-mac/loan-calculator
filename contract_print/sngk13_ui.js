@@ -29,14 +29,14 @@
     return n;
   };
 
-  const box = 'box-sizing:border-box;padding:5px 7px;border:1px solid #d1d5db;border-radius:6px;font-size:13px';
+  const box = 'box-sizing:border-box;padding:5px 7px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--card2);color:var(--ink)';
   const cell = (id, ph, w) => '<input id="' + id + '"' + (ph ? ' placeholder="' + ph + '"' : '') + ' style="width:' + (w || '100%') + ';' + box + '">';
-  const ro = (id, w) => '<input id="' + id + '" readonly title="คำนวณอัตโนมัติ" style="width:' + (w || '100%') + ';' + box + ';background:#f3f4f6;color:#374151">';
-  const sel = (id, opts, w) => '<select id="' + id + '" style="width:' + (w || '100%') + ';' + box + ';background:#fff"><option value=""></option>' + opts.map(o => '<option>' + o + '</option>').join('') + '</select>';
+  const ro = (id, w) => '<input id="' + id + '" readonly title="คำนวณอัตโนมัติ" style="width:' + (w || '100%') + ';' + box + ';background:var(--card);color:var(--muted)">';
+  const sel = (id, opts, w) => '<select id="' + id + '" style="width:' + (w || '100%') + ';' + box + '"><option value=""></option>' + opts.map(o => '<option>' + o + '</option>').join('') + '</select>';
   const dl = (id, list, ph, w) => '<input id="' + id + '" list="' + list + '"' + (ph ? ' placeholder="' + ph + '"' : '') + ' style="width:' + (w || '100%') + ';' + box + '">';
-  const th = t => '<th style="border:1px solid #e5e7eb;padding:5px;background:#eef2f7;color:#1f2937;font-size:12px;font-weight:600">' + t + '</th>';
+  const th = t => '<th style="border:1px solid var(--line);padding:5px;background:var(--fill);color:var(--on-fill);font-size:12px;font-weight:600">' + t + '</th>';
   const td = h => '<td style="border:1px solid #e5e7eb;padding:3px">' + h + '</td>';
-  const secH = t => '<div style="font-weight:700;margin:16px 0 8px;color:#1f2937">' + t + '</div>';
+  const secH = t => '<div style="font-weight:700;margin:16px 0 8px;color:var(--ink)">' + t + '</div>';
 
   let H = '';
   // datalist ใช้ร่วม
@@ -331,7 +331,7 @@ function wrapSngk13Plan(text, maxes, size) {
 
 async function genLoanRequestPDF() {
   const st = document.getElementById('sngk13_status');
-  const bad = m => { st.innerHTML = '<span style="color:#c00;font-weight:700">⚠️ ' + m + '</span>'; };
+  const bad = m => { st.innerHTML = '<span style="color:var(--red);font-weight:700">⚠️ ' + m + '</span>'; };
   try {
     if (!window.SNGK13_MAP) return bad('ยังไม่ได้โหลด sngk13_fieldmap.js');
     const r = calcCoop();
@@ -547,5 +547,5 @@ async function genLoanRequestPDF() {
     const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
     window.open(url, '_blank');
     st.innerHTML = '✅ สร้างคำขอกู้ ส.-งก.13 สำเร็จ — เปิดแท็บใหม่แล้ว &nbsp;<a href="' + url + '" download="คำขอกู้_สงก13_' + ((data.name || 'ผู้กู้').replace(/\s+/g, '_')) + '.pdf">⬇ ดาวน์โหลด</a>';
-  } catch (e) { st.innerHTML = '<span style="color:#c00">❌ ' + (e && e.message || e) + '</span>'; console.error(e); }
+  } catch (e) { st.innerHTML = '<span style="color:var(--red)">❌ ' + (e && e.message || e) + '</span>'; console.error(e); }
 }

@@ -11,12 +11,12 @@
   const mount = document.getElementById('janong_body');
   if (!mount) return;
 
-  const box = 'box-sizing:border-box;padding:5px 7px;border:1px solid #d1d5db;border-radius:6px;font-size:13px';
+  const box = 'box-sizing:border-box;padding:5px 7px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--card2);color:var(--ink)';
   const cell = (id, ph, w) => '<input id="' + id + '"' + (ph ? ' placeholder="' + ph + '"' : '') + ' style="width:' + (w || '100%') + ';' + box + '">';
-  const ro = (id, w) => '<input id="' + id + '" readonly title="เติมอัตโนมัติจากด้านบน" style="width:' + (w || '100%') + ';' + box + ';background:#f3f4f6;color:#374151">';
-  const th = t => '<th style="border:1px solid #e5e7eb;padding:5px;background:#eef2f7;color:#1f2937;font-size:12px;font-weight:600">' + t + '</th>';
+  const ro = (id, w) => '<input id="' + id + '" readonly title="เติมอัตโนมัติจากด้านบน" style="width:' + (w || '100%') + ';' + box + ';background:var(--card);color:var(--muted)">';
+  const th = t => '<th style="border:1px solid var(--line);padding:5px;background:var(--fill);color:var(--on-fill);font-size:12px;font-weight:600">' + t + '</th>';
   const td = h => '<td style="border:1px solid #e5e7eb;padding:3px">' + h + '</td>';
-  const secH = t => '<div style="font-weight:700;margin:16px 0 8px;color:#1f2937">' + t + '</div>';
+  const secH = t => '<div style="font-weight:700;margin:16px 0 8px;color:var(--ink)">' + t + '</div>';
 
   /* 🔒 ส่วน "ความเห็นของประธานกลุ่ม" (7 ข้อ + ชื่อผู้ใช้เงินแทน) ถูกตัดออกจากเว็บ (มติ ผจก 20-07-2569)
    *    เหตุ: ประธานกลุ่มติ๊กเองด้วยมือบนกระดาษ — ไม่มีใครกรอกผ่านเว็บ ใส่ไว้ก็รกและชี้นำ
@@ -167,7 +167,7 @@ function janongAutofill() {
         + 'แต่ไม่มีหนี้ประเภทนี้ใน ส.-งก.13 แล้ว — ถ้าไม่ลบ เอกสารจะนับหนี้ก้อนเดิมซ้ำ');
     }
     note.innerHTML = msgs.length
-      ? '<span style="color:#c00;font-weight:700">' + msgs.join('<br>') + '</span>' : '';
+      ? '<span style="color:var(--red);font-weight:700">' + msgs.join('<br>') + '</span>' : '';
   }
 }
 
@@ -188,7 +188,7 @@ document.addEventListener('input', function (e) {
 
 async function genJanongPDF() {
   const st = document.getElementById('janong_status');
-  const bad = m => { st.innerHTML = '<span style="color:#c00;font-weight:700">⚠️ ' + m + '</span>'; };
+  const bad = m => { st.innerHTML = '<span style="color:var(--red);font-weight:700">⚠️ ' + m + '</span>'; };
   try {
     if (!window.JANONG_MAP) return bad('ยังไม่ได้โหลด janong_fieldmap.js');
     const r = calcCoop();
@@ -265,5 +265,5 @@ async function genJanongPDF() {
     window.open(url, '_blank');
     st.innerHTML = '✅ สร้างหนังสือแสดงความจำนงสำเร็จ — เปิดแท็บใหม่แล้ว &nbsp;<a href="' + url +
       '" download="หนังสือแสดงความจำนง_' + ((data.name || 'ผู้กู้').replace(/\s+/g, '_')) + '.pdf">⬇ ดาวน์โหลด</a>';
-  } catch (e) { st.innerHTML = '<span style="color:#c00">❌ ' + (e && e.message || e) + '</span>'; console.error(e); }
+  } catch (e) { st.innerHTML = '<span style="color:var(--red)">❌ ' + (e && e.message || e) + '</span>'; console.error(e); }
 }
