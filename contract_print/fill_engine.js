@@ -69,8 +69,17 @@
 
     // baselineTop = spec.y + baseDY (global) + spec.dy (per-field) — canvas top-origin, baseline='alphabetic'
     const baseDY = (FM.baseDY != null ? FM.baseDY : 0);
+
+    /* 🩹 patches — ปิดทับคำที่ "พิมพ์ผิดมาในแบบฟอร์มต้นแบบเอง" (ไม่ใช่ข้อมูลที่เรากรอก)
+     * ต้อง push ก่อนช่องกรอกทั้งหมด เพราะวาดตามลำดับ — สี่เหลี่ยมขาวที่มาทีหลังจะลบของที่วาดไว้แล้ว
+     * ⚠️ นี่คือการ "ปิดทับ" ไม่ใช่การแก้ต้นฉบับ — วัน ไหน export PDF ต้นแบบใหม่จาก Word ที่แก้แล้ว
+     *    ต้องมาถอด patch ตัวนั้นออก ไม่งั้นจะทับคำที่ถูกต้องแล้วซ้ำอีกชั้น */
+    for (const p of (FM.patches || [])) {
+      push(p.page, { patch: p });
+    }
+
     for (const key of Object.keys(FM)) {
-      if (key === "table" || key === "yAdjust" || key === "baseDY") continue;
+      if (key === "table" || key === "yAdjust" || key === "baseDY" || key === "patches") continue;
       const spec = FM[key], text = data[key];
       if (text == null || text === "") continue;
       const baselineTop = spec.y + baseDY + (spec.dy || 0);
@@ -217,6 +226,19 @@
     ctx.fillStyle = colorCss;
     const tooLong = [];
     for (const f of fields) {
+      /* 🩹 patch = ลบคำที่ผิดในแบบฟอร์มแล้วเขียนคำที่ถูกทับลงไป
+       * ขนาด/พิกัดกล่องมาจาก pdftotext -bbox ของคำนั้นเอง (วัดจากฟอร์มจริง ไม่ได้กะ)
+       * ไม่ผ่าน _fit เพราะไม่ใช่ข้อมูลผู้ใช้ — ข้อความคงที่ ยาวเท่าเดิมเสมอ */
+      if (f.patch) {
+        const p = f.patch;
+        ctx.save();
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(p.x * SCALE, p.y * SCALE, p.w * SCALE, p.h * SCALE);
+        ctx.restore();
+        ctx.font = `${p.size * SCALE}px "${OVERLAY_FONT}"`;
+        ctx.fillText(p.text, p.tx * SCALE, p.ty * SCALE);
+        continue;
+      }
       const fit = _fit(ctx, f);
       if (!fit) {
         ctx.font = `${SHRINK_FLOOR * SCALE}px "${OVERLAY_FONT}"`;
