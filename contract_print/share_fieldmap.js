@@ -2,20 +2,20 @@
 window.SHARE_MAP = {
   "docDate": {
     "page": 1,
-    "x": 385.6,
-    "y": 167.3,
+    "x": 385.3,
+    "y": 167.2,
     "size": 16,
     "max": 139,
-    "cx": 455.1,
+    "cx": 454.8,
     "align": "center"
   },
   "name": {
     "page": 1,
-    "x": 177.2,
+    "x": 177,
     "y": 215.2,
     "size": 16,
     "max": 173,
-    "cx": 263.7,
+    "cx": 263.5,
     "align": "center"
   },
   "reg": {
@@ -29,85 +29,85 @@ window.SHARE_MAP = {
   },
   "group": {
     "page": 1,
-    "x": 496.6,
+    "x": 496.3,
     "y": 215.2,
     "size": 16,
     "max": 28,
-    "cx": 510.6,
+    "cx": 510.3,
     "align": "center"
   },
   "house": {
     "page": 1,
-    "x": 155.3,
+    "x": 155.2,
     "y": 236.1,
     "size": 16,
     "max": 25,
-    "cx": 167.8,
+    "cx": 167.7,
     "align": "center"
   },
   "moo": {
     "page": 1,
-    "x": 203.6,
+    "x": 203.5,
     "y": 236.1,
     "size": 16,
     "max": 15,
-    "cx": 211.1,
+    "cx": 211,
     "align": "center"
   },
   "tambon": {
     "page": 1,
-    "x": 245.8,
+    "x": 245.7,
     "y": 236.1,
     "size": 16,
     "max": 133,
-    "cx": 312.3,
+    "cx": 312.2,
     "align": "center"
   },
   "postcode": {
     "page": 1,
-    "x": 139.8,
-    "y": 257.1,
+    "x": 139.7,
+    "y": 257.2,
     "size": 16,
     "max": 97,
-    "cx": 188.3,
+    "cx": 188.2,
     "align": "center"
   },
   "tel": {
     "page": 1,
-    "x": 301.3,
-    "y": 257.1,
+    "x": 301.1,
+    "y": 257.2,
     "size": 16,
     "max": 135,
-    "cx": 368.8,
+    "cx": 368.6,
     "align": "center"
   },
   "loanRange": {
     "page": 1,
-    "x": 490.9,
-    "y": 301.9,
+    "x": 490.6,
+    "y": 302.1,
     "size": 16,
     "max": 33
   },
   "loanDate": {
     "page": 1,
-    "x": 132,
-    "y": 322.9,
+    "x": 131.9,
+    "y": 323,
     "size": 16,
     "max": 51
   },
   "amount": {
     "page": 1,
-    "x": 230,
-    "y": 322.9,
+    "x": 229.9,
+    "y": 323,
     "size": 16,
     "max": 74,
-    "cx": 267,
+    "cx": 266.9,
     "align": "center"
   },
   "amountText": {
     "page": 1,
     "x": 329.9,
-    "y": 322.9,
+    "y": 323,
     "size": 15,
     "max": 185,
     "cx": 422.4,
@@ -115,52 +115,38 @@ window.SHARE_MAP = {
   },
   "shares": {
     "page": 1,
-    "x": 364.4,
-    "y": 346.9,
+    "x": 362.2,
+    "y": 347,
     "size": 16,
     "max": 53,
-    "cx": 390.9,
+    "cx": 388.7,
     "align": "center"
   },
   "shareBaht": {
     "page": 1,
-    "x": 101.2,
+    "x": 101.1,
     "y": 367.9,
     "size": 16,
     "max": 97,
-    "cx": 149.7,
+    "cx": 149.6,
     "align": "center"
   },
   "shareBahtText": {
     "page": 1,
-    "x": 225.3,
+    "x": 225,
     "y": 367.9,
     "size": 15,
-    "max": 207,
-    "cx": 328.8,
+    "max": 208,
+    "cx": 329,
     "align": "center"
   },
   "nameParen": {
     "page": 1,
     "cx": 419.8,
-    "y": 595.5,
+    "y": 595.6,
     "size": 16,
     "max": 167,
     "align": "center"
   },
-  "baseDY": -11,
-  "patches": [
-    {
-      "page": 1,
-      "x": 264.6,
-      "y": 325,
-      "w": 60.8,
-      "h": 22.9,
-      "text": "ข้าพเจ้ามีหุ้น",
-      "size": 16,
-      "tx": 265.6,
-      "ty": 339.6,
-      "note": "ฟอร์มต้นแบบพิมพ์ 'หุ้น' ผิดลำดับสระ — ปิดทับ (08-08-2569)"
-    }
-  ]
+  "baseDY": -11
 };

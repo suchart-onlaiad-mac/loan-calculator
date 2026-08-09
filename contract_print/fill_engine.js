@@ -231,10 +231,11 @@
        * ไม่ผ่าน _fit เพราะไม่ใช่ข้อมูลผู้ใช้ — ข้อความคงที่ ยาวเท่าเดิมเสมอ */
       if (f.patch) {
         const p = f.patch;
-        ctx.save();
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(p.x * SCALE, p.y * SCALE, p.w * SCALE, p.h * SCALE);
-        ctx.restore();
+        /* 🔴 ห้ามลบคำผิดด้วย fillRect บนผืนภาพนี้ — เคยทำแล้วเห็นกรอบจาง ๆ บนกระดาษ
+         * ผืนภาพเป็น PNG โปร่งใสที่ถูกย่อจาก SCALE เท่า → ขอบสี่เหลี่ยมได้ค่าอัลฟาไม่เต็ม
+         * ขาวไม่เต็มอัลฟาบนพื้นขาว = เส้นเทา (วัดจริง 09-08-2569: เทา 201 ยาว 80% ของกล่อง)
+         * การลบจึงย้ายไปวาดเป็น "สี่เหลี่ยมเวกเตอร์" ใน PDF ก่อนแปะภาพ (_paintPatches)
+         * ตรงนี้เหลือหน้าที่เดียว = เขียนคำที่ถูกทับลงไป */
         ctx.font = `${p.size * SCALE}px "${OVERLAY_FONT}"`;
         ctx.fillText(p.text, p.tx * SCALE, p.ty * SCALE);
         continue;
@@ -358,6 +359,22 @@
     }
   }
 
+  /* 🩹 ลบคำที่ผิดในแบบฟอร์ม ด้วยสี่เหลี่ยมขาว "เวกเตอร์" ใน PDF — ไม่ใช่บนผืนภาพ
+   * ทำไม: ผืนภาพ overlay เป็น PNG โปร่งใสที่ย่อจาก SCALE เท่า ขอบสี่เหลี่ยมจึงได้อัลฟาไม่เต็ม
+   *       ขาวไม่เต็มอัลฟาทับพื้นขาว = เส้นเทาจาง ๆ เห็นเป็นกรอบ (ผจก.เห็นเองที่ซูม 289%)
+   *       วัดยืนยัน 09-08-2569: แถวบนกรอบเทา 201 ยาว 80% ของความกว้างกล่อง
+   * เวกเตอร์ไม่ถูกย่อ ขอบจึงคมและขาวเต็ม — ต้องวาดก่อน drawImage เสมอ */
+  function _paintPatches(pg, FM, Hpt) {
+    const { rgb } = global.PDFLib;
+    for (const p of (FM.patches || [])) {
+      if (p.page !== 1) continue;                 // ฟอร์มหุ้นค้ำมีหน้าเดียว
+      pg.drawRectangle({
+        x: p.x, y: Hpt - (p.y + p.h), width: p.w, height: p.h,
+        color: rgb(1, 1, 1), borderWidth: 0,
+      });
+    }
+  }
+
   async function generateShare(data, opts = {}) {
     if (!global.SHARE_MAP) throw new Error("ไม่พบ share_fieldmap.js");
     await _loadShare();
@@ -368,6 +385,7 @@
     for (const pageNoStr of Object.keys(perPage)) {
       const pg = _pageOrThrow(srcPages, +pageNoStr, 'หนังสือหุ้นค้ำประกัน', perPage[pageNoStr]);
       const Wpt = pg.getWidth(), Hpt = pg.getHeight();
+      _paintPatches(pg, global.SHARE_MAP, Hpt);
       const cv = _renderOverlayCanvas(Wpt, Hpt, perPage[pageNoStr], opts.calibrate ? "#0d19b3" : "#000000");
       const png = await src.embedPng(_canvasToPngBytes(cv));
       pg.drawImage(png, { x: 0, y: 0, width: Wpt, height: Hpt });
