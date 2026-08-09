@@ -1,5 +1,11 @@
 /* sngk13_fieldmap.js — พิกัดเติมบน sngk13_base.pdf (คำขอกู้เงิน ส.-งก.13 · หน้า 1-3)
  * 🔒 GENERATED — ห้ามแก้ไฟล์นี้ตรง · แก้ที่ compute_sngk13.js แล้ว `node compute_sngk13.js > sngk13_fieldmap.js`
+ *
+ * 🚨 คำเตือน 09-08-2569 — ไฟล์นี้กับ compute_sngk13.js "ไม่ตรงกันแล้ว" 27 จุด
+ *    (max 13 · wrap 8 · cx 6 — เช่น mort*_remain cx สคริปต์ 505 แต่ไฟล์จริง 522)
+ *    = มีคนแก้ไฟล์นี้ตรงแล้วไม่ย้อนกลับไปแก้สคริปต์
+ *    ⇒ **ห้ามรัน regen จนกว่าจะสอบทานสองไฟล์ให้ตรงกันก่อน** ไม่งั้นของที่ปรับมือไว้หายทั้งหมดเงียบ ๆ
+ *    ตรวจว่าตรงกันหรือยัง: `node compute_sngk13.js | diff - sngk13_fieldmap.js`
  * base = Word export ของผู้จัดการ (Quartz PDFContext) A4 4 หน้า — เติมหน้า 1-3 · หน้า 4 เจ้าหน้าที่ติ๊กเอง
  * dotted: y=yMax label · baseDY ยกลอยเหนือเส้น · max/cx วัดจริง | table cell: y=row baseline · dy=+11 ยกเลิก baseDY */
 window.SNGK13_MAP = {
@@ -1399,6 +1405,26 @@ window.SNGK13_MAP = {
     "max": 62,
     "dy": 7,
     "align": "center"
+  },
+  "mortValueTotal": {
+    "page": 3,
+    "cx": 368,
+    "y": 371.8,
+    "size": 14,
+    "max": 56,
+    "dy": 7,
+    "align": "center",
+    "_note": "แถว 'รวม' ของตารางจำนอง — y = แถว1 200.6 + 8 ช่วง x 21.4 · สอบทานกับ bbox คำว่า 'รวม' (yMax 372.2) ตรงกัน"
+  },
+  "mortRemainTotal": {
+    "page": 3,
+    "cx": 522,
+    "y": 371.8,
+    "size": 14,
+    "max": 62,
+    "dy": 7,
+    "align": "center",
+    "_note": "ช่องขวาสุดของแถว 'รวม' — ช่องกลาง (หนังสือกู้) ฟอร์มพิมพ์ X X มาแล้ว ไม่ต้องเติม"
   },
   "baseDY": -11
 };

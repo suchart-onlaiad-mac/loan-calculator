@@ -536,6 +536,11 @@ async function genLoanRequestPDF() {
     const pt = sumKeys('prod', '_amt'); if (pt) data.prodTotal = pt;
     const it = sumKeys('inc', '_value'); if (it) data.incTotal = it;
     const et = sumKeys('exp', '_amt'); if (et) data.expTotal = et;
+    /* ข้อ 5ข ตารางจำนอง — ฟอร์มมีแถว "รวม" 2 ช่อง แต่เดิมไม่มีใครเติม
+     * เจ้าหน้าที่ต้องเขียนมือหรือลืมเขียน (ตรวจ 09-08-2569 ด้วยการสร้างใบจริงแล้วส่อง)
+     * ใช้ sumKeys ตัวเดียวกับตารางอื่น → ได้กติกาปัดทีละแถว + ด่านกันแถวเกินความจุมาด้วยฟรี */
+    const mvt = sumKeys('mort', '_value');  if (mvt) data.mortValueTotal = mvt;
+    const mrt = sumKeys('mort', '_remain'); if (mrt) data.mortRemainTotal = mrt;
 
     st.textContent = '⏳ กำลังสร้าง PDF...';
     const bytes = await ContractFill.generateLoanRequest(data, {});
