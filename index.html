@@ -31,7 +31,7 @@
      *    ห้ามเอา --brand ไประบายพื้นอีก ไม่งั้นกลับไปเป็นแบบเดิม
      * ⚠️ ต้องประกาศซ้ำในทุกธีม (ม่วง/น้ำเงิน/แดง) เพราะ custom property คิดค่าตั้งแต่จุดที่ประกาศ
      *    ประกาศที่ :root ที่เดียวแล้วธีมอื่นจะไม่พลิกตาม */
-    --fill:var(--hl); --fill2:var(--brand-soft); --on-fill:var(--brand-dd);
+    --fill:var(--hl2); --fill2:var(--hl); --on-fill:var(--brand-dd);
   }
   @media (prefers-color-scheme:dark){
     :root{
@@ -49,7 +49,7 @@
       --on-brand:#0f172a; --on-brand-dd:#0f172a; --on-amber:#0f172a;
       --divider-on-dd:rgba(15,23,42,.28);
       /* 🎨 พาสเทลโหมดมืด = กลับด้าน — พื้นเป็นโทนเข้มของธีม ตัวหนังสือเป็นเฉดอ่อน */
-      --fill:var(--brand-soft); --fill2:var(--brand-tint); --on-fill:var(--brand-dd);
+      --fill:#15803d; --fill2:var(--brand-soft); --on-fill:#f0fdf5;
     }
   }
   /* โหมดปรับโครงสร้างหนี้ = ธีมม่วง (แยกจากเงินกู้ปกติสีเขียว/ปานกลางน้ำเงิน/เบี้ยปรับแดง กันสับสน) */
@@ -57,14 +57,14 @@
     --brand:#7e22ce; --brand-d:#6b21a8; --brand-dd:#581c87;
     --brand-soft:#f3e8ff; --brand-tint:#faf5ff;
     --hl:#e9d5ff; --hl2:#d8b4fe;
-    --fill:var(--hl); --fill2:var(--brand-soft); --on-fill:var(--brand-dd);
+    --fill:var(--hl2); --fill2:var(--hl); --on-fill:var(--brand-dd);
   }
   @media (prefers-color-scheme:dark){
     body.mode-violet{
       --brand:#a855f7; --brand-d:#c084fc; --brand-dd:#e9d5ff;
       --brand-soft:#3b1464; --brand-tint:#280f45;
       --hl:#4c1d75; --hl2:#5f2a90;
-      --fill:var(--brand-soft); --fill2:var(--brand-tint); --on-fill:var(--brand-dd);
+      --fill:#6b21a8; --fill2:var(--brand-soft); --on-fill:#faf5ff;
     }
   }
   /* โหมดเงินกู้ปานกลาง = ธีมน้ำเงินฟ้า (แยกจากระยะสั้นสีเขียว) */
@@ -72,27 +72,28 @@
     --brand:#2563eb; --brand-d:#1d4ed8; --brand-dd:#1e3a8a;
     --brand-soft:#dbeafe; --brand-tint:#eff6ff;
     --hl:#bfdbfe; --hl2:#93c5fd;
-    --fill:var(--hl); --fill2:var(--brand-soft); --on-fill:var(--brand-dd);
+    --fill:var(--hl2); --fill2:var(--hl); --on-fill:var(--brand-dd);
   }
   @media (prefers-color-scheme:dark){
     body.mode-blue{
       --brand:#3b82f6; --brand-d:#60a5fa; --brand-dd:#bfdbfe;
       --brand-soft:#172554; --brand-tint:#0f1e3d;
       --hl:#1e3a5f; --hl2:#28507f;
-      --fill:var(--brand-soft); --fill2:var(--brand-tint); --on-fill:var(--brand-dd);
+      --fill:#1d4ed8; --fill2:var(--brand-soft); --on-fill:#eff6ff;
     }
   }
   /* แท็บเบี้ยปรับ = accent แดง (เตือน/ค่าปรับ จำง่าย) — เฉพาะการ์ดนี้ */
   #pane-penalty{
     --brand:#dc2626; --brand-d:#b91c1c; --brand-dd:#991b1b;
     --brand-soft:#fee2e2; --brand-tint:#fef2f2; --hl:#fecaca; --hl2:#fca5a5;
-    --fill:var(--hl); --fill2:var(--brand-soft); --on-fill:var(--brand-dd);
+    /* แดงเข้มขึ้นหนึ่งขั้นเฉพาะตัวหนังสือบนพื้นแดงอ่อน — #991b1b ได้ 4.38 ขาดเกณฑ์นิดเดียว */
+    --fill:var(--hl2); --fill2:var(--hl); --on-fill:#7f1d1d;
   }
   @media (prefers-color-scheme:dark){
     #pane-penalty{
       --brand:#ef4444; --brand-d:#f87171; --brand-dd:#fecaca;
       --brand-soft:#3a1414; --brand-tint:#2a0f0f; --hl:#4a1818; --hl2:#5c1f1f;
-      --fill:var(--brand-soft); --fill2:var(--brand-tint); --on-fill:var(--brand-dd);
+      --fill:#b91c1c; --fill2:var(--brand-soft); --on-fill:#fef2f2;
     }
   }
   /* 🔴 ใช้โทเคน --red (โหมดมืดพลิกเป็น #f87171) — เขียน #dc2626 ตรงจะไม่พลิกตามโหมด
@@ -243,6 +244,30 @@
 
   /* ☀️ (เดิมมีบล็อกทำพื้นเขียวเข้มขึ้นเพื่อแก้ตัวขาวบนเขียว 3.30:1 — ถอดออกแล้ว
    *  เพราะชุดพาสเทลแก้ปัญหาเดียวกันที่ราก และให้ค่าดีกว่า 7.52:1) */
+
+  /* ═══ 🖱️ บอกให้รู้ว่า "อันนี้กดได้" (P0-6 · 09-08-2569) ═══
+   * ทำไมต้องมี: พอสีใกล้กันทั้งหน้า ผู้ใช้แยกไม่ออกว่าอะไรกดได้ อะไรเป็นแค่ป้าย
+   * 🔒 ครอบด้วย (hover:hover) — บนจอสัมผัส (iPad เจ้าหน้าที่) สถานะ hover จะค้างหลังแตะ
+   * 🔒 hover ห้ามเป็นสัญญาณเดียว — เส้นขอบของปุ่มทำหน้าที่นี้อยู่แล้วตอนไม่ได้ชี้
+   * 🔒 ใช้ transform ไม่ใช่ margin — ของรอบข้างจะได้ไม่ขยับตาม */
+  .chip,.tab,.modebtn,.secopt,.btn{
+    transition:transform .13s ease,box-shadow .13s ease,border-color .13s ease,background .13s ease}
+  @media (hover:hover){
+    .btn:not(:disabled):hover,.chip:hover,.tab:hover,.modebtn:hover,.secopt:hover{
+      transform:translateY(-2px);border-color:var(--brand)}
+    .btn:not(:disabled):hover{box-shadow:0 8px 18px -8px rgba(0,0,0,.45)}
+    /* ช่องกรอก: บอกว่าพิมพ์ได้ ก่อนคลิกเสียอีก */
+    input:not([readonly]):not([disabled]):hover,select:hover{border-color:var(--brand);background:var(--brand-tint)}
+  }
+  .btn:not(:disabled):active,.chip:active,.tab:active,.modebtn:active{transform:translateY(0)}
+  /* เคอร์เซอร์ต้องตรงกับสิ่งที่ทำได้จริง */
+  input:not([readonly]):not([disabled]),select{cursor:text}
+  select{cursor:pointer}
+  input[readonly]{cursor:not-allowed;border-style:dashed}
+  @media (prefers-reduced-motion:reduce){
+    .chip,.tab,.modebtn,.secopt,.btn{transition:border-color .13s ease,background .13s ease}
+    .btn:hover,.chip:hover,.tab:hover,.modebtn:hover,.secopt:hover{transform:none}
+  }
   .pane{display:none}.pane.active{display:block;animation:fade .25s ease}
   .rpane{display:none}.rpane.active{display:block;animation:fade .25s ease}
   @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
