@@ -261,9 +261,8 @@ async function genJanongPDF() {
 
     st.textContent = '⏳ กำลังสร้าง PDF...';
     const bytes = await ContractFill.generateJanong(data, {});
-    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
-    window.open(url, '_blank');
-    st.innerHTML = '✅ สร้างหนังสือแสดงความจำนงสำเร็จ — เปิดแท็บใหม่แล้ว &nbsp;<a href="' + url +
-      '" download="หนังสือแสดงความจำนง_' + ((data.name || 'ผู้กู้').replace(/\s+/g, '_')) + '.pdf">⬇ ดาวน์โหลด</a>';
+    st.innerHTML = ContractFill.deliverPdf(bytes,
+      'หนังสือแสดงความจำนง_' + ((data.name || 'ผู้กู้').replace(/\s+/g, '_')) + '.pdf',
+      'สร้างหนังสือแสดงความจำนงสำเร็จ');
   } catch (e) { st.innerHTML = '<span style="color:var(--red)">❌ ' + (e && e.message || e) + '</span>'; console.error(e); }
 }

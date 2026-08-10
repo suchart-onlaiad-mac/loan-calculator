@@ -1455,9 +1455,9 @@ async function genContractPDF(){
     if(_mk.length) return _bad('ระบบผิดพลาด: โปรแกรมไม่ได้สร้างข้อมูลช่อง → '+_mk.join(', ')+' (แจ้งผู้พัฒนา)');
 
     const bytes = await ContractFill.generateContract(data, {});
-    const url = URL.createObjectURL(new Blob([bytes], {type:'application/pdf'}));
-    window.open(url, '_blank');
-    st.innerHTML='✅ สร้างสำเร็จ ('+rows.length+' งวด) — เปิดแท็บใหม่แล้ว &nbsp;<a href="'+url+'" download="สัญญากู้_'+((data.name||'ผู้กู้').replace(/\s+/g,'_'))+'.pdf">⬇ ดาวน์โหลด</a>';
+    st.innerHTML = ContractFill.deliverPdf(bytes,
+      'สัญญากู้_'+((data.name||'ผู้กู้').replace(/\s+/g,'_'))+'.pdf',
+      'สร้างสำเร็จ ('+rows.length+' งวด)');
   }catch(e){ st.textContent='❌ '+(e && e.message || e); console.error(e); }
 }
 
@@ -1513,9 +1513,9 @@ async function genSharePDF(){
 
     st.textContent='⏳ กำลังสร้าง...';
     const bytes = await ContractFill.generateShare(data, {});
-    const url = URL.createObjectURL(new Blob([bytes], {type:'application/pdf'}));
-    window.open(url, '_blank');
-    st.innerHTML='✅ สร้างหนังสือหุ้นค้ำประกันสำเร็จ — เปิดแท็บใหม่แล้ว &nbsp;<a href="'+url+'" download="หนังสือหุ้นค้ำ_'+((data.name||'ผู้กู้').replace(/\s+/g,'_'))+'.pdf">⬇ ดาวน์โหลด</a>';
+    st.innerHTML = ContractFill.deliverPdf(bytes,
+      'หนังสือหุ้นค้ำ_'+((data.name||'ผู้กู้').replace(/\s+/g,'_'))+'.pdf',
+      'สร้างหนังสือหุ้นค้ำประกันสำเร็จ');
   }catch(e){ st.innerHTML='<span style="color:var(--red)">❌ '+(e && e.message || e)+'</span>'; console.error(e); }
 }
 
@@ -1600,9 +1600,9 @@ async function genGuaranteePDF(){
       return;
     }
     const bytes = await ContractFill.generateGuarantee(sheets, {});
-    const url = URL.createObjectURL(new Blob([bytes], {type:'application/pdf'}));
-    window.open(url,'_blank');
-    st.innerHTML += '✅ สร้างสำเร็จ ('+sheets.length+' แผ่น) &nbsp;<a href="'+url+'" download="หนังสือค้ำประกัน_'+((shared.borrower||'ผู้กู้').replace(/\s+/g,'_'))+'.pdf">⬇ ดาวน์โหลด</a>';
+    st.innerHTML += ContractFill.deliverPdf(bytes,
+      'หนังสือค้ำประกัน_'+((shared.borrower||'ผู้กู้').replace(/\s+/g,'_'))+'.pdf',
+      'สร้างสำเร็จ ('+sheets.length+' แผ่น)');
   }catch(e){ st.textContent='❌ '+(e && e.message || e); console.error(e); }
 }
 </script>

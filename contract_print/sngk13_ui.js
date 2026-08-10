@@ -382,6 +382,10 @@ async function genLoanRequestPDF() {
       docDate: ContractFill.thaiDate(meetDate),
       name: V('ct_name'), reg: V('ct_reg'), group: V('ct_group'),
       house: V('ct_house'), moo: V('ct_moo'), tambon: document.getElementById('ct_tambon').value,
+      /* 🔒 ห้ามเติม g1_name/g1_group ตรงนี้ — ระบบมีทางเดินของมันอยู่แล้ว
+       * syncSngk13Guarantors() คัดจากฟอร์มหลักลงช่อง s13_g*_* แล้ว collect วนตามแผนที่เก็บต่อ
+       * และมันใส่ "กลุ่ม / เลขทะเบียน" รวมกัน ไม่ใช่กลุ่มอย่างเดียว
+       * ถ้ายัดตรงนี้จะทับค่านั้น + ทะลุด่านที่ล้างช่องเมื่อไม่ได้เลือกบุคคลค้ำ (ผู้ตรวจจับได้ 20-07) */
       amount: fmt0(r.P), amountText: ContractFill.bahtText(r.P), purpose: purpose,
     };
 
@@ -544,8 +548,8 @@ async function genLoanRequestPDF() {
 
     st.textContent = '⏳ กำลังสร้าง PDF...';
     const bytes = await ContractFill.generateLoanRequest(data, {});
-    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
-    window.open(url, '_blank');
-    st.innerHTML = '✅ สร้างคำขอกู้ ส.-งก.13 สำเร็จ — เปิดแท็บใหม่แล้ว &nbsp;<a href="' + url + '" download="คำขอกู้_สงก13_' + ((data.name || 'ผู้กู้').replace(/\s+/g, '_')) + '.pdf">⬇ ดาวน์โหลด</a>';
+    st.innerHTML = ContractFill.deliverPdf(bytes,
+      'คำขอกู้_สงก13_' + ((data.name || 'ผู้กู้').replace(/\s+/g, '_')) + '.pdf',
+      'สร้างคำขอกู้ ส.-งก.13 สำเร็จ');
   } catch (e) { st.innerHTML = '<span style="color:var(--red)">❌ ' + (e && e.message || e) + '</span>'; console.error(e); }
 }

@@ -485,5 +485,34 @@
     return _fit(ctx, { text: String(text), max, size: size || 14, wrap: wrap !== false });
   }
 
-  global.ContractFill = { generateContract, generateGuarantee, generateShare, generateLoanRequest, generateJanong, bahtText, thaiDate, fmtNum, debugOverlayCanvas, debugOverlayCanvasFM, _fitDebug, _SCALE: SCALE };
+  /* ── ส่งไฟล์ PDF ให้ผู้ใช้ + บอกความจริงว่าเปิดได้หรือไม่ ──────────────
+   *
+   * ปัญหาเดิม (พบ 10-08-2569): ทั้ง 5 ปุ่มเรียก window.open() แล้วขึ้นข้อความ
+   * "เปิดแท็บใหม่แล้ว" ทันทีโดยไม่ดูว่าเปิดสำเร็จไหม
+   *   → บน iPad/iPhone มี await คั่นก่อน window.open ⇒ Safari ถือว่าไม่ได้เกิดจากการแตะ
+   *     แล้วบล็อกป๊อปอัป · เจ้าหน้าที่เห็นเครื่องหมายถูกสีเขียวทั้งที่ไม่มีอะไรเปิดขึ้นมา
+   *   → ตระกูลเดียวกับบั๊ก "ช่องว่างเงียบ" คือระบบรายงานว่าสำเร็จโดยไม่ได้ตรวจ
+   *
+   * 🔑 รวมไว้ที่เดียว ไม่ก๊อปตรรกะไป 5 ที่ — ไม่งั้นวันหนึ่งข้อความจะไม่ตรงกัน
+   * 🔒 ลิงก์ดาวน์โหลดต้องมีเสมอ ไม่ว่าเปิดแท็บได้หรือไม่ (เป็นทางเดียวที่ใช้ได้บน iPad)
+   */
+  function deliverPdf(bytes, filename, okText) {
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+    let win = null;
+    try { win = global.open(url, '_blank'); } catch (e) { win = null; }
+    const blocked = !win || win.closed || typeof win.closed === 'undefined';
+    const safeName = String(filename).replace(/"/g, '');
+    const link = '<a href="' + url + '" download="' + safeName + '"'
+      + ' style="display:inline-block;margin-left:6px;padding:4px 12px;border-radius:8px;'
+      + 'background:var(--fill);color:var(--on-fill);font-weight:800;text-decoration:none">'
+      + '⬇ เปิด / บันทึกไฟล์</a>';
+    if (blocked) {
+      return '✅ ' + okText
+        + ' — <b>เบราว์เซอร์ไม่ยอมเปิดแท็บใหม่ให้</b> (พบบ่อยบน iPad/iPhone) แตะปุ่มนี้แทน'
+        + link;
+    }
+    return '✅ ' + okText + ' — เปิดแท็บใหม่แล้ว' + link;
+  }
+
+  global.ContractFill = { generateContract, generateGuarantee, generateShare, generateLoanRequest, generateJanong, bahtText, thaiDate, fmtNum, deliverPdf, debugOverlayCanvas, debugOverlayCanvasFM, _fitDebug, _SCALE: SCALE };
 })(window);
