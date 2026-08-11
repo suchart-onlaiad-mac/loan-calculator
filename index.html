@@ -148,7 +148,11 @@
     display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:0 0 auto}
 
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  @media (min-width:620px){.grid{grid-template-columns:repeat(4,1fr)}}
+  /* 4 คอลัมน์เริ่มที่ 900px ไม่ใช่ 620px
+   * iPad แนวตั้ง = 768px → ของเดิมบีบเป็น 4 ช่องละ ~170px ป้ายไทยยาว
+   * ("จำนวนปี (งวดต้น ปีละครั้ง)") แตก 3 บรรทัด แถวสูงไม่เท่ากัน อ่านยาก
+   * เท่ากับ Split View บน iPad ที่ได้ความกว้างราว 700px ด้วย (พบบนเครื่องจริง 10-08-2569) */
+  @media (min-width:900px){.grid{grid-template-columns:repeat(4,1fr)}}
   .field{min-width:0}
   .field.wide{grid-column:1/-1}
   /* วันที่ พ.ศ. ทับบน input[type=date] (native picker บังคับโชว์ ค.ศ. แก้ตรงไม่ได้ — ซ่อนตัวเลขเดิมด้วย color:transparent แล้ววางทับ) */
@@ -166,8 +170,21 @@
   input,select{width:100%;padding:12px 12px;border:1.5px solid var(--line);border-radius:12px;
     font:inherit;font-size:16px;color:var(--ink);background:var(--card2);transition:border-color .15s,box-shadow .15s}
   input:focus,select:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
-  /* ช่องประเภทสัญญา — เน้นให้เด่น (สีตามธีม สั้น=เขียว/ปานกลาง=น้ำเงิน) */
-  #loanType{border:2px solid var(--brand);background:var(--brand-tint);font-weight:800;color:var(--brand-dd)}
+  /* 🔴 select ต้องยอมแคบกว่าข้อความ option ที่ยาวสุด
+   * Safari กำหนดความกว้างขั้นต่ำของ <select> = ความกว้างของ option ที่ยาวสุด
+   * แล้ว width:100% กดลงต่ำกว่านั้นไม่ได้ ⇒ กล่องล้นออกนอกคอลัมน์ไปทับช่องข้างเคียง
+   * (เห็นชัดที่ "ประเภทสัญญา" — option "ปานกลาง (2–10 ปี)" ยาวกว่าคอลัมน์บน iPad
+   *  ผู้จัดการถ่ายภาพจากเครื่องจริงมาให้ 10-08-2569)
+   * ลูกศร native ก็กินที่ไม่เท่ากันแต่ละเบราว์เซอร์ แล้วข้อความยาวจะไปทับลูกศร
+   * → ปิด appearance แล้ววาดลูกศรเองพร้อมกันที่ padding-right เผื่อไว้
+   * 🔑 กฎนี้เขียนที่ selector รวม ไม่ใช่ที่ #loanType — เพิ่ม select ใหม่วันหน้าจะได้ไม่ทับอีก */
+  select{min-width:0;max-width:100%;text-overflow:ellipsis;
+    -webkit-appearance:none;appearance:none;padding-right:36px;
+    background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%23888f9c' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 13px center;background-size:12px 8px}
+  /* ช่องประเภทสัญญา — เน้นให้เด่น (สีตามธีม สั้น=เขียว/ปานกลาง=น้ำเงิน)
+   * ⚠️ ต้องเป็น background-color ไม่ใช่ background — shorthand จะล้างลูกศรที่วาดไว้ข้างบนทิ้ง */
+  #loanType{border:2px solid var(--brand);background-color:var(--brand-tint);font-weight:800;color:var(--brand-dd)}
   .field.type-field label{color:var(--brand-d);font-weight:800}
   .inp .suffix{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none}
   .inp input[type=number]{padding-right:42px}
@@ -257,7 +274,8 @@
       transform:translateY(-2px);border-color:var(--brand)}
     .btn:not(:disabled):hover{box-shadow:0 8px 18px -8px rgba(0,0,0,.45)}
     /* ช่องกรอก: บอกว่าพิมพ์ได้ ก่อนคลิกเสียอีก */
-    input:not([readonly]):not([disabled]):hover,select:hover{border-color:var(--brand);background:var(--brand-tint)}
+    /* background-color ไม่ใช่ background — shorthand จะล้างลูกศรของ select ทิ้งตอนชี้ */
+    input:not([readonly]):not([disabled]):hover,select:hover{border-color:var(--brand);background-color:var(--brand-tint)}
   }
   .btn:not(:disabled):active,.chip:active,.tab:active,.modebtn:active{transform:translateY(0)}
   /* เคอร์เซอร์ต้องตรงกับสิ่งที่ทำได้จริง */
@@ -1067,7 +1085,12 @@ function printReport(){
       '   ·   เลขที่สัญญา ' + (pv('pr_contract') || dots) +
       '   ·   พิมพ์เมื่อ ' + thDate(new Date());
   }
-  window.print();
+  /* 🔑 สั่งพิมพ์ที่ "เอกสารบนสุด" — หน้านี้ถูกฝังเป็น iframe ในหน้า /print ของเว็บแอป
+   * งานพิมพ์เป็นของหน้าแม่ ถ้าสั่งจากในกรอบ `@page` ของหน้านี้จะถูกเมิน แล้วได้ขอบ
+   * 15/18mm ของเว็บแอปมาแทน + Safari เติม URL/วันที่ที่มุมล่าง (บทเรียน 10-08-2569)
+   * ใช้ helper ตัวเดียวกับแผงตัวอย่างสัญญา — ห้ามก๊อป logic การไล่หา window บนสุดมาซ้ำ */
+  if (window.ContractFill && ContractFill.printHost) ContractFill.printHost();
+  else window.print();          // เปิดหน้านี้เดี่ยว ๆ โดยไม่มี engine → พิมพ์ตัวเองตามปกติ
 }
 
 document.querySelectorAll('.chips .chip').forEach(c=>{
@@ -1202,6 +1225,10 @@ DATE_FIELDS.forEach(id=>{
 <script>window.CONTRACT_ASSET_BASE = "contract_print/";</script>
 <script src="contract_print/vendor/pdf-lib.min.js"></script>
 <script src="contract_print/vendor/fontkit.umd.min.js"></script>
+<!-- pdf.js = ตัววาดเอกสารในหน้าตัวอย่างก่อนพิมพ์ (คนละตัวกับ pdf-lib ที่ใช้ "สร้าง" เอกสาร)
+     ต้องมีเพราะตัวแสดง PDF ของ iPadOS ใช้ไม่ได้: iframe เห็นแค่หน้าแรก · สั่งพิมพ์ได้หน้าเดียว
+     · เปิดเต็มหน้าแล้วกลับไม่ได้ (ทดสอบเครื่องจริง 10-08-2569) → เราวาดเองแล้วพิมพ์เอง -->
+<script src="contract_print/vendor/pdf.min.js"></script>
 <script>
 /* cache-bust: Python http.server ไม่ส่ง Cache-Control → เบราว์เซอร์จด JS เก่า (heuristic cache)
  * → โหลด engine files ที่แก้บ่อยด้วย ?v=timestamp ทุกครั้ง เห็นผลแก้ทันที ไม่ต้อง hard-reload

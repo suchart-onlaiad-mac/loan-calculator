@@ -496,23 +496,321 @@
    * 🔑 รวมไว้ที่เดียว ไม่ก๊อปตรรกะไป 5 ที่ — ไม่งั้นวันหนึ่งข้อความจะไม่ตรงกัน
    * 🔒 ลิงก์ดาวน์โหลดต้องมีเสมอ ไม่ว่าเปิดแท็บได้หรือไม่ (เป็นทางเดียวที่ใช้ได้บน iPad)
    */
-  function deliverPdf(bytes, filename, okText) {
-    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
-    let win = null;
-    try { win = global.open(url, '_blank'); } catch (e) { win = null; }
-    const blocked = !win || win.closed || typeof win.closed === 'undefined';
-    const safeName = String(filename).replace(/"/g, '');
-    const link = '<a href="' + url + '" download="' + safeName + '"'
-      + ' style="display:inline-block;margin-left:6px;padding:4px 12px;border-radius:8px;'
-      + 'background:var(--fill);color:var(--on-fill);font-weight:800;text-decoration:none">'
-      + '⬇ เปิด / บันทึกไฟล์</a>';
-    if (blocked) {
-      return '✅ ' + okText
-        + ' — <b>เบราว์เซอร์ไม่ยอมเปิดแท็บใหม่ให้</b> (พบบ่อยบน iPad/iPhone) แตะปุ่มนี้แทน'
-        + link;
+  /* ── หน้าตัวอย่างก่อนพิมพ์ ────────────────────────────────────────────
+   *
+   * มติผู้จัดการ 10-08-2569: อยากได้ "ตัวอย่างแล้วพิมพ์ได้" เหมือนบนวินโดวส์
+   *
+   * 📱 **เลิกพึ่งตัวแสดง PDF ของเบราว์เซอร์แล้ว — ทดลองบน iPad จริงจนตัน 4 รอบ**
+   *   ❌ `<iframe>` ไฟล์หลายหน้า → เห็นหน้า 1 แล้วพื้นขาวยาว ไม่มีหน้า 2
+   *   ❌ `<iframe>` ไฟล์แยกรายหน้า → เห็นครบ แต่เนื้อหาถูกตัดขวา (iOS ไม่สนใจ #view=FitH)
+   *   ❌ `iframe.contentWindow.print()` → กล่องพิมพ์ให้แค่หน้าที่กำลังแสดง
+   *   ❌ นำทางแท็บไปที่ blob → เมนูหายหมด กลับไม่ได้ (กับดัก)
+   *   ❌ `window.open(blob)` → ขึ้น PDF เต็มหน้า แต่ไม่มีเมนูเลือกเครื่องพิมพ์
+   *   ⇒ เราไม่ได้ควบคุมตัวแสดง PDF เลย ปะเท่าไรก็ไม่จบ
+   *
+   * ✅ **วิธีที่ใช้อยู่**: pdf.js วาดทุกหน้าเป็น <canvas> ในหน้าเว็บของเราเอง
+   *    แล้วสั่ง `window.print()` ของหน้าเรา — ทางเดียวกับ printReport() ที่พิสูจน์แล้วว่า
+   *    ใช้ได้บน iPad และเคยยืนยันด้วยกระดาษจริง (21-07-2569)
+   *    🔒 ห้ามกลับไปใช้ <iframe> PDF อีก และห้ามพา user ออกจากหน้าเว็บ
+   *
+   * 🔒 ไบต์ที่เอามาวาด = ไบต์ที่จะบันทึก/พิมพ์จริง ตัวอย่างจึงโกหกไม่ได้
+   * 🔒 ทุกอย่างอยู่ในหน่วยความจำ + revoke blob ตอนปิด — ไม่มีไฟล์ค้างในเครื่อง
+   *    จนกว่าจะกดปุ่มบันทึกเอง (ข้อกังวลเรื่องข้อมูลสมาชิกของผู้จัดการ)
+   */
+  const PV_DPI_SCALE = 3;   // 72dpi × 3 = 216dpi — ภาพ 150dpi ไม่คมพอสำหรับฟอร์มราชการ
+
+  const PV_CSS = `
+  /* 100dvh = ความสูง "ที่มองเห็นจริง" — inset:0 เพียว ๆ อ้าง layout viewport ซึ่งบน iOS
+   * สูงกว่าพื้นที่จริง (แถบที่อยู่ยุบ/กางได้) แล้วเหลือพื้นดำเกินท้ายสุด (ผจก เจอ 10-08-2569) */
+  #pdfPreview{position:fixed;inset:0;height:100dvh;z-index:9999;display:flex;flex-direction:column;
+    background:#0d1117f2;backdrop-filter:blur(2px)}
+  #pdfPreview .pv-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+    padding:10px 12px;background:#111827;color:#e5e7eb;border-bottom:1px solid #374151}
+  #pdfPreview .pv-title{font-weight:800;margin-right:auto;font-size:15px}
+  #pdfPreview .pv-btn{border:1.5px solid #4b8f5f;background:#166534;color:#fff;font:inherit;
+    font-size:15px;font-weight:800;padding:9px 16px;border-radius:10px;cursor:pointer}
+  #pdfPreview .pv-btn.ghost{background:transparent;color:#a7f3c0}
+  #pdfPreview .pv-note{width:100%;font-size:12.5px;color:#9ca3af;font-weight:400}
+  #pdfPreview .pv-body{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+    padding:12px;padding-bottom:max(12px,env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;align-items:center;gap:14px}
+  #pdfPreview .pv-sheet{width:min(100%,840px);background:#fff;border-radius:4px;
+    box-shadow:0 6px 20px -8px #000}
+  /* canvas กว้างเต็มแผ่น สูงตามสัดส่วนจริงของหน้านั้น (ไม่ล็อก A4 — บางฟอร์มไม่ใช่ A4 เป๊ะ) */
+  #pdfPreview .pv-canvas{display:block;width:100%;height:auto;border-radius:4px}
+  #pdfPreview .pv-cap{width:min(100%,840px);color:#9ca3af;font-size:12.5px;line-height:1.5}
+  #pdfPreview .pv-cap b{color:#e5e7eb}
+  html.pv-open,body.pv-open{overflow:hidden}
+
+  /* ── โหมดพิมพ์: พิมพ์ "หน้าเว็บของเรา" ไม่ใช่ฝากตัวแสดง PDF ──────────────
+   *
+   * 🔴 **ห้ามให้กฎพิมพ์ขึ้นกับคลาสที่ JS สลับ** — เคยทำแล้วพังบน iPad (10-08-2569):
+   *    iOS เปิดกล่องพิมพ์แบบไม่บล็อก แล้วไปเรนเดอร์ภาพตัวอย่าง **หลัง** print() คืนค่า
+   *    โค้ดล้างคลาสทำงานก่อน ⇒ กฎไม่ทำงานเลย ⇒ พิมพ์ออกมาเป็นภาพหน้าจอทั้งแผง หน้าเดียว
+   *    ลอกแบบแผนจาก printReport() ที่พิมพ์ได้จริงมาตลอด: **กฎคงที่ ไม่มีการสลับคลาส**
+   *
+   * กฎยึด "การมีอยู่ของแผงตัวอย่าง" — แผงอยู่ใน DOM แค่ตอนเปิดดูอยู่ ⇒ สโคปเองโดยธรรมชาติ
+   * และ stylesheet นี้ถูกถอดออกตอนปิดแผง (ดู _pvClose) จึงไม่ไปแก้ @page ของรายงานคำนวณ */
+  @media print{
+    html, body{background:#fff!important;margin:0!important;padding:0!important;
+      height:auto!important;min-height:0!important;overflow:visible!important}
+    body > *{display:none!important}
+    body > #pdfPreview{display:block!important;position:static!important;
+      inset:auto!important;height:auto!important;margin:0!important;padding:0!important;
+      background:#fff!important;backdrop-filter:none!important}
+    #pdfPreview .pv-bar, #pdfPreview .pv-cap{display:none!important}
+    #pdfPreview .pv-body{display:block!important;overflow:visible!important;
+      margin:0!important;padding:0!important;gap:0!important;height:auto!important}
+    /* 🔴 **ห้ามใช้ vh/dvh ในบล็อกนี้เด็ดขาด** — ในการพิมพ์ vh คือความสูง "หน้าจอ"
+     * ไม่ใช่ความสูง "หน้ากระดาษ" · จอ iPad สูง ~312mm > A4 297mm ⇒ แผ่นเดียวถูกหั่น
+     * เป็นหลายหน้า: เอกสาร 2 หน้าออกมา 8 หน้า หน้าเปล่าสลับกับเศษข้อความ
+     * (ผจก เจอบน iPad 10-08-2569 · ผมเป็นคนใส่ vh เอง)
+     * ⇒ วัดด้วยหน่วยกระดาษจริงเท่านั้น · 296mm = A4 หัก 1mm กันปัดเศษไปสร้างหน้าเปล่า */
+    #pdfPreview .pv-sheet{width:210mm!important;height:296mm!important;
+      margin:0 auto!important;overflow:hidden!important;
+      display:flex!important;align-items:center;justify-content:center;
+      box-shadow:none!important;border-radius:0!important;
+      break-inside:avoid;page-break-inside:avoid;break-after:page;page-break-after:always}
+    #pdfPreview .pv-sheet:last-child{break-after:auto;page-break-after:auto}
+    /* ฟอร์มที่ไม่ใช่ A4 เป๊ะ (เช่น ส.-งก.13) ย่อพอดีแผ่นด้วย max-* ไม่ล้นออกไป */
+    #pdfPreview .pv-canvas{width:auto!important;height:auto!important;
+      max-width:210mm!important;max-height:296mm!important}
+    @page{size:A4 portrait;margin:0}
+  }
+  `;
+
+  /* 🔴 **แผงตัวอย่างต้องอยู่ "เอกสารบนสุด" เสมอ ไม่ใช่ในกรอบ iframe**
+   *
+   * เว็บแอปเงินกู้เปิดเครื่องคิดเงินกู้เป็น iframe ที่หน้า /print แล้วยืดกรอบให้สูงเท่าเนื้อหา
+   * ถ้าแผงอยู่ในกรอบ จะพังสองอย่างพร้อมกัน (ผจก เจอบน iPad 10-08-2569):
+   *   ① `position:fixed`/`100dvh` ในกรอบอ้างอิง "ความสูงกรอบ" (~3,000px) ไม่ใช่ความสูงจอ
+   *      ⇒ แผงยาวเกินจอ เหลือพื้นดำยาวใต้แผ่นสุดท้าย
+   *   ② `@page{margin:0}` อยู่ในเอกสารของกรอบ ไม่ใช่เอกสารที่ถูกพิมพ์
+   *      ⇒ Safari เติม URL/วันที่/เลขหน้าที่มุมล่างกระดาษ
+   * ทำได้เพราะกรอบมาจากเซิร์ฟเวอร์เดียวกัน (same-origin — print.html อ่าน contentDocument อยู่แล้ว)
+   * เปิด /calc/ ตรง ๆ → คืนตัวเอง พฤติกรรมเดิมไม่เปลี่ยน */
+  function _pvHost() {
+    const chain = [global.top, global.parent, global];
+    for (const w of chain) {
+      try {
+        if (w && w.document && w.document.body) return { win: w, doc: w.document };
+      } catch (e) { /* คนละ origin → ไล่ตัวถัดไป */ }
     }
-    return '✅ ' + okText + ' — เปิดแท็บใหม่แล้ว' + link;
+    return { win: global, doc: document };
   }
 
-  global.ContractFill = { generateContract, generateGuarantee, generateShare, generateLoanRequest, generateJanong, bahtText, thaiDate, fmtNum, deliverPdf, debugOverlayCanvas, debugOverlayCanvasFM, _fitDebug, _SCALE: SCALE };
+  /* 🔒 stylesheet นี้ต้องอยู่ "แค่ตอนแผงตัวอย่างเปิด" แล้วถอดออกตอนปิด
+   * เพราะข้างในมี @page{margin:0} ซึ่งสโคปด้วย selector ไม่ได้ — ถ้าค้างไว้
+   * รายงานคำนวณที่ตั้ง @page{margin:8mm} ไว้จะถูกแก้ขอบเงียบ ๆ (ไม่มีใครเห็นจนพิมพ์จริง) */
+  /* 🔴 ต่อท้าย **body** ไม่ใช่ head — เพราะ @page ไม่มีตัวตัดสินอื่นนอกจาก "ใครมาทีหลัง"
+   * หน้า /print ของเว็บแอปมี <style> @page{margin:8mm} อยู่ใน body (บล็อกเนื้อหา)
+   * ถ้าเราใส่ที่ head จะถูกทับ ⇒ พิมพ์สัญญาได้ขอบ 8mm แล้ว Safari กลับมาเติม stamp
+   * (จับได้ตอนกวาดทางพิมพ์ 10-08-2569 ด้วยการอ่านลำดับ cssRules ของจริง) */
+  function _pvStyle(doc) {
+    if (doc.getElementById('pdfPreviewCss')) return;
+    const st = doc.createElement('style');
+    st.id = 'pdfPreviewCss';
+    st.textContent = PV_CSS;
+    (doc.body || doc.head).appendChild(st);
+  }
+
+  let _pvUrls = [];                     // blob ทั้งหมดของรอบนี้ — ต้อง revoke ตอนปิด
+  let _pvLast = null;                   // ไบต์ชุดล่าสุด (ในหน่วยความจำ) — เปิดตัวอย่างซ้ำได้
+
+  function _pvClose() {
+    // ล้างทั้งเอกสารบนสุดและเอกสารนี้ — เผื่อเคยเปิดคาไว้คนละชั้น
+    const docs = [];
+    try { const h = _pvHost(); if (h.doc) docs.push(h.doc); } catch (e) { /* ไม่มีก็ข้าม */ }
+    if (docs.indexOf(document) < 0) docs.push(document);
+    for (const d of docs) {
+      const el = d.getElementById('pdfPreview');
+      if (el) el.remove();
+      const css = d.getElementById('pdfPreviewCss');
+      if (css) css.remove();            // ถอดกฎพิมพ์ออกด้วย — ดูคำเตือนที่ _pvStyle
+      d.documentElement.classList.remove('pv-open');
+      if (d.body) d.body.classList.remove('pv-open');
+    }
+    _pvUrls.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { /* ปิดซ้ำไม่เป็นไร */ } });
+    _pvUrls = [];
+  }
+
+  function _pdfjs() {
+    const lib = global.pdfjsLib;
+    if (!lib) return null;
+    // worker อยู่ในเครื่องเดียวกัน — ไม่เรียกเน็ต (เว็บแอปต้องทำงานได้ตอนเน็ตล่ม)
+    if (!lib.GlobalWorkerOptions.workerSrc) {
+      lib.GlobalWorkerOptions.workerSrc = _ab() + 'vendor/pdf.worker.min.js';
+    }
+    return lib;
+  }
+
+  /* มีหมึกลงบน canvas จริงไหม — สุ่มพิกเซล ไม่ไล่ทั้งภาพ (4.5 ล้านพิกเซลต่อหน้า)
+   * ใช้เป็นเกณฑ์ "วาดเสร็จ" แทนการเชื่อ promise ของ pdf.js (ดูคำเตือนใน _pvRender) */
+  function _pvHasInk(cv) {
+    try {
+      const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+      for (let i = 0; i < d.length; i += 4 * 401) {
+        if ((d[i] + d[i + 1] + d[i + 2]) / 3 < 200) return true;
+      }
+    } catch (e) { /* อ่านไม่ได้ = ถือว่ายังไม่พร้อม */ }
+    return false;
+  }
+
+  /* วาดทุกหน้าเป็น canvas ต่อท้ายใน body ที่ให้มา
+   * ⚠️ ต้องส่ง "สำเนา" ของไบต์ให้ pdf.js — มันยึด ArrayBuffer ไปใช้ (detach)
+   *    แล้วปุ่มบันทึก/เปิดตัวอย่างซ้ำจะได้ไฟล์ว่างเปล่าโดยไม่มีสัญญาณเตือน
+   * 🔴 **ห้ามผูกอะไรไว้กับ `render().promise` ว่าจะ resolve** — วัดจริง 10-08-2569:
+   *    ภาพขึ้นบน canvas ครบแล้วแต่ promise ยังค้าง (เกี่ยวกับการหยุดจ่าย rAF ของแท็บ
+   *    ที่ไม่ได้แสดงอยู่) ⇒ ถ้าเอา promise เป็นเงื่อนไข คำบรรยาย/ปุ่มพิมพ์จะไม่มาเลย
+   *    จึงกันเวลาไว้ต่อหน้า แล้วตัดสิน "เสร็จ" จากหมึกบนภาพจริง (_pvHasInk) */
+  async function _pvRender(bytes, body, onProgress) {
+    const lib = _pdfjs();
+    if (!lib) throw new Error('ไม่พบ pdf.js (vendor/pdf.min.js)');
+    /* 🔴 ownerDocument ต้องเป็นเอกสารที่ canvas อยู่จริง
+     * pdf.js ฝัง @font-face ของฟอนต์ในไฟล์ PDF ลง "เอกสารเจ้าของ" ก่อนวาด
+     * ถ้าไม่บอก มันใช้เอกสารของสคริปต์นี้ (ในกรอบ iframe) แต่ canvas อยู่หน้าบนสุด
+     * ⇒ ฟอนต์ไม่ถูกโหลดในเอกสารนั้น ตัวอักษรออกมาเป็นกล่องสี่เหลี่ยมทั้งหน้า
+     * 🪤 ตัวนับพิกเซลจับไม่ได้เลย (กล่องก็เป็นหมึก) — จับได้เพราะดูภาพจริง */
+    const owner = body.ownerDocument || document;
+    const doc = await lib.getDocument({ data: bytes.slice(0), ownerDocument: owner }).promise;
+    const n = doc.numPages;
+    if (onProgress) onProgress(0, n);     // รู้จำนวนหน้าทันที ไม่ต้องรอวาดเสร็จ
+    for (let i = 1; i <= n; i++) {
+      const page = await doc.getPage(i);
+      const vp = page.getViewport({ scale: PV_DPI_SCALE });
+      // ล้างเฉพาะข้อความ "กำลังเตรียมตัวอย่าง…" — ห้ามใช้ textContent='' ล้างทั้ง body
+      // เพราะจะกวาดคำบรรยาย (.pv-cap) ที่เพิ่งใส่ไปด้วยแบบเงียบ ๆ (เจอจริง 10-08-2569)
+      if (i === 1) {
+        const ld = body.querySelector('.pv-loading');
+        if (ld) ld.remove();
+      }
+      // สร้าง element ในเอกสารเดียวกับ body ที่จะเอาไปแปะ (อาจเป็นเอกสารบนสุด ไม่ใช่ของกรอบ)
+      const hdoc = body.ownerDocument || document;
+      const sheet = hdoc.createElement('div');
+      sheet.className = 'pv-sheet';
+      const cv = hdoc.createElement('canvas');
+      cv.className = 'pv-canvas';
+      cv.width = Math.round(vp.width);
+      cv.height = Math.round(vp.height);
+      cv.setAttribute('data-page', String(i));
+      sheet.appendChild(cv);
+      body.appendChild(sheet);
+      const task = page.render({ canvasContext: cv.getContext('2d'), viewport: vp });
+      await Promise.race([
+        task.promise.catch(() => null),
+        new Promise(r => setTimeout(r, 15000)),   // promise ค้างก็ต้องไปหน้าถัดไปได้
+      ]);
+      if (onProgress) onProgress(i, n);
+    }
+    return n;
+  }
+
+  function deliverPdf(bytes, filename, okText) {
+    const safeName = String(filename).replace(/"/g, '');
+    _pvClose();                         // ล้างรอบก่อน (revoke blob เก่า) ก่อนสร้างของใหม่เสมอ
+    _pvLast = { bytes: bytes, filename: filename, okText: okText };
+    const full = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+    _pvUrls.push(full);
+    // แผงไปอยู่เอกสารบนสุด (ดูคำเตือนที่ _pvHost) — เปิด /calc/ ตรง ๆ ก็คือเอกสารนี้เอง
+    const host = _pvHost();
+    const hdoc = host.doc;
+    _pvStyle(hdoc);
+
+    const wrap = hdoc.createElement('div');
+    wrap.id = 'pdfPreview';
+    wrap.innerHTML =
+      '<div class="pv-bar no-print">'
+      + '<span class="pv-title">' + okText + '</span>'
+      + '<button class="pv-btn" data-pv="print">🖨 พิมพ์</button>'
+      + '<a class="pv-btn ghost" data-pv="save" href="' + full + '" download="' + safeName
+      + '" style="text-decoration:none">⬇ บันทึกไฟล์</a>'
+      + '<button class="pv-btn ghost" data-pv="close">✕ ปิด</button>'
+      // 🚫 ไม่มีปุ่ม "เปิดเต็มหน้า" อีก — มันพา user ออกจากหน้าเว็บแล้วกลับไม่ได้
+      //    (ผจก เจอบน iPad 10-08-2569: เมนูหายหมด) · ปุ่มบันทึกไฟล์คือทางออกที่ปลอดภัย
+      + '<div class="pv-note">ปุ่ม <b>พิมพ์</b> ขึ้นกล่องพิมพ์ของเครื่อง '
+      + 'ครบทุกหน้าในครั้งเดียว (ใช้ได้ทั้งคอมพิวเตอร์และ iPad) '
+      + '· เอกสารอยู่ในหน่วยความจำเท่านั้น ยังไม่ถูกบันทึกลงเครื่องจนกดปุ่มบันทึก</div>'
+      + '</div><div class="pv-body">กำลังเตรียมตัวอย่าง…</div>';
+    hdoc.body.appendChild(wrap);
+    hdoc.documentElement.classList.add('pv-open');
+    hdoc.body.classList.add('pv-open');
+
+    const body = wrap.querySelector('.pv-body');
+    wrap.addEventListener('click', ev => {
+      const act = ev.target.getAttribute && ev.target.getAttribute('data-pv');
+      if (!act) return;
+      if (act === 'close') { ev.preventDefault(); _pvClose(); }
+      /* พิมพ์ = สั่งจากหน้าเว็บของเราเอง (canvas ที่วาดไว้) ทางเดียว ทุกแพลตฟอร์ม
+       * 🔒 ต้อง sync ในจังหวะที่นิ้วแตะ ห้ามมี await คั่นก่อน window.print()
+       *    ไม่งั้น Safari ถือว่าไม่ได้เกิดจากการแตะแล้วเงียบไปเลย (บทเรียนเดิม printReport)
+       * ⚠️ ถ้ายังวาดไม่เสร็จ ห้ามพิมพ์ — จะได้กระดาษว่างหรือขาดหน้า */
+      if (act === 'print') {
+        ev.preventDefault();
+        /* 🔒 ห้ามพิมพ์ก่อนภาพครบ — เกณฑ์คือ "มีหมึกบนทุกหน้า" ไม่ใช่ promise ของ pdf.js
+         *    (promise ค้างได้ทั้งที่ภาพขึ้นครบ — วัดจริง 10-08-2569) */
+        const cvs = [...body.querySelectorAll('canvas.pv-canvas')];
+        const ready = cvs.length === (wrap._pvPages || 0) && cvs.length > 0
+          && cvs.every(_pvHasInk);
+        if (!ready) {
+          alert('ยังเตรียมตัวอย่างไม่เสร็จ (' + cvs.filter(_pvHasInk).length + '/'
+            + (wrap._pvPages || '?') + ' หน้า) — รอให้เอกสารขึ้นครบทุกแผ่นก่อนสั่งพิมพ์');
+          return;
+        }
+        /* 🔒 sync ล้วน — ห้ามมี await/setTimeout ก่อน print() (Safari ถือว่าไม่ได้เกิดจากการแตะ)
+         * และห้ามไปยุ่งกับ DOM/คลาสใด ๆ ตอนนี้ กฎพิมพ์เป็นค่าคงที่อยู่แล้ว
+         * 🔑 สั่งพิมพ์จาก window ของเอกสารบนสุด — ถ้าสั่งจากในกรอบ Safari จะเติม
+         *    URL/วันที่/เลขหน้าที่มุมล่างกระดาษ เพราะ @page ของเราไม่ใช่ของงานพิมพ์นั้น */
+        host.win.print();
+      }
+    });
+
+    /* วาดเอกสารด้วย pdf.js — ไม่บล็อกผู้เรียก (คืนข้อความสถานะไปก่อน) */
+    body.textContent = '';
+    const loading = hdoc.createElement('div');
+    loading.className = 'pv-cap pv-loading no-print';
+    loading.textContent = 'กำลังเตรียมตัวอย่าง…';
+    body.appendChild(loading);
+    const cap = hdoc.createElement('div');
+    cap.className = 'pv-cap no-print';
+    _pvRender(bytes, body, (done, total) => {
+      wrap._pvPages = total;             // ปุ่มพิมพ์ใช้ค่านี้เทียบว่าครบหรือยัง
+      cap.innerHTML = done >= total
+        ? '<b>เอกสาร ' + total + ' หน้า</b> — เลื่อนดูให้ครบทุกแผ่นก่อนสั่งพิมพ์'
+        : '<b>เอกสาร ' + total + ' หน้า</b> — กำลังวาด ' + done + '/' + total + ' …';
+      if (!cap.parentNode) body.insertBefore(cap, body.firstChild);
+    })
+      .catch(err => {
+        /* วาดไม่ได้ → บอกตรง ๆ + เหลือทางบันทึกไฟล์ไว้ ห้ามเหลือจอเปล่าให้เดา */
+        console.error(err);
+        body.textContent = '';
+        cap.innerHTML = '<b>แสดงตัวอย่างในหน้านี้ไม่ได้</b> — ' + (err && err.message || err)
+          + ' · ใช้ปุ่ม <b>บันทึกไฟล์</b> ด้านบนแล้วเปิดไฟล์เพื่อพิมพ์แทน';
+        body.appendChild(cap);
+      });
+
+    return '✅ ' + okText + ' — เปิดหน้าตัวอย่างให้แล้ว'
+      + ' <button type="button" onclick="ContractFill.reopenPreview()"'
+      + ' style="margin-left:6px;padding:4px 12px;border-radius:8px;border:0;'
+      + 'background:var(--fill);color:var(--on-fill);font-weight:800;cursor:pointer">'
+      + 'เปิดตัวอย่างอีกครั้ง</button>';
+  }
+
+  /* สั่งพิมพ์ที่เอกสารบนสุด — ใช้ร่วมกับงานพิมพ์อื่นในหน้า (เช่น printReport ของรายงานคำนวณ)
+   * เพราะเมื่อหน้านี้ถูกฝังเป็น iframe งานพิมพ์เป็นของหน้าบนสุด ถ้าสั่งจากในกรอบ
+   * `@page` ของกรอบจะถูกเมิน แล้วได้ขอบ/stamp ของหน้าแม่มาแทน
+   * 🔒 ต้องเรียก sync ในจังหวะที่นิ้วแตะ ห้ามมี await คั่น */
+  function printHost() {
+    _pvHost().win.print();
+  }
+
+  /* ปิดตัวอย่างไปแล้วอยากดูซ้ำ — สร้างจากไบต์ชุดเดิม ไม่ต้องกดสร้างเอกสารใหม่ */
+  function reopenPreview() {
+    if (!_pvLast) return alert('ยังไม่มีเอกสารที่สร้างไว้ — กดปุ่มสร้างเอกสารก่อน');
+    deliverPdf(_pvLast.bytes, _pvLast.filename, _pvLast.okText);
+  }
+
+  // _PV_CSS = test hook ให้ test_print_pages.html ใช้ "กฎตัวจริง" ไม่ใช่สำเนา
+  // (สำเนาจะทำให้ด่านผ่านทั้งที่ของจริงพัง)
+  global.ContractFill = { generateContract, generateGuarantee, generateShare, generateLoanRequest, generateJanong, bahtText, thaiDate, fmtNum, deliverPdf, reopenPreview, closePreview: _pvClose, printHost, _PV_CSS: PV_CSS, debugOverlayCanvas, debugOverlayCanvasFM, _fitDebug, _SCALE: SCALE };
 })(window);

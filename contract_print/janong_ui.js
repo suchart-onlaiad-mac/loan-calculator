@@ -11,9 +11,9 @@
   const mount = document.getElementById('janong_body');
   if (!mount) return;
 
-  const box = 'box-sizing:border-box;padding:5px 7px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--card2);color:var(--ink)';
+  const box = 'box-sizing:border-box;padding:5px 7px;border:1px solid var(--line);border-radius:6px;font-size:13px;background-color:var(--card2);color:var(--ink)';
   const cell = (id, ph, w) => '<input id="' + id + '"' + (ph ? ' placeholder="' + ph + '"' : '') + ' style="width:' + (w || '100%') + ';' + box + '">';
-  const ro = (id, w) => '<input id="' + id + '" readonly title="เติมอัตโนมัติจากด้านบน" style="width:' + (w || '100%') + ';' + box + ';background:var(--card);color:var(--muted)">';
+  const ro = (id, w) => '<input id="' + id + '" readonly title="เติมอัตโนมัติจากด้านบน" style="width:' + (w || '100%') + ';' + box + ';background-color:var(--card);color:var(--muted)">';
   const th = t => '<th style="border:1px solid var(--line);padding:5px;background:var(--fill);color:var(--on-fill);font-size:12px;font-weight:600">' + t + '</th>';
   const td = h => '<td style="border:1px solid #e5e7eb;padding:3px">' + h + '</td>';
   const secH = t => '<div style="font-weight:700;margin:16px 0 8px;color:var(--ink)">' + t + '</div>';

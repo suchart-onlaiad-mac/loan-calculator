@@ -29,10 +29,13 @@
     return n;
   };
 
-  const box = 'box-sizing:border-box;padding:5px 7px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:var(--card2);color:var(--ink)';
+  const box = 'box-sizing:border-box;padding:5px 7px;border:1px solid var(--line);border-radius:6px;font-size:13px;background-color:var(--card2);color:var(--ink)';
   const cell = (id, ph, w) => '<input id="' + id + '"' + (ph ? ' placeholder="' + ph + '"' : '') + ' style="width:' + (w || '100%') + ';' + box + '">';
-  const ro = (id, w) => '<input id="' + id + '" readonly title="คำนวณอัตโนมัติ" style="width:' + (w || '100%') + ';' + box + ';background:var(--card);color:var(--muted)">';
-  const sel = (id, opts, w) => '<select id="' + id + '" style="width:' + (w || '100%') + ';' + box + '"><option value=""></option>' + opts.map(o => '<option>' + o + '</option>').join('') + '</select>';
+  const ro = (id, w) => '<input id="' + id + '" readonly title="คำนวณอัตโนมัติ" style="width:' + (w || '100%') + ';' + box + ';background-color:var(--card);color:var(--muted)">';
+  // ช่องเลือกในตารางนี้ตัวเล็กกว่าช่องหลัก (13px) — ขยับลูกศรที่ CSS วาดไว้เข้ามาให้พอดี
+  // ไม่งั้นข้อความจะวิ่งไปทับลูกศร (padding ของ box แค่ 7px แต่ CSS หลักเผื่อไว้ 36px)
+  const selBox = box + ';padding-right:24px;background-position:right 7px center';
+  const sel = (id, opts, w) => '<select id="' + id + '" style="width:' + (w || '100%') + ';' + selBox + '"><option value=""></option>' + opts.map(o => '<option>' + o + '</option>').join('') + '</select>';
   const dl = (id, list, ph, w) => '<input id="' + id + '" list="' + list + '"' + (ph ? ' placeholder="' + ph + '"' : '') + ' style="width:' + (w || '100%') + ';' + box + '">';
   const th = t => '<th style="border:1px solid var(--line);padding:5px;background:var(--fill);color:var(--on-fill);font-size:12px;font-weight:600">' + t + '</th>';
   const td = h => '<td style="border:1px solid #e5e7eb;padding:3px">' + h + '</td>';
