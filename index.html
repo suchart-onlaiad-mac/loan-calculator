@@ -1195,6 +1195,7 @@ DATE_FIELDS.forEach(id=>{
     <button class="btn ghost" id="ct_share_btn" onclick="genSharePDF()" disabled>📄 สร้าง PDF หนังสือหุ้นค้ำประกัน</button>
     <button class="btn ghost" onclick="toggleSngk13()">📝 คำขอกู้ ส.-งก.13</button>
     <button class="btn ghost" onclick="toggleJanong()">📝 หนังสือแสดงความจำนง</button>
+    <button class="btn ghost" onclick="toggleDebtcontact()">🤝 บันทึกข้อตกลงติดตามหนี้</button>
   </div>
   <div id="ct_status" class="note" style="margin-top:10px"></div>
   <div id="ct_guar_status" class="note" style="margin-top:6px"></div>
@@ -1220,6 +1221,17 @@ DATE_FIELDS.forEach(id=>{
     </div>
     <div id="janong_status" class="note" style="margin-top:10px"></div>
   </div>
+
+  <!-- ===== บันทึกข้อตกลงการติดตามหนี้สิน (1 หน้า) — input สร้างโดย debtcontact_ui.js ===== -->
+  <div id="debtcontactPanel" style="display:none;margin-top:14px;border-top:2px solid #e5e7eb;padding-top:12px">
+    <div style="font-weight:800;font-size:16px;margin-bottom:4px">🤝 บันทึกข้อตกลงการติดตามหนี้สิน</div>
+    <div class="note" style="margin-bottom:8px">เซ็นพร้อมชุดสัญญา — ทำให้สหกรณ์ติดต่อบุคคลที่สมาชิกระบุไว้ได้ตาม พ.ร.บ.ทวงถามหนี้ 2558 ม.8 · ชื่อ/ที่อยู่ ดึงจากด้านบน · อายุกับรายชื่อบุคคลกรอกเอง หรือเว้นให้เขียนมือ</div>
+    <div id="debtcontact_body"></div>
+    <div style="margin-top:14px">
+      <button class="btn" onclick="genDebtcontactPDF()">📄 สร้าง PDF บันทึกข้อตกลงติดตามหนี้</button>
+    </div>
+    <div id="debtcontact_status" class="note" style="margin-top:10px"></div>
+  </div>
 </div>
 
 <script>window.CONTRACT_ASSET_BASE = "contract_print/";</script>
@@ -1233,7 +1245,7 @@ DATE_FIELDS.forEach(id=>{
 /* cache-bust: Python http.server ไม่ส่ง Cache-Control → เบราว์เซอร์จด JS เก่า (heuristic cache)
  * → โหลด engine files ที่แก้บ่อยด้วย ?v=timestamp ทุกครั้ง เห็นผลแก้ทันที ไม่ต้อง hard-reload
  * (vendor คงที่ ปล่อย cache ได้) · order สำคัญ: config→fieldmap→fill_engine (document.write = ต่อเนื่อง) */
-(function(){var v="?v="+Date.now();["config.js","fieldmap.js","guarantee_fieldmap.js","share_fieldmap.js","sngk13_fieldmap.js","janong_fieldmap.js","doc_gate.js","fill_engine.js","sngk13_ui.js","janong_ui.js"].forEach(function(f){document.write('<scr'+'ipt src="contract_print/'+f+v+'"></scr'+'ipt>');});})();
+(function(){var v="?v="+Date.now();["config.js","fieldmap.js","guarantee_fieldmap.js","share_fieldmap.js","sngk13_fieldmap.js","janong_fieldmap.js","debtcontact_fieldmap.js","doc_gate.js","fill_engine.js","sngk13_ui.js","janong_ui.js","debtcontact_ui.js"].forEach(function(f){document.write('<scr'+'ipt src="contract_print/'+f+v+'"></scr'+'ipt>');});})();
 </script>
 <script>
 /* ===== หลักค้ำประกัน (ระเบียบเงินกู้ ข้อ 8) =====

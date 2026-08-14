@@ -472,6 +472,38 @@
     return await src.save();
   }
 
+  /* ===== บันทึกข้อตกลงการติดตามหนี้สิน (1 หน้า) =====
+   * ระบุบุคคลไว้เพื่อการทวงถามหนี้ ตาม พ.ร.บ.ทวงถามหนี้ 2558 ม.8
+   * base = debtcontact_base.pdf (Word export) · ไม่มีช่องติ๊ก มีแต่เส้นจุดไข่ปลา
+   * โครงเหมือน generateJanong ทุกบรรทัด ต่างแค่ map/base/ชื่อเอกสาร —
+   * คงรูปแบบเดิมไว้โดยตั้งใจ เพื่อให้ใบที่ 6 อ่านเหมือนอีก 5 ใบ ไม่ต้องเรียนรู้ใหม่
+   */
+  let _debtcontactPdf = null;
+  async function _loadDebtcontact() {
+    if (!_debtcontactPdf) _debtcontactPdf = await fetch(_ab() + "debtcontact_base.pdf").then(r => r.arrayBuffer());
+    if (!_fontLoaded) {
+      const ff = new FontFace(OVERLAY_FONT, `url(${_ab()}assets/THSarabunNew.ttf)`);
+      await ff.load(); document.fonts.add(ff); _fontLoaded = true;
+    }
+  }
+
+  async function generateDebtcontact(data, opts = {}) {
+    if (!global.DEBTCONTACT_MAP) throw new Error("ไม่พบ debtcontact_fieldmap.js");
+    await _loadDebtcontact();
+    const { PDFDocument } = global.PDFLib;
+    const src = await PDFDocument.load(_debtcontactPdf);
+    const perPage = _collectFields(data, global.DEBTCONTACT_MAP);
+    const srcPages = src.getPages();
+    for (const pageNoStr of Object.keys(perPage)) {
+      const pg = _pageOrThrow(srcPages, +pageNoStr, 'บันทึกข้อตกลงการติดตามหนี้สิน', perPage[pageNoStr]);
+      const Wpt = pg.getWidth(), Hpt = pg.getHeight();
+      const cv = _renderOverlayCanvas(Wpt, Hpt, perPage[pageNoStr], opts.calibrate ? "#0d19b3" : "#000000");
+      const png = await src.embedPng(_canvasToPngBytes(cv));
+      pg.drawImage(png, { x: 0, y: 0, width: Wpt, height: Hpt });
+    }
+    return await src.save();
+  }
+
   /* debug hook สำหรับเทสต์นโยบายตัดบรรทัด (แบบแผนเดียวกับ debugOverlayCanvas)
    * ⚠️ ต้องโหลดฟอนต์ overlay ก่อนวัด — fallback font กว้าง ~1.5 เท่า ทำผลเพี้ยนเงียบ */
   async function _fitDebug(text, max, size, wrap) {
@@ -812,5 +844,5 @@
 
   // _PV_CSS = test hook ให้ test_print_pages.html ใช้ "กฎตัวจริง" ไม่ใช่สำเนา
   // (สำเนาจะทำให้ด่านผ่านทั้งที่ของจริงพัง)
-  global.ContractFill = { generateContract, generateGuarantee, generateShare, generateLoanRequest, generateJanong, bahtText, thaiDate, fmtNum, deliverPdf, reopenPreview, closePreview: _pvClose, printHost, _PV_CSS: PV_CSS, debugOverlayCanvas, debugOverlayCanvasFM, _fitDebug, _SCALE: SCALE };
+  global.ContractFill = { generateContract, generateGuarantee, generateShare, generateLoanRequest, generateJanong, generateDebtcontact, bahtText, thaiDate, fmtNum, deliverPdf, reopenPreview, closePreview: _pvClose, printHost, _PV_CSS: PV_CSS, debugOverlayCanvas, debugOverlayCanvasFM, _fitDebug, _SCALE: SCALE };
 })(window);

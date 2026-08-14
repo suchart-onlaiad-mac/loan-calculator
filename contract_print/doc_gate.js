@@ -45,7 +45,11 @@
     sngk13:    ['name', 'reg', 'group', 'house', 'moo', 'tambon', 'purpose'],
     share:     ['name', 'reg', 'group', 'house', 'moo', 'tambon'],
     guarantee: ['name', 'purpose'],
-    janong:    ['name', 'reg', 'group', 'purpose']
+    janong:    ['name', 'reg', 'group', 'purpose'],
+    /* debtcontact บันทึกข้อตกลงติดตามหนี้ พิมพ์ชื่อ + ที่อยู่เต็ม (ไม่มีช่องวัตถุประสงค์)
+     * เอกสารนี้ระบุ "บุคคลที่ลูกหนี้ระบุไว้เพื่อการทวงถามหนี้" ตาม พ.ร.บ.ทวงถามหนี้ ม.8
+     * รายชื่อบุคคลไม่บังคับที่นี่ — กรอกหน้างานตอนเซ็นได้ ตรวจแยกในแผงของใบนั้น */
+    debtcontact: ['name', 'house', 'moo', 'tambon']
   };
 
   /* ---- ช่องบังคับของผู้ค้ำแต่ละคน (หนังสือค้ำประกัน) ----
