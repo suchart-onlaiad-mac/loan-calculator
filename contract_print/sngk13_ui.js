@@ -15,7 +15,7 @@
   const MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
   const LAND = ['โฉนด', 'น.ส.3ก', 'น.ส.3', 'ส.ป.ก.4-01'];
   const DEBTT = ['ระยะสั้น', 'ระยะปานกลาง', 'ระยะยาว'];
-  const PRODT = ['ทำนา', 'ทำสวน', 'ทำไร่', 'เลี้ยงกุ้ง', 'เลี้ยงปลา', 'เลี้ยงสัตว์'];
+  const PRODT = ['ทำนา', 'ทำสวน', 'ทำไร่', 'เลี้ยงกุ้ง', 'เลี้ยงปลา', 'เลี้ยงหมู', 'เลี้ยงสัตว์'];
 
   /* จำนวนแถวที่แบบฟอร์มพิมพ์ได้จริง = จำนวนแถวที่ fieldmap มีพิกัดให้
    * 🔑 ห้ามฝังตัวเลขในหน้าจอกรอก — ถ้าฝังแล้วมันน้อยกว่า fieldmap
@@ -56,12 +56,12 @@
     '<label style="font-size:13px">ตั้งแต่</label>' + ro('s13_seasonFrom', '150px') +
     '<label style="font-size:13px">ถึง</label>' + ro('s13_seasonTo', '150px') + '</div>' +
     '<div class="note" style="margin-top:4px">= วันรับเงินกู้ → วันส่งชำระงวดสุดท้าย (คำนวณอัตโนมัติ)</div></div>';
-  H += '<datalist id="dl_species"><option>ปลา</option><option>กุ้ง</option><option>ข้าว</option><option>ฝรั่ง</option><option>ชมพู่</option><option>มะม่วง</option><option>มะนาว</option></datalist>';
+  H += '<datalist id="dl_species"><option>ปลา</option><option>กุ้ง</option><option>หมู</option><option>ข้าว</option><option>ฝรั่ง</option><option>ชมพู่</option><option>มะม่วง</option><option>มะนาว</option></datalist>';
   H += '<div id="s13_medium_box" style="border:1px solid #e5e7eb;border-radius:8px;padding:10px">' +
     '<div style="font-weight:600;margin-bottom:6px">รายละเอียดเกี่ยวกับแผนงาน <span class="note" style="font-weight:400">(เฉพาะเงินกู้ระยะปานกลาง · ตัวเลขคำนวณอัตโนมัติจากวงเงิน)</span></div>' +
     '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px">' +
-    '<label style="font-size:13px">ลักษณะการปรับพื้นที่</label>' + sel('s13_medMode', ['เลี้ยงสัตว์น้ำ (กุ้ง/ปลา)', 'ทำนา/ทำสวน'], '220px') +
-    '<label style="font-size:13px">ชนิด</label>' + dl('s13_medSpecies', 'dl_species', 'เช่น ปลา/กุ้ง/ข้าว', '150px') + '</div>' +
+    '<label style="font-size:13px">ลักษณะการปรับพื้นที่</label>' + sel('s13_medMode', ['เลี้ยงสัตว์น้ำ (กุ้ง/ปลา)', 'เลี้ยงสัตว์บก (หมู)', 'ทำนา/ทำสวน'], '220px') +
+    '<label style="font-size:13px">ชนิด</label>' + dl('s13_medSpecies', 'dl_species', 'เช่น ปลา/กุ้ง/หมู/ข้าว', '150px') + '</div>' +
     '<textarea id="s13_planDetail" rows="4" placeholder="กด/แก้วงเงินแล้วข้อความจะถูกสร้างอัตโนมัติ — แก้ไขเพิ่มเองได้" style="width:100%;' + box + ';font-family:inherit"></textarea>' +
     '<div class="note" style="margin-top:4px">ข้อความสร้างอัตโนมัติจากลักษณะ+ชนิด+วงเงิน (รวมทุกรายการ = วงเงินกู้เต็ม) · แก้เองได้ · <a href="javascript:void(0)" onclick="composeMediumPlan(true)">🔄 สร้างใหม่</a></div></div>';
 
@@ -144,11 +144,14 @@
 
 /* auto-compose narrative แผนงานปานกลาง — รวมทุกรายการ = วงเงินกู้เต็ม (P)
  *   หุ้นตามข้อบังคับ ข้อ 6(2) = shareRequired() ไม่ใช่ 5% ตายตัว ·
- *   รถตักดิน ≈15% ของวงเงิน → ชั่วโมง (×1,000) · ที่เหลือแบ่งตามลักษณะ
- *   สัตว์น้ำ: พันธุ์ 30% + อาหาร 70% ของที่เหลือ · พืช: พันธุ์ 30% + ปุ๋ย 45% + ยา 25%
+ *   งานปรับพื้นที่ ≈15% ของวงเงิน · ที่เหลือแบ่งตามลักษณะ
+ *   สัตว์น้ำ/สัตว์บก: พันธุ์ 30% + อาหาร 70% ของที่เหลือ · พืช: พันธุ์ 30% + ปุ๋ย 45% + ยา 25%
+ * 🔑 หัวข้อความต่างกันตามงานจริง: สัตว์น้ำ/พืช = จ้างรถตักดินขุด-ปรับพื้นที่ (คิดเป็นชั่วโมง ×1,000)
+ *    ส่วนสัตว์บก = ค่าก่อสร้างโรงเรือน (ไม่ได้ขุดบ่อ) — ผู้จัดการสั่งเพิ่มโหมดหมู 24-08-2569
  * force=true → เขียนทับแม้ผู้ใช้แก้แล้ว (ปุ่ม 🔄) · force=false → ไม่ทับถ้า dirty */
-const SNGK13_ALLOC = { excavPct: 0.15, excavRate: 1000,
-  water: { seed: 0.30, feed: 0.70 }, crop: { seed: 0.30, fert: 0.45, chem: 0.25 } };
+const SNGK13_ALLOC = { excavPct: 0.15, excavRate: 1000, buildPct: 0.15,
+  water: { seed: 0.30, feed: 0.70 }, land: { seed: 0.30, feed: 0.70 },
+  crop: { seed: 0.30, fert: 0.45, chem: 0.25 } };
 function composeMediumPlan(force) {
   const ta = document.getElementById('s13_planDetail'); if (!ta) return;
   const lt = document.getElementById('loanType');
@@ -159,21 +162,31 @@ function composeMediumPlan(force) {
   const P = r ? r.P : 0; if (!P) { if (force) ta.value = ''; return; }
   const A = SNGK13_ALLOC;
   const share = shareRequired(P).baht;   // ข้อบังคับ ข้อ 6(2) — ไม่ใช่ 5% ตรง ๆ
-  const hrs = Math.max(1, Math.round(P * A.excavPct / A.excavRate));
-  const excav = hrs * A.excavRate;
-  const rest = P - share - excav;
   const modeEl = document.getElementById('s13_medMode');
-  const isWater = (modeEl && modeEl.value || 'เลี้ยงสัตว์น้ำ (กุ้ง/ปลา)').indexOf('สัตว์น้ำ') >= 0;
+  const mv = (modeEl && modeEl.value) || 'เลี้ยงสัตว์น้ำ (กุ้ง/ปลา)';
+  const kind = mv.indexOf('สัตว์บก') >= 0 ? 'land' : mv.indexOf('สัตว์น้ำ') >= 0 ? 'water' : 'crop';
   let sp = (document.getElementById('s13_medSpecies') || {}).value || '';
-  if (!sp) sp = isWater ? 'ปลา' : 'ข้าว';
+  if (!sp) sp = kind === 'water' ? 'ปลา' : kind === 'land' ? 'หมู' : 'ข้าว';
   const B = n => fmt0(n);
-  const head = 'ค่าจ้างรถตักดินชั่วโมงละ ' + B(A.excavRate) + ' บาท เป็นเวลา ' + hrs + ' ชั่วโมง เป็นเงิน ' + B(excav) + ' บาท ';
+  /* ก้อนแรก = งานปรับพื้นที่ · ที่เหลือหลังหักหุ้นค่อยแบ่งเป็นพันธุ์/อาหาร-ปุ๋ย
+   * 🔒 ทุกก้อนต้องบวกกันได้เท่าวงเงินเต็ม — ก้อนสุดท้ายของ mid ใช้ผลลบเสมอ ไม่ใช่ปัดแยก */
+  let head, prep;
+  if (kind === 'land') {
+    prep = Math.round(P * A.buildPct);
+    head = 'ค่าก่อสร้างโรงเรือนเลี้ยง' + sp + ' เป็นเงิน ' + B(prep) + ' บาท ';
+  } else {
+    const hrs = Math.max(1, Math.round(P * A.excavPct / A.excavRate));
+    prep = hrs * A.excavRate;
+    head = 'ค่าจ้างรถตักดินชั่วโมงละ ' + B(A.excavRate) + ' บาท เป็นเวลา ' + hrs + ' ชั่วโมง เป็นเงิน ' + B(prep) + ' บาท ';
+  }
+  const rest = P - share - prep;
   // 📌 ผู้จัดการเคาะถ้อยคำ 11-08-2569: ใช้คำของข้อบังคับ ข้อ 6(2) "ตามส่วนแห่งเงินกู้"
   //    ไม่ใช่ "(5% ของเงินกู้)" ซึ่งไม่ตรงกับตัวเลขเมื่อวงเงินไม่ลงตัวพัน
   const tail = ' ลงทุนซื้อหุ้นเพิ่ม ' + B(share) + ' บาท (ตามส่วนแห่งเงินกู้)';
   let mid;
-  if (isWater) {
-    const seed = Math.round(rest * A.water.seed), feed = rest - seed;
+  if (kind !== 'crop') {
+    const R = A[kind];
+    const seed = Math.round(rest * R.seed), feed = rest - seed;
     mid = 'ค่าพันธุ์' + sp + ' ' + B(seed) + ' บาท ค่าอาหาร' + sp + ' ' + B(feed) + ' บาท';
   } else {
     const seed = Math.round(rest * A.crop.seed), fert = Math.round(rest * A.crop.fert), chem = rest - seed - fert;
@@ -305,11 +318,16 @@ function toggleSngk13() {
   p.style.display = (p.style.display === 'none') ? 'block' : 'none';
   if (p.style.display === 'block') {
     syncSngk13Guarantors();
-    // default ลักษณะการปรับพื้นที่จากวัตถุประสงค์ (ถ้ายังไม่เลือก)
+    /* default ลักษณะการปรับพื้นที่จากวัตถุประสงค์ (ถ้ายังไม่เลือก)
+     * 🔴 ต้องเรียงจากคำ "เจาะจงชนิดสัตว์" ก่อนคำกว้าง — เดิมจับแค่ /เลี้ยง|ปลา|กุ้ง/
+     *    พอเพิ่มวัตถุประสงค์เลี้ยงหมู (24-08-2569) คำว่า "เลี้ยง" จะลากไปเป็นสัตว์น้ำทันที
+     *    แล้วข้อความแผนงานออกมาเป็นค่าพันธุ์ปลา/ค่าอาหารปลาให้คนเลี้ยงหมู โดยไม่มีอะไรเตือน */
     const modeEl = document.getElementById('s13_medMode');
     if (modeEl && !modeEl.value) {
       const pv = (document.getElementById('ct_purpose') || {}).value || '';
-      modeEl.value = /เลี้ยง|ปลา|กุ้ง/.test(pv) ? 'เลี้ยงสัตว์น้ำ (กุ้ง/ปลา)' : 'ทำนา/ทำสวน';
+      modeEl.value = /หมู|สุกร|สัตว์บก/.test(pv) ? 'เลี้ยงสัตว์บก (หมู)'
+        : /ปลา|กุ้ง|สัตว์น้ำ/.test(pv) ? 'เลี้ยงสัตว์น้ำ (กุ้ง/ปลา)'
+          : 'ทำนา/ทำสวน';
     }
     updateSngk13Auto(); updateSngk13Hints(); composeMediumPlan(false);
     p.scrollIntoView({ behavior: 'smooth', block: 'start' });
