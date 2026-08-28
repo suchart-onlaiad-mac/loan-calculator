@@ -112,8 +112,16 @@
   .wrap{max-width:900px;margin:0 auto;padding:clamp(12px,3vw,28px) clamp(12px,3vw,20px) 96px}
 
   /* header */
+  /* 📐 **ขอบในของกล่องใช้ค่าเดียวกันทั้งหน้า** (27-08-2569)
+   * เดิม header ใช้ clamp(18px,4vw,28px) ส่วน .card ใช้ clamp(14px,3.5vw,20px)
+   * ⇒ ที่ 1280px ขอบในต่างกัน 8px (238 vs 230) ช่องกรอกในหัวจึงเหลื่อมกับคอลัมน์
+   *   ของการ์ดข้างล่างแบบ "เฉียด" ซึ่งแย่กว่าเหลื่อมชัด ๆ เพราะตาจับได้ว่าไม่ตรง
+   *   แต่อ่านไม่ออกว่าตั้งใจหรือพลาด · และเพราะเป็น clamp คนละสเกล ระยะเหลื่อม
+   *   ยัง **เปลี่ยนไปเรื่อย ๆ ตามความกว้างจอ** ⇒ วัดครั้งเดียวแล้วชดเชยด้วยเลขตายตัวไม่ได้
+   * 🔒 แก้ที่ต้นเหตุ: ประกาศครั้งเดียวแล้วใช้ร่วม — เหลื่อมกลับมาไม่ได้อีก */
+  :root{--pad-box:clamp(14px,3.5vw,20px)}
   header{background:linear-gradient(135deg,var(--fill2),var(--fill));color:var(--on-fill);
-    border-radius:var(--radius);padding:clamp(18px,4vw,28px);box-shadow:var(--shadow);
+    border-radius:var(--radius);padding:var(--pad-box);box-shadow:var(--shadow);
     text-align:center;margin-bottom:16px;position:relative;overflow:hidden}
   header::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;
     background:radial-gradient(circle,color-mix(in srgb,var(--on-fill) 9%,transparent),transparent 70%);pointer-events:none}
@@ -142,7 +150,7 @@
   }
 
   .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
-    padding:clamp(14px,3.5vw,20px);margin-bottom:14px;box-shadow:var(--shadow)}
+    padding:var(--pad-box);margin-bottom:14px;box-shadow:var(--shadow)}
   .card h2{margin:0 0 14px;font-size:16px;color:var(--brand-dd);display:flex;align-items:center;gap:8px}
   .card h2 .n{background:var(--fill);color:var(--on-fill);width:24px;height:24px;border-radius:50%;
     display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:0 0 auto}
@@ -380,8 +388,12 @@
   }
 
   /* 🖨️ หัวกระดาษพิมพ์ (backlog ข้อ 3) — ช่องกรอกโปร่งบนพื้นเขียว header · บรรทัด print-only โผล่เฉพาะตอนพิมพ์ */
-  .print-id{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-  .print-id input{flex:1;min-width:150px;padding:7px 10px;border-radius:9px;font-size:13px;
+  /* 📐 ใช้ `gap:12px` และ 2 คอลัมน์ **เท่ากับ `.grid` ของการ์ด** ⇒ ช่องที่สอง
+   * ตกลงคอลัมน์เดียวกับการ์ดพอดีทุกความกว้าง (เดิม flex แบ่งครึ่ง ได้ 644 vs 646 = เหลื่อม 2px)
+   * 🔒 ผูกกับกริดของการ์ด ไม่ใช่กับตัวเลขที่วัดได้วันนี้ */
+  .print-id{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;text-align:left}
+  .print-id label{display:block;font-size:12px;font-weight:600;opacity:.9;margin-bottom:3px}
+  .print-id input{width:100%;padding:7px 10px;border-radius:9px;font-size:13px;
     border:1px solid color-mix(in srgb,var(--on-fill) 32%,transparent);background:color-mix(in srgb,var(--on-fill) 8%,transparent);color:var(--on-fill)}
   .print-id input::placeholder{color:var(--on-fill);opacity:.62}
   .print-only{display:none}
@@ -449,9 +461,19 @@
       <span>🔒 ไม่เก็บข้อมูล</span>
     </div>
     <!-- 🖨️ หัวกระดาษพิมพ์ (backlog ข้อ 3 — 23-07-2569): กรอกได้ ไม่กรอกก็ได้ (พิมพ์เป็นจุดไข่ปลาให้เขียนมือ) -->
+    <!-- 🔴 **ป้ายต้องเป็นป้าย ไม่ใช่ข้อความจางในช่อง** (27-08-2569)
+         เดิมสองช่องนี้ไม่มี <label for="pr_name"> เลย ใช้ placeholder เป็นคำอธิบาย ⇒ พอเจ้าหน้าที่
+         พิมพ์ค่าลงไป คำอธิบายหายทันที · คนที่เปิดหน้ากลับมาทีหลังไม่รู้ว่าช่องนี้คืออะไร
+         (และโปรแกรมอ่านหน้าจอก็อ่านไม่เจอด้วย) ⇒ ป้ายอยู่ข้างบน placeholder เหลือแค่ตัวอย่าง -->
     <div class="print-id no-print">
-      <input id="pr_name" type="text" placeholder="ชื่อผู้กู้ (ขึ้นหัวกระดาษตอนพิมพ์ — เว้นได้)">
-      <input id="pr_contract" type="text" placeholder="เลขที่สัญญา (เว้นได้)">
+      <div>
+        <label for="pr_name">ชื่อผู้กู้ <span style="font-weight:400;opacity:.75">— ขึ้นหัวกระดาษตอนพิมพ์ · เว้นได้</span></label>
+        <input id="pr_name" type="text" placeholder="เว้นว่างได้ — พิมพ์เป็นจุดไข่ปลาให้เขียนมือ">
+      </div>
+      <div>
+        <label for="pr_contract">เลขที่สัญญา <span style="font-weight:400;opacity:.75">— เว้นได้</span></label>
+        <input id="pr_contract" type="text" placeholder="เว้นว่างได้">
+      </div>
     </div>
     <div class="print-only" id="printIdLine"></div>
   </header>
@@ -468,28 +490,28 @@
     <h2><span class="n">1</span> ข้อมูลเงินกู้</h2>
     <div class="grid">
       <div class="field">
-        <label>เงินต้น</label>
+        <label for="principal">เงินต้น</label>
         <div class="inp"><input id="principal" type="number" inputmode="numeric" min="0" step="1" placeholder="100000" value="100000" onchange="snapPrincipal()" onblur="snapPrincipal()"><span class="suffix">บาท</span></div>
         <div id="principal_note" style="font-size:12px;color:#b06000;margin-top:4px"></div>
       </div>
       <div class="field">
-        <label>วันรับเงินกู้</label>
+        <label for="startDate">วันรับเงินกู้</label>
         <div class="date-wrap"><input id="startDate" type="date"><div class="date-hint" id="startDate-th"></div></div>
       </div>
       <div class="field type-field">
-        <label>ประเภทสัญญา</label>
+        <label for="loanType">ประเภทสัญญา</label>
         <select id="loanType">
           <option value="short">ระยะสั้น (1 ปี)</option>
           <option value="medium">ปานกลาง (2–10 ปี)</option>
         </select>
       </div>
       <div class="field">
-        <label>จำนวนปี (งวดต้น ปีละครั้ง)</label>
+        <label for="years">จำนวนปี (งวดต้น ปีละครั้ง)</label>
         <div class="inp"><input id="years" type="number" min="1" max="1" step="1" value="1" onchange="snapYears()" onblur="snapYears()"><span class="suffix">ปี</span></div>
         <div id="years_note" style="font-size:12px;color:#b06000;margin-top:4px"></div>
       </div>
       <div class="field wide">
-        <label>อัตราดอกเบี้ยต่อปี — เลือกตามชั้นสมาชิก หรือพิมพ์เอง</label>
+        <label for="rate">อัตราดอกเบี้ยต่อปี — เลือกตามชั้นสมาชิก หรือพิมพ์เอง</label>
         <div class="chips">
           <span class="chip" data-rate="8">8%</span>
           <span class="chip" data-rate="7.5">7.5%</span>
@@ -556,7 +578,7 @@
       <div class="card">
         <h2><span class="n">2</span> ยอดปิดบัญชี ณ วันที่ <span style="font-size:12px;font-weight:600;color:var(--muted)">— ปิดก่อนกำหนด / สอบถามยอด</span></h2>
         <div class="grid no-print" style="margin-bottom:6px">
-          <div class="field"><label>คำนวณ ณ วันที่</label><div class="date-wrap"><input id="asofDate" type="date"><div class="date-hint" id="asofDate-th"></div></div></div>
+          <div class="field"><label for="asofDate">คำนวณ ณ วันที่</label><div class="date-wrap"><input id="asofDate" type="date"><div class="date-hint" id="asofDate-th"></div></div></div>
         </div>
         <div class="summary" id="payoffSummary"></div>
         <div class="note" id="payoffNote"></div>
@@ -568,10 +590,10 @@
       <div class="card">
         <h2><span class="n">2</span> เบี้ยปรับผิดนัดชำระ <span style="font-size:12px;font-weight:600;color:var(--muted)">— ค่าปรับล้วน 3%/ปี บนต้นค้าง (ข้อ 16 ว.3)</span></h2>
         <div class="grid no-print" style="margin-bottom:6px">
-          <div class="field"><label>เงินต้นที่ค้างชำระ</label><div class="inp"><input id="penPrincipal" type="number" inputmode="decimal" min="0" placeholder="50000"><span class="suffix">บาท</span></div></div>
-          <div class="field"><label>วันครบกำหนด (เริ่มนับปรับ)</label><div class="date-wrap"><input id="penDue" type="date"><div class="date-hint" id="penDue-th"></div></div></div>
-          <div class="field"><label>วันที่ชำระจริง (สิ้นสุด)</label><div class="date-wrap"><input id="penPaid" type="date"><div class="date-hint" id="penPaid-th"></div></div></div>
-          <div class="field"><label>อัตราเบี้ยปรับ (ระเบียบ = 3%)</label><div class="inp"><input id="penFine" type="number" step="0.01" inputmode="decimal" value="3"><span class="suffix">%</span></div></div>
+          <div class="field"><label for="penPrincipal">เงินต้นที่ค้างชำระ</label><div class="inp"><input id="penPrincipal" type="number" inputmode="decimal" min="0" placeholder="50000"><span class="suffix">บาท</span></div></div>
+          <div class="field"><label for="penDue">วันครบกำหนด (เริ่มนับปรับ)</label><div class="date-wrap"><input id="penDue" type="date"><div class="date-hint" id="penDue-th"></div></div></div>
+          <div class="field"><label for="penPaid">วันที่ชำระจริง (สิ้นสุด)</label><div class="date-wrap"><input id="penPaid" type="date"><div class="date-hint" id="penPaid-th"></div></div></div>
+          <div class="field"><label for="penFine">อัตราเบี้ยปรับ (ระเบียบ = 3%)</label><div class="inp"><input id="penFine" type="number" step="0.01" inputmode="decimal" value="3"><span class="suffix">%</span></div></div>
         </div>
         <div class="summary" id="penSummary"></div>
         <div class="note" id="penNote"></div>
@@ -586,12 +608,12 @@
     <div class="card no-print">
       <h2><span class="n">1</span> ข้อมูลปรับปรุงโครงสร้างหนี้ <span style="font-size:12px;font-weight:600;color:var(--muted)">— 2 ยอด (ระเบียบ 302)</span></h2>
       <div class="grid">
-        <div class="field"><label>ยอด A — ต้นเงินรวม (คิดดอกเบี้ย)</label><div class="inp"><input id="rA" type="number" inputmode="decimal" min="0" placeholder="500000"><span class="suffix">บาท</span></div></div>
-        <div class="field"><label>ยอด B — ดอก+เบี้ยปรับค้าง (0%)</label><div class="inp"><input id="rB" type="number" inputmode="decimal" min="0" placeholder="80000"><span class="suffix">บาท</span></div></div>
-        <div class="field"><label>วันอนุมัติ / รับเงิน</label><div class="date-wrap"><input id="rStart" type="date"><div class="date-hint" id="rStart-th"></div></div></div>
-        <div class="field"><label>จำนวนปี (≤15)</label><div class="inp"><input id="rYears" type="number" min="1" max="15" step="1" value="10"><span class="suffix">ปี</span></div></div>
-        <div class="field"><label>ปลอดชำระ (ปีแรก ≤3)</label><div class="inp"><input id="rGrace" type="number" min="0" max="3" step="1" value="0"><span class="suffix">ปี</span></div></div>
-        <div class="field"><label>อัตราดอกเบี้ยยอด A (สูงสุด)</label><div class="inp"><input id="rRate" type="number" step="0.01" inputmode="decimal" value="8"><span class="suffix">%</span></div></div>
+        <div class="field"><label for="rA">ยอด A — ต้นเงินรวม (คิดดอกเบี้ย)</label><div class="inp"><input id="rA" type="number" inputmode="decimal" min="0" placeholder="500000"><span class="suffix">บาท</span></div></div>
+        <div class="field"><label for="rB">ยอด B — ดอก+เบี้ยปรับค้าง (0%)</label><div class="inp"><input id="rB" type="number" inputmode="decimal" min="0" placeholder="80000"><span class="suffix">บาท</span></div></div>
+        <div class="field"><label for="rStart">วันอนุมัติ / รับเงิน</label><div class="date-wrap"><input id="rStart" type="date"><div class="date-hint" id="rStart-th"></div></div></div>
+        <div class="field"><label for="rYears">จำนวนปี (≤15)</label><div class="inp"><input id="rYears" type="number" min="1" max="15" step="1" value="10"><span class="suffix">ปี</span></div></div>
+        <div class="field"><label for="rGrace">ปลอดชำระ (ปีแรก ≤3)</label><div class="inp"><input id="rGrace" type="number" min="0" max="3" step="1" value="0"><span class="suffix">ปี</span></div></div>
+        <div class="field"><label for="rRate">อัตราดอกเบี้ยยอด A (สูงสุด)</label><div class="inp"><input id="rRate" type="number" step="0.01" inputmode="decimal" value="8"><span class="suffix">%</span></div></div>
       </div>
       <div class="actions">
         <button class="btn" onclick="calcRestructure()">คำนวณ</button>
@@ -1146,21 +1168,24 @@ DATE_FIELDS.forEach(id=>{
   <h2><span class="n">✎</span> ข้อมูลผู้กู้ — พิมพ์สัญญา ส.-งก.14</h2>
   <div class="note" style="margin-bottom:10px">ตัวเลขการเงิน (วงเงิน + ตาราง 10 งวด) ดึงจากผลคำนวณอัตโนมัติ — กรอกเฉพาะข้อมูลตัวตนผู้กู้</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-    <div class="field" style="grid-column:1/-1"><label>วันที่ประชุมอนุมัติ <span style="color:var(--red)">*</span> <span class="note" style="font-weight:400">(= วันที่ในสัญญา · ปกติวันที่ 9 หรือ 25)</span></label><div class="date-wrap"><input type="date" id="ct_meetdate"><div class="date-hint" id="ct_meetdate_th"></div></div></div>
-    <div class="field"><label>ชื่อ-สกุล ผู้กู้</label><div class="inp"><input id="ct_name" placeholder="นาย / นาง / นางสาว ..."></div></div>
-    <div class="field"><label>เลขทะเบียนสมาชิก</label><div class="inp"><input id="ct_reg"></div></div>
-    <div class="field"><label>สมาชิกกลุ่มที่</label><div class="inp"><input id="ct_group"></div></div>
-    <div class="field"><label>บ้านเลขที่</label><div class="inp"><input id="ct_house"></div></div>
-    <div class="field"><label>หมู่ที่</label><div class="inp"><input id="ct_moo"></div></div>
-    <div class="field"><label>ตำบล</label><div class="inp"><select id="ct_tambon"></select></div></div>
-    <div class="field"><label>วัตถุประสงค์</label><div class="inp"><select id="ct_purpose"></select></div></div>
-    <div class="field" id="ct_other_field" style="display:none"><label>ระบุวัตถุประสงค์เอง</label><div class="inp"><input id="ct_purpose_other"></div></div>
+    <div class="field" style="grid-column:1/-1"><label for="ct_meetdate">วันที่ประชุมอนุมัติ <span style="color:var(--red)">*</span> <span class="note" style="font-weight:400">(= วันที่ในสัญญา · ปกติวันที่ 9 หรือ 25)</span></label><div class="date-wrap"><input type="date" id="ct_meetdate"><div class="date-hint" id="ct_meetdate_th"></div></div></div>
+    <div class="field"><label for="ct_name">ชื่อ-สกุล ผู้กู้</label><div class="inp"><input id="ct_name" placeholder="คำนำหน้า ชื่อ - สกุล"></div></div>
+    <div class="field"><label for="ct_reg">เลขทะเบียนสมาชิก</label><div class="inp"><input id="ct_reg"></div></div>
+    <div class="field"><label for="ct_group">สมาชิกกลุ่มที่</label><div class="inp"><input id="ct_group"></div></div>
+    <div class="field"><label for="ct_house">บ้านเลขที่</label><div class="inp"><input id="ct_house"></div></div>
+    <div class="field"><label for="ct_moo">หมู่ที่</label><div class="inp"><input id="ct_moo"></div></div>
+    <div class="field"><label for="ct_tambon">ตำบล</label><div class="inp"><select id="ct_tambon"></select></div></div>
+    <div class="field"><label for="ct_purpose">วัตถุประสงค์</label><div class="inp"><select id="ct_purpose"></select></div></div>
+    <div class="field" id="ct_other_field" style="display:none"><label for="ct_purpose_other">ระบุวัตถุประสงค์เอง</label><div class="inp"><input id="ct_purpose_other"></div></div>
   </div>
 
   <!-- ===== หลักค้ำประกัน (ระเบียบว่าด้วยการให้เงินกู้ฯ ข้อ 8) ===== -->
   <div style="margin-top:14px;border-top:1px solid #e5e7eb;padding-top:12px">
-    <label style="font-weight:700;display:block;margin-bottom:6px">หลักค้ำประกัน
-      <span class="note" style="font-weight:400">— ระเบียบเงินกู้ ข้อ 8 (เลือก 1 อย่าง)</span></label>
+    <!-- 🔑 นี่คือ **หัวข้อของกลุ่ม** ไม่ใช่ป้ายของช่องใดช่องหนึ่ง — เดิมเป็น <label>
+         ที่ไม่ได้ชี้ไปที่ตัวควบคุมไหนเลย (คลิกแล้วไม่มีอะไรเกิดขึ้น) ⇒ ใช้ div
+         ส่วนป้ายของแต่ละตัวเลือกคือ <label class="secopt"> ที่ห่อ radio ไว้ในตัวเองอยู่แล้ว -->
+    <div style="font-weight:700;display:block;margin-bottom:6px">หลักค้ำประกัน
+      <span class="note" style="font-weight:400">— ระเบียบเงินกู้ ข้อ 8 (เลือก 1 อย่าง)</span></div>
     <div style="display:flex;flex-wrap:wrap;gap:8px">
       <label class="secopt"><input type="radio" name="ct_security" value="share"> หุ้นตนเอง <span class="note">(กู้ ≤60% ของหุ้น)</span></label>
       <label class="secopt"><input type="radio" name="ct_security" value="mortgage"> จำนองอสังหาฯ <span class="note">[ข้อ 8(1)]</span></label>
@@ -1169,7 +1194,7 @@ DATE_FIELDS.forEach(id=>{
     </div>
     <!-- หุ้นที่ถืออยู่ — ต้องใช้ 2 ทาง: คำนวณเพดาน (ข้อ 8) + กรอกข้อ 2 ของหนังสือหุ้นค้ำ -->
     <div id="ct_share_field" style="display:none;margin-top:10px">
-      <label style="font-weight:700">จำนวนหุ้นที่ถืออยู่ <span style="color:var(--red)">*</span>
+      <label for="ct_shares" style="font-weight:700">จำนวนหุ้นที่ถืออยู่ <span style="color:var(--red)">*</span>
         <span class="note" style="font-weight:400">(ดูจากทะเบียนหุ้น/สมุดคู่บัญชี · หุ้นละ 10 บาท ตามข้อบังคับ ข้อ 5)</span></label>
       <div class="inp" style="max-width:260px">
         <input id="ct_shares" type="number" min="0" step="1" placeholder="เช่น 1500" oninput="updateSecurityUI()">
@@ -1294,14 +1319,14 @@ DATE_FIELDS.forEach(id=>{
     box.innerHTML =
       '<div style="font-weight:700;margin-bottom:8px">ผู้ค้ำประกันคนที่ '+i+'</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
-        '<div class="field"><label>ชื่อ-สกุล</label><div class="inp"><input id="g'+i+'_name" placeholder="นาย / นาง / นางสาว ..."></div></div>'+
-        '<div class="field"><label>เลขทะเบียนสมาชิก</label><div class="inp"><input id="g'+i+'_reg"></div></div>'+
-        '<div class="field"><label>สมาชิกกลุ่มที่</label><div class="inp"><input id="g'+i+'_group"></div></div>'+
-        '<div class="field"><label>เลขบัตรประชาชน (13 หลัก)</label><div class="inp"><input id="g'+i+'_id" inputmode="numeric" maxlength="13" placeholder="1234567890123"></div></div>'+
-        '<div class="field"><label>บ้านเลขที่</label><div class="inp"><input id="g'+i+'_house"></div></div>'+
-        '<div class="field"><label>หมู่ที่</label><div class="inp"><input id="g'+i+'_moo"></div></div>'+
-        '<div class="field"><label>ตำบล</label><div class="inp"><select id="g'+i+'_tambon"></select></div></div>'+
-        '<div class="field"><label>โทรศัพท์</label><div class="inp"><input id="g'+i+'_tel" inputmode="tel"></div></div>'+
+        '<div class="field"><label for="g'+i+'_name">ชื่อ-สกุล</label><div class="inp"><input id="g'+i+'_name" placeholder="คำนำหน้า ชื่อ - สกุล"></div></div>'+
+        '<div class="field"><label for="g'+i+'_reg">เลขทะเบียนสมาชิก</label><div class="inp"><input id="g'+i+'_reg"></div></div>'+
+        '<div class="field"><label for="g'+i+'_group">สมาชิกกลุ่มที่</label><div class="inp"><input id="g'+i+'_group"></div></div>'+
+        '<div class="field"><label for="g'+i+'_id">เลขบัตรประชาชน (13 หลัก)</label><div class="inp"><input id="g'+i+'_id" inputmode="numeric" maxlength="13" placeholder="ตัวเลข 13 หลัก"></div></div>'+
+        '<div class="field"><label for="g'+i+'_house">บ้านเลขที่</label><div class="inp"><input id="g'+i+'_house"></div></div>'+
+        '<div class="field"><label for="g'+i+'_moo">หมู่ที่</label><div class="inp"><input id="g'+i+'_moo"></div></div>'+
+        '<div class="field"><label for="g'+i+'_tambon">ตำบล</label><div class="inp"><select id="g'+i+'_tambon"></select></div></div>'+
+        '<div class="field"><label for="g'+i+'_tel">โทรศัพท์</label><div class="inp"><input id="g'+i+'_tel" inputmode="tel"></div></div>'+
       '</div>';
     wrap.appendChild(box);
     const sel=box.querySelector('#g'+i+'_tambon');
